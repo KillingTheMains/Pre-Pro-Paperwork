@@ -178,6 +178,8 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
   #tab-build{display:block!important;}
 }
 </style>
+<script src="https://apis.google.com/js/api.js" onload="_driveOnGapiLoad()"></script>
+<script src="https://accounts.google.com/gsi/client" onload="_driveOnGisLoad()" async defer></script>
 </head>
 <body>
 
@@ -190,6 +192,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
   <span class="save-status saved" id="save-status">● Saved</span>
   <div class="header-btns">
     <button class="btn btn-sm" onclick="openShowPicker()" title="Switch or manage shows">Shows ▾</button>
+    <button id="drive-btn" class="btn btn-sm" onclick="driveConnect()" title="Connect Google Drive backup" style="color:var(--muted)">☁ Drive</button>
     <button class="btn btn-sm" onclick="importShow()" title="Load show from JSON file">Import</button>
     <button class="btn btn-sm" onclick="exportShow()" title="Save show as JSON file">Export</button>
     <button class="btn btn-primary btn-sm" onclick="openAddCable()">+ Add Cable</button>
@@ -613,6 +616,130 @@ function persistSave() {
   saveAllShows(shows);
   document.getElementById('save-status').textContent = '● Saved';
   document.getElementById('save-status').className = 'save-status saved';
+  _driveScheduleSync();
+}
+
+// ── Google Drive Sync ─────────────────────────────────────
+const DRIVE_CLIENT_ID   = '833774065070-vsbdogtrqkranauhbu3f33lg9997vvf0.apps.googleusercontent.com';
+const DRIVE_SCOPE       = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILE_NAME   = 'loom-builder-shows.json';
+const DRIVE_FOLDER_NAME = 'Pre-Pro Paperwork';
+let _driveGapiReady = false, _driveGisReady = false;
+let _driveTokClient = null, _driveConnected = false, _driveSyncTimer = null;
+let _driveFileId   = localStorage.getItem('lb_drive_file_id')   || null;
+let _driveFolderId = localStorage.getItem('lb_drive_folder_id') || null;
+
+function _driveOnGapiLoad() {
+  gapi.load('client', async () => {
+    await gapi.client.init({});
+    await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
+    _driveGapiReady = true; _driveTryAutoConnect();
+  });
+}
+function _driveOnGisLoad() {
+  _driveTokClient = google.accounts.oauth2.initTokenClient({
+    client_id: DRIVE_CLIENT_ID, scope: DRIVE_SCOPE, callback: _driveTokCallback,
+  });
+  _driveGisReady = true; _driveTryAutoConnect();
+}
+function _driveTryAutoConnect() {
+  if (!_driveGapiReady || !_driveGisReady) return;
+  const token = localStorage.getItem('lb_drive_access_token');
+  const expiry = parseInt(localStorage.getItem('lb_drive_token_expiry') || '0');
+  if (token && Date.now() < expiry) {
+    gapi.client.setToken({ access_token: token });
+    _driveConnected = true; _driveSetUI('synced');
+  } else { _driveSetUI('disconnected'); }
+}
+function _driveTokCallback(resp) {
+  if (resp.error) { _driveSetUI('error'); return; }
+  const tok = gapi.client.getToken();
+  localStorage.setItem('lb_drive_access_token', tok.access_token);
+  localStorage.setItem('lb_drive_token_expiry', String(Date.now() + 3500000));
+  _driveConnected = true; _driveSetUI('synced'); _driveSyncNow();
+}
+function driveConnect() {
+  if (!_driveGisReady) return;
+  _driveTokClient.requestAccessToken({ prompt: _driveConnected ? '' : 'consent' });
+}
+function driveDisconnect() {
+  const tok = gapi.client.getToken();
+  if (tok) google.accounts.oauth2.revoke(tok.access_token, () => {});
+  gapi.client.setToken(null); _driveConnected = false;
+  localStorage.removeItem('lb_drive_access_token');
+  localStorage.removeItem('lb_drive_token_expiry');
+  _driveSetUI('disconnected');
+}
+function _driveScheduleSync() {
+  if (!_driveConnected) return;
+  clearTimeout(_driveSyncTimer); _driveSetUI('pending');
+  _driveSyncTimer = setTimeout(_driveSyncNow, 2000);
+}
+async function _driveSyncNow() {
+  if (!_driveConnected) return;
+  _driveSetUI('syncing');
+  try {
+    const data = JSON.stringify(shows, null, 2);
+    if (!_driveFolderId) _driveFolderId = await _driveEnsureFolder();
+    if (_driveFileId) {
+      await _driveUpdateFile(_driveFileId, data);
+    } else {
+      _driveFileId = await _driveCreateFile(_driveFolderId, DRIVE_FILE_NAME, data);
+      localStorage.setItem('lb_drive_file_id', _driveFileId);
+    }
+    _driveSetUI('synced');
+  } catch(e) {
+    if (e.status === 401) { _driveTokClient.requestAccessToken({ prompt: '' }); }
+    else { console.error('Drive sync error', e); _driveSetUI('error'); }
+  }
+}
+async function _driveEnsureFolder() {
+  const r = await gapi.client.drive.files.list({
+    q: `name='${DRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+    fields: 'files(id)', spaces: 'drive',
+  });
+  let fid = r.result.files?.[0]?.id;
+  if (!fid) {
+    const f = await gapi.client.drive.files.create({
+      resource: { name: DRIVE_FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' },
+      fields: 'id',
+    });
+    fid = f.result.id;
+  }
+  localStorage.setItem('lb_drive_folder_id', fid);
+  return fid;
+}
+async function _driveCreateFile(folderId, name, data) {
+  const b = 'lb_mpart_boundary';
+  const body = `--${b}\r\nContent-Type: application/json\r\n\r\n` +
+    JSON.stringify({ name, parents: [folderId], mimeType: 'application/json' }) +
+    `\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${data}\r\n--${b}--`;
+  const r = await gapi.client.request({
+    path: '/upload/drive/v3/files', method: 'POST',
+    params: { uploadType: 'multipart', fields: 'id' },
+    headers: { 'Content-Type': `multipart/related; boundary=${b}` }, body,
+  });
+  return r.result.id;
+}
+async function _driveUpdateFile(fileId, data) {
+  await gapi.client.request({
+    path: `/upload/drive/v3/files/${fileId}`, method: 'PATCH',
+    params: { uploadType: 'media' },
+    headers: { 'Content-Type': 'application/json' }, body: data,
+  });
+}
+function _driveSetUI(state) {
+  const btn = document.getElementById('drive-btn');
+  if (!btn) return;
+  const cfg = {
+    disconnected: ['☁ Drive',      '#888',    'Connect Google Drive backup',              'driveConnect()'],
+    pending:      ['☁ Drive',      '#facc15', 'Waiting to sync…',                         ''],
+    syncing:      ['☁ Syncing…',   '#22d3ee', 'Syncing to Google Drive…',                 ''],
+    synced:       ['☁ Drive ✓',    '#3dd68c', 'Backed up to Drive — click to disconnect', 'driveDisconnect()'],
+    error:        ['☁ Sync Error', '#f97316', 'Sync failed — click to retry',             '_driveSyncNow()'],
+  }[state] || ['☁ Drive','#888','','driveConnect()'];
+  btn.textContent = cfg[0]; btn.style.color = cfg[1];
+  btn.title = cfg[2]; btn.setAttribute('onclick', cfg[3]);
 }
 
 // ═══════════════════════════════════════════════════════════
