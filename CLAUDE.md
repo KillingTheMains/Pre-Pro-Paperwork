@@ -270,6 +270,43 @@ Overview · Cables · Build View · Inventory · Settings
 - **localStorage persistence**: no server, no accounts
 - **Color hex values are canonical**: always use the COLORS array values, not ad-hoc hex codes
 
+## Viewport height pattern (REQUIRED for all new tools)
+
+CSS `height: 100%` on `body` requires the full chain `html → body → #root → …` to all be properly sized, which breaks silently. **Always use one of these two approaches instead:**
+
+### Option A — `100vh` on body (preferred for simpler layouts)
+```css
+body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.main-scroll-area { flex: 1; overflow-y: auto; }
+```
+
+### Option B — JS override (required when a `#root` div is the render target)
+When `render()` rebuilds `#root` innerHTML, `flex: 1` on children of `#root` doesn't work unless `#root` is itself a flex container. Use both CSS and JS:
+
+```css
+html, body { height: 100%; overflow: hidden; margin: 0; }
+body { display: flex; flex-direction: column; }
+#root { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+#app-body { display: flex; overflow: hidden; /* height set by JS */ }
+#sidebar { overflow-y: auto; flex-shrink: 0; }
+#main-scroll { flex: 1; overflow-y: auto; }
+```
+
+```js
+function applyViewportHeight() {
+  const appBody = document.getElementById('app-body');
+  if (!appBody) return;
+  const header = document.getElementById('app-header');
+  const used = header ? header.getBoundingClientRect().height : 0;
+  appBody.style.height = (window.innerHeight - used) + 'px';
+  appBody.style.maxHeight = (window.innerHeight - used) + 'px';
+}
+window.addEventListener('resize', applyViewportHeight);
+// Call applyViewportHeight() at the end of every render() call
+```
+
+**Rack Builder uses Option B. Loom Builder uses Option A.**
+
 ## Reference docs (in `reference-docs/`)
 - GigaCore 10 user manual
 - ProPlex IQ 1616 user manual  
