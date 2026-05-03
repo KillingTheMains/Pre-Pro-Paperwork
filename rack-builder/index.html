@@ -1,0 +1,2693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rack Builder</title>
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  --bg-deep:      #08080e;
+  --bg-surface:   #111118;
+  --bg-card:      #18181f;
+  --bg-hover:     #202028;
+  --border:       #252530;
+  --border-light: #353545;
+  --text-primary: #e8e8f0;
+  --text-secondary:#8888a4;
+  --text-muted:   #50505e;
+
+  --blue:   #4a9eff;
+  --green:  #3dd68c;
+  --purple: #a855f7;
+  --orange: #f97316;
+  --pink:   #ec4899;
+  --cyan:   #22d3ee;
+  --yellow: #facc15;
+  --red:    #ef4444;
+
+  --sidebar-w: 220px;
+  --header-h:  50px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'SF Mono', ui-monospace, 'Fira Code', monospace;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+#app-header {
+  height: var(--header-h);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 50;
+}
+#logo {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: var(--blue);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+#project-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: all .15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+#project-name:hover { border-color: var(--border-light); color: var(--text-primary); }
+.hspacer { flex: 1; }
+.hbtn {
+  padding: 5px 13px;
+  font-size: 10px;
+  font-family: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border: none;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.hbtn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+.hbtn-ghost:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+.hbtn-primary { background: var(--blue); color: #000; font-weight: 800; }
+.hbtn-primary:hover { filter: brightness(1.15); }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+#app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+#sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.sb-section { display: flex; flex-direction: column; overflow: hidden; }
+.sb-section.flex1 { flex: 1; min-height: 0; }
+.sb-head {
+  padding: 10px 12px 5px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.sb-head button {
+  background: none; border: none;
+  color: var(--text-muted); cursor: pointer;
+  font-size: 17px; line-height: 1; padding: 0 2px;
+  transition: color .15s;
+}
+.sb-head button:hover { color: var(--blue); }
+.sb-items { overflow-y: auto; flex: 1; }
+.sb-item {
+  padding: 7px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background .1s;
+  border-left: 2px solid transparent;
+  color: var(--text-secondary);
+  user-select: none;
+}
+.sb-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.sb-item.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-left-color: var(--blue);
+}
+.sb-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sb-divider { height: 1px; background: var(--border); margin: 3px 0; flex-shrink: 0; }
+
+/* ============================================================
+   MAIN AREA
+   ============================================================ */
+#main { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+#toolbar {
+  padding: 8px 16px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 46px;
+}
+#rack-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+#main-scroll { flex: 1; overflow-y: auto; padding: 18px; }
+
+/* ============================================================
+   RACK VIEW
+   ============================================================ */
+.rack-wrap { max-width: 1400px; margin: 0 auto; }
+
+/* ── Rack outer chassis ─────────────────────────── */
+.rack-frame {
+  background: #07070d;
+  border: 3px solid #222230;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px #3c3c50,
+    0 16px 60px rgba(0,0,0,.95),
+    inset 0 1px 0 rgba(255,255,255,.04),
+    inset 0 -1px 0 rgba(0,0,0,.4);
+}
+
+/* Top / bottom cap channels */
+.rack-rail {
+  height: 22px;
+  background: linear-gradient(180deg, #1e1e2c 0%, #14141e 100%);
+  border-bottom: 2px solid #060610;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 6px;
+}
+.rack-rail.bottom {
+  border-bottom: none;
+  border-top: 2px solid #060610;
+  background: linear-gradient(180deg, #14141e 0%, #1e1e2c 100%);
+}
+.rack-screw-row { display: flex; gap: 5px; align-items: center; }
+.rack-screw {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  background: radial-gradient(circle at 38% 35%, #2c2c40, #0c0c18);
+  border: 1px solid #060610;
+  box-shadow: 0 1px 3px rgba(0,0,0,.7), inset 0 1px 1px rgba(255,255,255,.07);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 7px; color: #1c1c28; font-weight: 900; line-height: 1;
+  user-select: none;
+}
+.rack-cap-label {
+  font-size: 7px; font-weight: 800; letter-spacing: .22em;
+  color: #1e1e2e; text-transform: uppercase; user-select: none;
+}
+
+/* ── Each rack row ──────────────────────────────── */
+.rack-row { display: flex; border-bottom: 1px solid #0b0b12; }
+
+/* Left rail strip */
+.rack-num {
+  width: 36px; flex-shrink: 0;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='15'%3E%3Crect x='14.5' y='4' width='7' height='7' rx='1.5' fill='%2305050c' stroke='%231a1a28' stroke-width='.5'/%3E%3C/svg%3E"),
+    linear-gradient(90deg, #0f0f18 0%, #1a1a26 55%, #111118 100%);
+  background-repeat: repeat-y, no-repeat;
+  background-size: 36px 15px, 100% 100%;
+  background-position: center 5px, 0 0;
+  border-right: 2px solid #060610;
+  box-shadow: inset -1px 0 3px rgba(0,0,0,.5);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 5px;
+  font-size: 7px; font-weight: 800; letter-spacing: .05em;
+  color: #282838;
+}
+
+/* Right rail strip */
+.rack-rail-r {
+  width: 36px; flex-shrink: 0;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='15'%3E%3Crect x='14.5' y='4' width='7' height='7' rx='1.5' fill='%2305050c' stroke='%231a1a28' stroke-width='.5'/%3E%3C/svg%3E"),
+    linear-gradient(90deg, #111118 0%, #1a1a26 45%, #0f0f18 100%);
+  background-repeat: repeat-y, no-repeat;
+  background-size: 36px 15px, 100% 100%;
+  background-position: center 5px, 0 0;
+  border-left: 2px solid #060610;
+  box-shadow: inset 1px 0 3px rgba(0,0,0,.5);
+}
+
+.rack-cell { flex: 1; min-width: 0; }
+
+/* ── Equipment faceplate ────────────────────────── */
+
+.eq-block {
+  background: var(--bg-card);
+  border-left: 4px solid var(--blue);
+  border-right: 1px solid #111118;
+  position: relative;
+}
+.eq-block:hover { background: var(--bg-hover); }
+.eq-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px 5px 8px;
+  border-bottom: 1px solid var(--border);
+  min-height: 34px;
+  flex-wrap: wrap;
+  background: linear-gradient(180deg, #1e1e28 0%, #18181f 100%);
+}
+.eq-ru {
+  font-size: 8px; font-weight: 800; letter-spacing: .06em;
+  color: #30304a; background: #111118;
+  border: 1px solid #1e1e2c; border-radius: 3px;
+  padding: 2px 5px; white-space: nowrap; flex-shrink: 0;
+}
+.eq-name { font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.eq-badge {
+  font-size: 8px; color: var(--text-muted);
+  background: #1c1c26; padding: 2px 5px;
+  border-radius: 3px; letter-spacing: .05em;
+}
+.eq-ip { font-size: 9px; color: var(--green); font-weight: 700; margin-left: auto; }
+.eq-acts { display: flex; gap: 3px; margin-left: 4px; }
+.eq-btn {
+  width: 21px; height: 21px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none;
+  color: var(--text-muted); cursor: pointer;
+  border-radius: 3px; font-size: 10px;
+  transition: all .1s;
+}
+.eq-btn:hover { background: var(--border); color: var(--text-primary); }
+.eq-btn.del:hover { background: var(--red); color: white; }
+
+/* Ports */
+.ports-area { padding: 4px 8px 8px; }
+.port-group-label {
+  font-size: 8px; color: var(--text-muted);
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: 5px 2px 3px;
+}
+.ports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2px;
+}
+.port-row {
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 4px 5px; border-radius: 3px;
+  cursor: pointer; transition: background .1s;
+}
+.port-row:hover { background: var(--bg-hover); }
+.prow-top { display: flex; align-items: center; gap: 5px; min-height: 16px; }
+.prow-bot { display: flex; align-items: center; gap: 4px; padding-left: 12px; flex-wrap: wrap; min-height: 0; }
+.pdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.pdot.output  { background: var(--red); }
+.pdot.input   { background: var(--blue); }
+.pdot.network { background: var(--cyan); }
+.pdot.power   { background: var(--yellow); }
+.pdot.port-connected { background: var(--green) !important; }
+.pname {
+  font-size: 8px; color: var(--text-muted);
+  white-space: nowrap; text-transform: uppercase; letter-spacing: .05em; flex: 1;
+}
+.plabel { font-size: 10px; color: var(--text-primary); }
+.plabel.empty { color: var(--text-muted); font-style: italic; font-size: 9px; }
+.pedit { font-size: 9px; color: var(--text-muted); opacity: 0; transition: opacity .1s; margin-left: auto; }
+.port-row:hover .pedit { opacity: 1; }
+
+/* Add-equipment / empty */
+.add-row { padding: 12px 16px; display: flex; justify-content: center; }
+.add-btn {
+  padding: 9px 22px; font-size: 10px; font-family: inherit;
+  background: transparent; color: var(--blue);
+  border: 1px dashed var(--blue); border-radius: 4px;
+  cursor: pointer; letter-spacing: .1em; text-transform: uppercase;
+  transition: all .15s;
+}
+.add-btn:hover { background: rgba(74,158,255,.08); }
+.empty-rack {
+  text-align: center; padding: 60px 30px;
+  color: var(--text-muted); font-size: 12px; line-height: 1.8;
+}
+.empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .3; }
+
+/* ============================================================
+   EQUIPMENT LIBRARY VIEW
+   ============================================================ */
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 10px;
+  max-width: 960px; margin: 0 auto;
+}
+.lib-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 5px; padding: 12px;
+  transition: border-color .15s;
+}
+.lib-card:hover { border-color: var(--border-light); }
+.lib-name { font-size: 12px; font-weight: 800; margin-bottom: 3px; }
+.lib-meta { font-size: 9px; color: var(--text-muted); margin-bottom: 9px; }
+.lib-ports { font-size: 9px; }
+.lib-port-chip {
+  display: inline-block; margin: 1px 2px 1px 0;
+  padding: 1px 5px; background: #0e0e16;
+  border-radius: 2px;
+}
+.lib-actions { display: flex; gap: 5px; margin-top: 10px; }
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.82);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; backdrop-filter: blur(4px);
+}
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 8px; padding: 22px;
+  min-width: 340px; max-width: 520px; width: 90%;
+  max-height: 86vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.8);
+}
+.modal-title {
+  font-size: 13px; font-weight: 800; letter-spacing: .05em;
+  margin-bottom: 4px;
+}
+.modal-sub { font-size: 10px; color: var(--text-muted); margin-bottom: 16px; }
+.fg { margin-bottom: 13px; }
+.flabel {
+  display: block; font-size: 9px;
+  letter-spacing: .11em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 5px;
+}
+.flabel small { font-size: 8px; text-transform: none; letter-spacing: .02em; }
+.finput, .fselect, .ftextarea {
+  width: 100%; background: var(--bg-deep);
+  border: 1px solid var(--border-light); border-radius: 4px;
+  padding: 7px 9px; font-size: 11px; font-family: inherit;
+  color: var(--text-primary); outline: none; transition: border-color .15s;
+}
+.finput:focus, .fselect:focus, .ftextarea:focus { border-color: var(--blue); }
+.fselect option { background: var(--bg-deep); }
+.ftextarea { resize: vertical; }
+.modal-actions {
+  display: flex; gap: 7px; justify-content: flex-end;
+  margin-top: 18px;
+}
+.btn {
+  padding: 7px 16px; font-size: 10px; font-family: inherit;
+  border-radius: 4px; cursor: pointer;
+  letter-spacing: .06em; text-transform: uppercase;
+  border: none; transition: all .15s;
+}
+.btn-primary { background: var(--blue); color: #000; font-weight: 800; }
+.btn-primary:hover { filter: brightness(1.15); }
+.btn-secondary { background: var(--border); color: var(--text-primary); }
+.btn-secondary:hover { background: var(--border-light); }
+.btn-danger { background: var(--red); color: white; }
+.btn-danger:hover { filter: brightness(1.1); }
+.btn-sm { padding: 4px 10px; font-size: 9px; }
+
+/* ============================================================
+   CONNECTION BADGES
+   ============================================================ */
+.pconn-arr { font-size: 12px; line-height: 1; vertical-align: middle; margin-right: 2px; }
+.pconn {
+  font-size: 8px; font-weight: 700;
+  padding: 1px 6px; border-radius: 10px;
+  white-space: nowrap; letter-spacing: .03em;
+  flex-shrink: 0;
+}
+.pconn-local {
+  color: var(--green);
+  background: rgba(61,214,140,.12);
+  border: 1px solid rgba(61,214,140,.25);
+}
+.pconn-remote {
+  color: var(--cyan);
+  background: rgba(34,211,238,.10);
+  border: 1px solid rgba(34,211,238,.22);
+}
+.conn-section {
+  border-top: 1px solid var(--border);
+  margin-top: 14px; padding-top: 14px;
+}
+.conn-current {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 4px;
+  background: rgba(34,211,238,.07);
+  border: 1px solid rgba(34,211,238,.2);
+  margin-bottom: 10px; font-size: 10px;
+  color: var(--cyan);
+}
+.conn-current .conn-label { flex: 1; }
+.conn-clear {
+  background: none; border: none;
+  color: var(--text-muted); cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 0 2px;
+  transition: color .15s;
+}
+.conn-clear:hover { color: var(--red); }
+.conn-pickers {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+.conn-pickers .fselect { font-size: 10px; padding: 6px 8px; }
+.pconn-snake {
+  color: var(--orange);
+  background: rgba(249,115,22,.12);
+  border: 1px solid rgba(249,115,22,.25);
+}
+/* ── Toast notification ───────────────────────── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px);
+  background: #1e1e2c; border: 1px solid var(--border-light);
+  color: var(--text-primary); font-size: 12px; font-weight: 600;
+  padding: 9px 18px; border-radius: 6px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.7);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+  z-index: 9999; white-space: nowrap;
+}
+#toast.show {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+#toast.toast-ok   { border-color: var(--green);  color: var(--green); }
+#toast.toast-warn { border-color: var(--orange); color: var(--orange); }
+
+.bulk-table { width:100%; border-collapse:collapse; margin-top:4px; }
+.bulk-table th { font-size:9px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--text-muted); padding:4px 6px; text-align:left; border-bottom:1px solid var(--border); }
+.bulk-table td { padding:3px 4px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
+.bulk-table tr:last-child td { border-bottom:none; }
+.bulk-pname { font-size:10px; color:var(--text-muted); white-space:nowrap; padding:3px 6px 3px 2px; }
+.bulk-pdot  { width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; vertical-align:middle; margin-right:4px; }
+.bulk-univ  { width:90px; }
+.bulk-label { min-width:130px; }
+.bulk-sep   { font-size:9px; color:var(--text-muted); padding:6px 6px 2px; letter-spacing:.08em; text-transform:uppercase; }
+.puniv { display:inline-flex; align-items:center; font-size:9px; font-weight:700;
+  letter-spacing:.06em; padding:1px 5px; border-radius:3px; white-space:nowrap;
+  color: var(--cyan); background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.3); }
+
+/* ============================================================
+   SNAKE VIEW
+   ============================================================ */
+.snake-block {
+  background: var(--bg-card);
+  border-left: 3px solid var(--orange);
+}
+.snake-block:hover { background: var(--bg-hover); }
+.snake-head {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 9px;
+  border-bottom: 1px solid var(--border);
+  min-height: 36px; flex-wrap: wrap;
+}
+.slines-area { padding: 4px 8px 10px; }
+.slines-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 5px 4px;
+  font-size: 7px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text-muted); border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+.sline-row {
+  display: flex; align-items: center; gap: 4px;
+  padding: 2px 5px; border-radius: 3px;
+  min-height: 28px;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+}
+.sline-row:hover { background: rgba(255,255,255,.02); }
+.sline-num {
+  width: 24px; text-align: center; flex-shrink: 0;
+  font-size: 9px; font-weight: 700; color: var(--text-muted);
+}
+/* Spreadsheet-style inline inputs */
+.sl-input {
+  background: transparent; border: 1px solid transparent; border-radius: 3px;
+  color: var(--text-primary); font-family: inherit; font-size: 10px;
+  padding: 3px 5px; outline: none; min-width: 0;
+  transition: background .1s, border-color .1s;
+}
+.sl-input::placeholder { color: var(--text-muted); font-style: italic; font-weight: 400; }
+.sl-input:hover:not(:focus) { border-color: var(--border); background: var(--bg-surface); }
+.sl-input:focus {
+  border-color: var(--blue); background: var(--bg-surface);
+  box-shadow: 0 0 0 2px rgba(74,158,255,.15);
+}
+.sl-input.sl-univ { color: var(--cyan); font-weight: 700; width: 90px; flex-shrink: 0; }
+.sl-input.sl-pos  { flex: 2; }
+.sl-input.sl-fx   { flex: 1; color: var(--text-muted); font-size: 9px; }
+/* Connection area at end of row */
+.sline-conn-area { display: flex; align-items: center; gap: 4px; flex-shrink: 0; width: 170px; justify-content: flex-end; overflow: hidden; }
+.sline-conn-btn {
+  background: none; border: 1px solid var(--border); cursor: pointer;
+  color: var(--text-muted); font-size: 10px; padding: 2px 6px;
+  border-radius: 3px; transition: all .1s; flex-shrink: 0; line-height: 1.4;
+}
+.sline-conn-btn:hover { background: var(--border); color: var(--text-primary); }
+.sline-empty { color: var(--text-muted) !important; font-style: italic; }
+.sline-spare { background: rgba(236,72,153,.06); }
+.sline-spare:hover { background: rgba(236,72,153,.1) !important; }
+.sline-spare .sl-univ { color: var(--pink) !important; }
+.sline-spare .sline-num { color: var(--pink); }
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+/* ============================================================
+   PRINT STYLES (for PDF export window)
+   ============================================================ */
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════╗
+// ║  CONSTANTS & HELPERS                                     ║
+// ╚══════════════════════════════════════════════════════════╝
+
+const COLORS = ['#4a9eff','#3dd68c','#a855f7','#f97316','#ec4899','#22d3ee','#facc15','#ef4444','#f0f0f0','#9ca3af','#14b8a6'];
+const COLOR_NAMES = {
+  '#4a9eff':'BLUE', '#3dd68c':'GREEN', '#a855f7':'PURPLE',
+  '#f97316':'ORANGE', '#ec4899':'PINK', '#22d3ee':'CYAN',
+  '#facc15':'YELLOW', '#ef4444':'RED', '#f0f0f0':'WHITE', '#9ca3af':'GREY', '#14b8a6':'TEAL'
+};
+function rackColorName(rack) {
+  return COLOR_NAMES[(rack?.color||'').toLowerCase()] || '';
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4);
+}
+
+function h(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function makePL(assignments) {
+  // Build portLabels from { portId: 'label' }
+  const out = {};
+  for (const [k, v] of Object.entries(assignments || {})) {
+    out[k] = { label: String(v), notes: '' };
+  }
+  return out;
+}
+
+function newItem(typeId, label, ip, portOverrides) {
+  const type = getType(typeId);
+  if (!type) return null;
+  const portLabels = {};
+  type.ports.forEach(p => { portLabels[p.id] = { label: '', notes: '' }; });
+  Object.assign(portLabels, makePL(portOverrides));
+  return { id: uid(), typeId, label: label || '', ip: ip || '', notes: '', portLabels };
+}
+
+function newLine(lineNum, position, universe, firstFixture) {
+  return { id: uid(), lineNum, position: position||'', universe: universe||'',
+           firstFixture: firstFixture||'', connRackId:'', connItemId:'', connPortId:'' };
+}
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  BUILT-IN EQUIPMENT TYPES                               ║
+// ╚══════════════════════════════════════════════════════════╝
+
+const BUILTIN_TYPES = [
+  {
+    id: 'ma3_npu', name: 'MA3 NPU',
+    manufacturer: 'grandMA', model: 'NPU 3',
+    ruHeight: 2, color: '#4a9eff', hasIp: true,
+    ports: [
+      { id:'port_a', name:'Port A', group:'DMX Out', type:'output' },
+      { id:'port_b', name:'Port B', group:'DMX Out', type:'output' },
+      { id:'port_c', name:'Port C', group:'DMX Out', type:'output' },
+      { id:'port_d', name:'Port D', group:'DMX Out', type:'output' },
+      { id:'port_e', name:'Port E', group:'DMX Out', type:'output' },
+      { id:'port_f', name:'Port F', group:'DMX Out', type:'output' },
+      { id:'port_g', name:'Port G', group:'DMX Out', type:'output' },
+      { id:'port_h', name:'Port H', group:'DMX Out', type:'output' },
+    ]
+  },
+  {
+    id: 'proplex_iq2', name: 'Proplex IQ II',
+    manufacturer: 'Entertainment Technology', model: 'Proplex IQ II',
+    ruHeight: 1, color: '#f97316', hasIp: true,
+    ports: [
+      { id:'port_a', name:'Port A', group:'DMX Out', type:'output' },
+      { id:'port_b', name:'Port B', group:'DMX Out', type:'output' },
+      { id:'port_c', name:'Port C', group:'DMX Out', type:'output' },
+      { id:'port_d', name:'Port D', group:'DMX Out', type:'output' },
+      { id:'port_e', name:'Port E', group:'DMX Out', type:'output' },
+      { id:'port_f', name:'Port F', group:'DMX Out', type:'output' },
+      { id:'port_g', name:'Port G', group:'DMX Out', type:'output' },
+      { id:'port_h', name:'Port H', group:'DMX Out', type:'output' },
+      { id:'port_i', name:'Port I', group:'sACN In', type:'network' },
+      { id:'port_j', name:'Port J', group:'sACN In', type:'network' },
+      { id:'port_k', name:'Port K', group:'sACN In', type:'network' },
+      { id:'port_l', name:'Port L', group:'sACN In', type:'network' },
+      { id:'port_m', name:'Port M', group:'sACN In', type:'network' },
+      { id:'port_n', name:'Port N', group:'sACN In', type:'network' },
+      { id:'port_o', name:'Port O', group:'sACN In', type:'network' },
+      { id:'port_p', name:'Port P', group:'sACN In', type:'network' },
+    ]
+  },
+  {
+    id: 'optosplitter', name: 'Optosplitter (1×5)',
+    manufacturer: 'Elation / Various', model: '1×5 DMX',
+    ruHeight: 1, color: '#3dd68c', hasIp: false,
+    ports: [
+      { id:'in',         name:'In',         group:'DMX', type:'input'  },
+      { id:'pass_thru',  name:'Pass-Thru',  group:'DMX', type:'output' },
+      { id:'out_1',      name:'Out 1',      group:'DMX', type:'output' },
+      { id:'out_2',      name:'Out 2',      group:'DMX', type:'output' },
+      { id:'out_3',      name:'Out 3',      group:'DMX', type:'output' },
+      { id:'out_4',      name:'Out 4',      group:'DMX', type:'output' },
+      { id:'out_5',      name:'Out 5',      group:'DMX', type:'output' },
+    ]
+  },
+  // ── Proplex IQ Two 1616 ──────────────────────────────────
+  // Spec: 16x XLR5 Female DMX (bidirectional), 2x Neutrik EtherCon, 2U
+  {
+    id: 'proplex_iq1616', name: 'Proplex IQ Two 1616',
+    manufacturer: 'ProPlex / TMB', model: 'IQ Two 1616',
+    ruHeight: 2, color: '#f97316', hasIp: true,
+    ports: [
+      { id:'dmx_1',  name:'DMX 1',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_2',  name:'DMX 2',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_3',  name:'DMX 3',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_4',  name:'DMX 4',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_5',  name:'DMX 5',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_6',  name:'DMX 6',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_7',  name:'DMX 7',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_8',  name:'DMX 8',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_9',  name:'DMX 9',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_10', name:'DMX 10', group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_11', name:'DMX 11', group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_12', name:'DMX 12', group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_13', name:'DMX 13', group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_14', name:'DMX 14', group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_15', name:'DMX 15', group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'dmx_16', name:'DMX 16', group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
+      { id:'eth_1',  name:'ETH 1',  group:'Network (EtherCon — ArtNet / sACN)', type:'network' },
+      { id:'eth_2',  name:'ETH 2',  group:'Network (EtherCon — ArtNet / sACN)', type:'network' },
+    ]
+  },
+  // ── Luminex GigaCore 10 ───────────────────────────────────
+  // Spec: 4x EtherCon front + 4x EtherCon rear + 2x fiber front, 1U (half-rack width)
+  {
+    id: 'gigacore10', name: 'GigaCore 10',
+    manufacturer: 'Luminex', model: 'GigaCore 10',
+    ruHeight: 1, color: '#22d3ee', hasIp: true,
+    ports: [
+      { id:'eth_f1', name:'ETH 1',   group:'EtherCon — Front (4×)',  type:'network' },
+      { id:'eth_f2', name:'ETH 2',   group:'EtherCon — Front (4×)',  type:'network' },
+      { id:'eth_f3', name:'ETH 3',   group:'EtherCon — Front (4×)',  type:'network' },
+      { id:'eth_f4', name:'ETH 4',   group:'EtherCon — Front (4×)',  type:'network' },
+      { id:'eth_r1', name:'ETH 5',   group:'EtherCon — Rear (4×)',   type:'network' },
+      { id:'eth_r2', name:'ETH 6',   group:'EtherCon — Rear (4×)',   type:'network' },
+      { id:'eth_r3', name:'ETH 7',   group:'EtherCon — Rear (4×)',   type:'network' },
+      { id:'eth_r4', name:'ETH 8',   group:'EtherCon — Rear (4×)',   type:'network' },
+      { id:'fiber1', name:'Fiber 1', group:'Optical Fiber — Front',  type:'network' },
+      { id:'fiber2', name:'Fiber 2', group:'Optical Fiber — Front',  type:'network' },
+    ]
+  },
+  // ── Luminex LumiNode 12 ───────────────────────────────────
+  {
+    id: 'luminode12', name: 'LumiNode 12',
+    manufacturer: 'Luminex', model: 'LumiNode 12',
+    ruHeight: 1, color: '#a855f7', hasIp: true,
+    ports: [
+      { id:'dmx_1',  name:'DMX 1',  group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_2',  name:'DMX 2',  group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_3',  name:'DMX 3',  group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_4',  name:'DMX 4',  group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_5',  name:'DMX 5',  group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_6',  name:'DMX 6',  group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_7',  name:'DMX 7',  group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_8',  name:'DMX 8',  group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_9',  name:'DMX 9',  group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_10', name:'DMX 10', group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_11', name:'DMX 11', group:'DMX / RDM Ports', type:'output' },
+      { id:'dmx_12', name:'DMX 12', group:'DMX / RDM Ports', type:'output' },
+      { id:'eth_1',  name:'ETH 1',  group:'Ethernet',        type:'network' },
+      { id:'eth_2',  name:'ETH 2',  group:'Ethernet',        type:'network' },
+    ]
+  },
+  // ── Luminex LumiSplit 2.10 ────────────────────────────────
+  // Spec: 4× XLR5M input (2 front, 2 rear) + 10× XLR5F output, 1U
+  {
+    id: 'lumisplit210', name: 'LumiSplit 2.10',
+    manufacturer: 'Luminex', model: 'LumiSplit 2.10',
+    ruHeight: 1, color: '#3dd68c', hasIp: false,
+    ports: [
+      { id:'in_f1',  name:'In 1 (Front)', group:'DMX Input — 4× XLR5M',  type:'input'  },
+      { id:'in_f2',  name:'In 2 (Front)', group:'DMX Input — 4× XLR5M',  type:'input'  },
+      { id:'in_r1',  name:'In 3 (Rear)',  group:'DMX Input — 4× XLR5M',  type:'input'  },
+      { id:'in_r2',  name:'In 4 (Rear)',  group:'DMX Input — 4× XLR5M',  type:'input'  },
+      { id:'out_1',  name:'Out 1',        group:'DMX Output — 10× XLR5F', type:'output' },
+      { id:'out_2',  name:'Out 2',        group:'DMX Output — 10× XLR5F', type:'output' },
+      { id:'out_3',  name:'Out 3',        group:'DMX Output — 10× XLR5F', type:'output' },
+      { id:'out_4',  name:'Out 4',        group:'DMX Output — 10× XLR5F', type:'output' },
+      { id:'out_5',  name:'Out 5',        group:'DMX Output — 10× XLR5F', type:'output' },
+      { id:'out_6',  name:'Out 6',        group:'DMX Output — 10× XLR5F', type:'output' },
+      { id:'out_7',  name:'Out 7',        group:'DMX Output — 10× XLR5F', type:'output' },
+      { id:'out_8',  name:'Out 8',        group:'DMX Output — 10× XLR5F', type:'output' },
+      { id:'out_9',  name:'Out 9',        group:'DMX Output — 10× XLR5F', type:'output' },
+      { id:'out_10', name:'Out 10',       group:'DMX Output — 10× XLR5F', type:'output' },
+    ]
+  },
+  // ── Swisson XSR (DMX Splitter / RDM Hub) ─────────────────
+  // Spec: 1× In (XLR5M), 1× Thru (XLR5F), 5× Out (XLR5F) — box/truss mount
+  {
+    id: 'swisson_xsr', name: 'Swisson XSR',
+    manufacturer: 'Swisson', model: 'XSR-5 / XSP-5',
+    ruHeight: 1, color: '#ec4899', hasIp: false,
+    ports: [
+      { id:'in',       name:'In',     group:'DMX',  type:'input'  },
+      { id:'thru',     name:'Thru',   group:'DMX',  type:'output' },
+      { id:'out_1',    name:'Out 1',  group:'DMX',  type:'output' },
+      { id:'out_2',    name:'Out 2',  group:'DMX',  type:'output' },
+      { id:'out_3',    name:'Out 3',  group:'DMX',  type:'output' },
+      { id:'out_4',    name:'Out 4',  group:'DMX',  type:'output' },
+      { id:'out_5',    name:'Out 5',  group:'DMX',  type:'output' },
+    ]
+  },
+];
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  DEFAULT PROJECT DATA (BMW ABBS 2026 from spreadsheet)  ║
+// ╚══════════════════════════════════════════════════════════╝
+
+function defaultProject() {
+  return {
+    id: uid(), name: 'BMW ABBS 2026', version: 'v1',
+    created: new Date().toISOString(),
+    modified: new Date().toISOString(),
+    customTypes: [],
+    racks: [
+      // ── BLUE PIT ──────────────────────────────────────
+      {
+        id: uid(), name: 'BLUE PIT', color: '#4a9eff',
+        equipment: [
+          newItem('ma3_npu','BLUE NPU 1','192.168.1.111',{
+            port_a:'FOR PARAMETERS ONLY'
+          }),
+          newItem('ma3_npu','BLUE NPU 2','192.168.1.112',{
+            port_a:'FOR PARAMETERS ONLY'
+          }),
+          newItem('proplex_iq2','BLUE PIT','192.168.1.121',{
+            port_a:'UNIV 8',  port_b:'UNIV 9',  port_c:'UNIV 10', port_d:'UNIV 11',
+            port_e:'UNIV 12', port_f:'UNIV 13', port_g:'UNIV 14',
+            port_i:'UNIV 29', port_j:'UNIV 30', port_k:'UNIV 31',
+            port_m:'UNIV 41', port_n:'UNIV 42'
+          }),
+          newItem('optosplitter','OPTO 1','',  { out_1:'DD (8)'   }),
+          newItem('optosplitter','OPTO 2','',  { out_1:'E (9)'    }),
+          newItem('optosplitter','OPTO 3','',  { out_1:'E (10)'   }),
+          newItem('optosplitter','OPTO 4','',  { out_1:'F (11)'   }),
+          newItem('optosplitter','OPTO 5','',  { out_1:'F (12)'   }),
+          newItem('optosplitter','OPTO 6','',  { out_1:'F (13)'   }),
+          newItem('optosplitter','OPTO 7','',  { out_1:'F (14)'   }),
+          newItem('optosplitter','OPTO 8','',  {}),
+          newItem('optosplitter','OPTO 9','',  { out_1:'M (29)'   }),
+          newItem('optosplitter','OPTO 10','', { out_1:'M (30)'   }),
+          newItem('optosplitter','OPTO 11','', { out_1:'M (31)'   }),
+          newItem('optosplitter','OPTO 12','', {}),
+          newItem('optosplitter','OPTO 13','', { out_1:'DRAPE'    }),
+          newItem('optosplitter','OPTO 14','', { out_1:'USL FLR', out_2:'USL FLR', out_3:'USL FLR', out_4:'USL FLR' }),
+          newItem('optosplitter','OPTO 15','', {}),
+          newItem('optosplitter','OPTO 16','', {}),
+        ]
+      },
+      // ── GREEN PIT ─────────────────────────────────────
+      {
+        id: uid(), name: 'GREEN PIT', color: '#3dd68c',
+        equipment: [
+          newItem('ma3_npu','GREEN NPU 1','192.168.1.112',{
+            port_a:'FOR PARAMETERS ONLY'
+          }),
+          newItem('proplex_iq2','GREEN PIT','192.168.1.122',{
+            port_a:'UNIV 15', port_b:'UNIV 16', port_c:'UNIV 17', port_d:'UNIV 18',
+            port_e:'UNIV 19', port_f:'UNIV 20', port_g:'UNIV 21', port_h:'UNIV 22',
+            port_i:'UNIV 23', port_j:'UNIV 24', port_k:'UNIV 25', port_l:'UNIV 26'
+          }),
+          newItem('optosplitter','OPTO 1','',  { out_1:'G (15)'   }),
+          newItem('optosplitter','OPTO 2','',  { out_1:'G (16)'   }),
+          newItem('optosplitter','OPTO 3','',  { out_1:'G (17)'   }),
+          newItem('optosplitter','OPTO 4','',  { out_1:'H (18)'   }),
+          newItem('optosplitter','OPTO 5','',  { out_1:'H (19)'   }),
+          newItem('optosplitter','OPTO 6','',  { out_1:'H (20)'   }),
+          newItem('optosplitter','OPTO 7','',  { out_1:'H (21)'   }),
+          newItem('optosplitter','OPTO 8','',  { out_1:'J (22)'   }),
+          newItem('optosplitter','OPTO 9','',  { out_1:'J (23)'   }),
+          newItem('optosplitter','OPTO 10','', { out_1:'J (24)'   }),
+          newItem('optosplitter','OPTO 11','', { out_1:'K (25)'   }),
+          newItem('optosplitter','OPTO 12','', { out_1:'K (26)'   }),
+          newItem('optosplitter','OPTO 13','', {}),
+          newItem('optosplitter','OPTO 14','', {}),
+          newItem('optosplitter','OPTO 15','', {}),
+          newItem('optosplitter','OPTO 16','', {}),
+        ]
+      },
+      // ── PURPLE PIT ────────────────────────────────────
+      {
+        id: uid(), name: 'PURPLE PIT', color: '#a855f7',
+        equipment: [
+          newItem('proplex_iq2','PURPLE PIT','192.168.1.123',{
+            port_a:'UNIV 1',  port_b:'UNIV 2',  port_c:'UNIV 3',  port_d:'UNIV 4',
+            port_e:'UNIV 5',  port_f:'UNIV 6',  port_g:'UNIV 7',
+            port_i:'UNIV 27', port_j:'UNIV 28',
+            port_l:'UNIV 41', port_m:'UNIV 42'
+          }),
+          newItem('ma3_npu','PURPLE NPU 1','192.168.1.113',{
+            port_a:'UNIV 61 — WALL 1', port_b:'UNIV 62 — WALL 2', port_c:'UNIV 63 — WALL 3',
+            port_d:'UNIV 64 — WALL 4', port_e:'UNIV 65 — WALL 5', port_f:'UNIV 66 — WALL 6'
+          }),
+          newItem('optosplitter','OPTO 1','',  { out_1:'A (1)'    }),
+          newItem('optosplitter','OPTO 2','',  { out_1:'B (2)'    }),
+          newItem('optosplitter','OPTO 3','',  { out_1:'B (3)'    }),
+          newItem('optosplitter','OPTO 4','',  { out_1:'C (4)'    }),
+          newItem('optosplitter','OPTO 5','',  { out_1:'C (5)'    }),
+          newItem('optosplitter','OPTO 6','',  { out_1:'D (6)'    }),
+          newItem('optosplitter','OPTO 7','',  { out_1:'D (7)'    }),
+          newItem('optosplitter','OPTO 8','',  {}),
+          newItem('optosplitter','OPTO 9','',  { out_1:'L (27)'   }),
+          newItem('optosplitter','OPTO 10','', { out_1:'L (28)'   }),
+          newItem('optosplitter','OPTO 11','', {}),
+          newItem('optosplitter','OPTO 12','', { out_1:'DRAPE'    }),
+          newItem('optosplitter','OPTO 13','', { out_1:'USR FLR', out_2:'USR FLR', out_3:'USR FLR', out_4:'USR FLR' }),
+          newItem('optosplitter','OPTO 14','', {}),
+          newItem('optosplitter','OPTO 15','', {}),
+          newItem('optosplitter','OPTO 16','', {}),
+        ]
+      },
+      // ── OSA 12 UNIVERSE RACK ──────────────────────────
+      {
+        id: uid(), name: 'OSA 12 Universe Rack', color: '#22d3ee',
+        equipment: [
+          newItem('gigacore10',  'GigaCore 10 — A', '', {}),
+          newItem('gigacore10',  'GigaCore 10 — B', '', {}),
+          newItem('luminode12',  'LumiNode 12 — A', '', {}),
+          newItem('luminode12',  'LumiNode 12 — B', '', {}),
+          newItem('lumisplit210','LumiSplit 2.10 — A', '', {}),
+          newItem('lumisplit210','LumiSplit 2.10 — B', '', {}),
+        ]
+      },
+      // ── UPSTAGE LEFT ──────────────────────────────────
+      {
+        id: uid(), name: 'UPSTAGE LEFT', color: '#facc15',
+        equipment: [
+          newItem('proplex_iq2','UPSTAGE LEFT','192.168.1.TBD',{}),
+          newItem('optosplitter','OPTO 1','',  {}),
+          newItem('optosplitter','OPTO 2','',  {}),
+          newItem('optosplitter','OPTO 3','',  {}),
+          newItem('optosplitter','OPTO 4','',  {}),
+          newItem('optosplitter','OPTO 5','',  {}),
+          newItem('optosplitter','OPTO 6','',  {}),
+          newItem('optosplitter','OPTO 7','',  {}),
+          newItem('optosplitter','OPTO 8','',  {}),
+          newItem('optosplitter','OPTO 9','',  {}),
+          newItem('optosplitter','OPTO 10','', {}),
+          newItem('optosplitter','OPTO 11','', {}),
+          newItem('optosplitter','OPTO 12','', {}),
+          newItem('optosplitter','OPTO 13','', {}),
+          newItem('optosplitter','OPTO 14','', {}),
+          newItem('optosplitter','OPTO 15','', {}),
+          newItem('optosplitter','OPTO 16','', {}),
+        ]
+      }
+    ],
+    snakes: [
+      // ── CPC8 (8-Channel Snakes) ───────────────────────────
+      { id:uid(), name:'GRID', type:'cpc8', color:'#f97316', lines:[
+        newLine(1,'TRUSS A','UNIV 1','FX 2001'), newLine(2,'TRUSS A','U1 SP',''),
+        newLine(3,'TRUSS B','UNIV 2','FX 27'),   newLine(4,'TRUSS B','UNIV 3','FX 2104'),
+        newLine(5,'TRUSS B','B SP',''),           newLine(6,'TRUSS C','UNIV 4','FX 2201'),
+        newLine(7,'TRUSS C','UNIV 5','FX 2205'), newLine(8,'TRUSS C','C SP',''),
+      ]},
+      { id:uid(), name:'J', type:'cpc8', color:'#ec4899', lines:[
+        newLine(1,'TRUSS J','UNIV 22','FX 182'),  newLine(2,'TRUSS J','U22 SP',''),
+        newLine(3,'TRUSS J','UNIV 23','FX 785'),  newLine(4,'TRUSS J','U23 SP',''),
+        newLine(5,'TRUSS J','UNIV 24','FX 442'),  newLine(6,'TRUSS J','U24 SP',''),
+        newLine(7,'J LINE 7','',''),              newLine(8,'J LINE 8','',''),
+      ]},
+      { id:uid(), name:'M', type:'cpc8', color:'#22d3ee', lines:[
+        newLine(1,'TRUSS M','UNIV 29',''), newLine(2,'TRUSS M','U29 SP',''),
+        newLine(3,'TRUSS M','UNIV 30',''), newLine(4,'TRUSS M','U30 SP',''),
+        newLine(5,'TRUSS M','UNIV 31',''), newLine(6,'TRUSS M','U31 SP',''),
+        newLine(7,'TRUSS M','UNIV 32',''), newLine(8,'TRUSS M','U32 SP',''),
+      ]},
+      { id:uid(), name:'F', type:'cpc8', color:'#facc15', lines:[
+        newLine(1,'TRUSS F','UNIV 11','FX 727'), newLine(2,'TRUSS F','U11 SP',''),
+        newLine(3,'TRUSS F','UNIV 12','FX 824'), newLine(4,'TRUSS F','U12 SP',''),
+        newLine(5,'TRUSS F','UNIV 13','FX 436'), newLine(6,'TRUSS F','U13 SP',''),
+        newLine(7,'TRUSS F','UNIV 14','FX 46'),  newLine(8,'TRUSS F','U14 SP',''),
+      ]},
+      { id:uid(), name:'G', type:'cpc8', color:'#3dd68c', lines:[
+        newLine(1,'TRUSS G','UNIV 15','FX 883'), newLine(2,'TRUSS G','U15 SP',''),
+        newLine(3,'TRUSS G','UNIV 16','FX 523'), newLine(4,'TRUSS G','U16 SP',''),
+        newLine(5,'TRUSS G','UNIV 17','FX 431'), newLine(6,'TRUSS G','U17 SP',''),
+        newLine(7,'G LINE 7','',''),             newLine(8,'G LINE 8','',''),
+      ]},
+      { id:uid(), name:'H', type:'cpc8', color:'#a855f7', lines:[
+        newLine(1,'TRUSS H','UNIV 18','FX 882'), newLine(2,'TRUSS H','U18 SP',''),
+        newLine(3,'TRUSS H','UNIV 19','FX 194'), newLine(4,'TRUSS H','U19 SP',''),
+        newLine(5,'TRUSS H','UNIV 20','FX 540'), newLine(6,'H LINE 6','U20 SP',''),
+        newLine(7,'H LINE 7','UNIV 21','FX 732'),newLine(8,'H LINE 8','U21 SP',''),
+      ]},
+      { id:uid(), name:'WALL', type:'cpc8', color:'#ef4444', lines:[
+        newLine(1,'VERT 1','UNIV 61',''), newLine(2,'VERT 2','UNIV 62',''),
+        newLine(3,'VERT 3','UNIV 63',''), newLine(4,'VERT 4','UNIV 64',''),
+        newLine(5,'VERT 5','UNIV 65',''), newLine(6,'VERT 6','UNIV 66',''),
+        newLine(7,'','',''),             newLine(8,'','',''),
+      ]},
+      // ── CPC4 (4-Channel Snakes) ───────────────────────────
+      { id:uid(), name:'D', type:'cpc4', color:'#4a9eff', lines:[
+        newLine(1,'TRUSS D','UNIV 6','FX 525'), newLine(2,'TRUSS D','U6 SP',''),
+        newLine(3,'TRUSS D','UNIV 7','FX 321'), newLine(4,'TRUSS D','U7 SP',''),
+      ]},
+      { id:uid(), name:'USR', type:'cpc4', color:'#f97316', lines:[
+        newLine(1,'US RIGHT','UNIV 42',''), newLine(2,'US RIGHT','UNIV 42',''),
+        newLine(3,'US RIGHT','UNIV 42',''), newLine(4,'US RIGHT','UNIV 42',''),
+      ]},
+      { id:uid(), name:'L', type:'cpc4', color:'#ec4899', lines:[
+        newLine(1,'TRUSS L','UNIV 27','FX 936'), newLine(2,'TRUSS L','U27 SP',''),
+        newLine(3,'TRUSS L','UNIV 28','FX 518'), newLine(4,'TRUSS L','U28 SP',''),
+      ]},
+      { id:uid(), name:'E', type:'cpc4', color:'#22d3ee', lines:[
+        newLine(1,'TRUSS E','UNIV 9','FX 862'),  newLine(2,'TRUSS E','U9 SP',''),
+        newLine(3,'TRUSS E','UNIV 10','FX 41'),  newLine(4,'TRUSS E','U10 SP',''),
+      ]},
+      { id:uid(), name:'K', type:'cpc4', color:'#facc15', lines:[
+        newLine(1,'TRUSS K','UNIV 25','FX 201'), newLine(2,'TRUSS K','U25 SP',''),
+        newLine(3,'TRUSS K','UNIV 26','FX 156'), newLine(4,'TRUSS K','U26 SP',''),
+      ]},
+      { id:uid(), name:'USL', type:'cpc4', color:'#3dd68c', lines:[
+        newLine(1,'US LEFT','UNIV 42',''), newLine(2,'US LEFT','UNIV 42',''),
+        newLine(3,'US LEFT','UNIV 42',''), newLine(4,'US LEFT','UNIV 42',''),
+      ]},
+
+      // ── Loom List Snakes (BMW 2026) ─────────────────────
+      { id:uid(), name:'B1', location:'TRUSS B1', type:'cpc4', color:'#3dd68c', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B1 SP', location:'TRUSS B1', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B2', location:'TRUSS B2', type:'cpc4', color:'#facc15', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B2 SP', location:'TRUSS B2', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B3', location:'TRUSS B3', type:'cpc4', color:'#ef4444', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B3 SP', location:'TRUSS B3', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B4', location:'TRUSS B4', type:'cpc4', color:'#4a9eff', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B4 SP', location:'TRUSS B4', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'MA', location:'TRUSS M', type:'cpc8', color:'#9ca3af', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'MA SP', location:'TRUSS M', type:'cpc8', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'MB', location:'TRUSS M', type:'cpc8', color:'#9ca3af', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'MB SP', location:'TRUSS M', type:'cpc8', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'W', location:'TRUSS W', type:'cpc8', color:'#14b8a6', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'W SP', location:'TRUSS W', type:'cpc8', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'O', location:'ORCHESTRA', type:'cpc4', color:'#f97316', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'O SP', location:'ORCHESTRA', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C1', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C1 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C2', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C2 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C3', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C3 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C4', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C4 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C5', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C5 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C6', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C6 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C7', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C7 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C8', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C8 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C9', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C9 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q1', location:'Q1 FLOOR', type:'cpc4', color:'#3dd68c', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q1 SP', location:'Q1 FLOOR', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q2', location:'Q2 FLOOR', type:'cpc4', color:'#facc15', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q2 SP', location:'Q2 FLOOR', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q3', location:'Q3 FLOOR', type:'cpc4', color:'#ef4444', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q3 SP', location:'Q3 FLOOR', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q4', location:'Q4 FLOOR', type:'cpc4', color:'#4a9eff', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q4 SP', location:'Q4 FLOOR', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+    ]
+  };
+}
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  STATE                                                   ║
+// ╚══════════════════════════════════════════════════════════╝
+
+const S = {
+  project: null,
+  view: 'rack',         // 'rack' | 'library' | 'snake'
+  rackId: null,
+  snakeId: null,
+  modal: null           // { type, data }
+};
+
+function getType(id) {
+  return BUILTIN_TYPES.find(t => t.id === id)
+      || S.project?.customTypes?.find(t => t.id === id);
+}
+
+function allTypes() {
+  return [...BUILTIN_TYPES, ...(S.project?.customTypes || [])];
+}
+
+function activeRack() {
+  return S.project?.racks?.find(r => r.id === S.rackId) || null;
+}
+
+function save() {
+  if (!S.project) return;
+  S.project.modified = new Date().toISOString();
+  try { localStorage.setItem('rb_project', JSON.stringify(S.project)); } catch(e){}
+}
+
+function init() {
+  try {
+    const raw = localStorage.getItem('rb_project');
+    if (raw) S.project = JSON.parse(raw);
+  } catch(e){}
+  if (!S.project) { S.project = defaultProject(); save(); }
+  // Migrate: add snakes array if missing (legacy saves)
+  if (!S.project.snakes) { S.project.snakes = []; save(); }
+  // Migrate: inject Loom List snakes if not yet present
+  (function migrateLoomSnakes() {
+    const existing = new Set(S.project.snakes.map(s => s.name));
+    const loomDefs = defaultProject().snakes.filter(s => s.location); // loom snakes have location
+    let added = 0;
+    loomDefs.forEach(s => { if (!existing.has(s.name)) { S.project.snakes.push(s); added++; } });
+    if (added) { save(); }
+  })();
+  S.rackId  = S.project.racks[0]?.id  || null;
+  S.snakeId = S.project.snakes[0]?.id || null;
+
+  // Keyboard handler
+  document.addEventListener('keydown', e => {
+    if (!S.modal) return;
+    if (e.key === 'Escape') { closeModal(); return; }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const t = S.modal.type, d = S.modal.data;
+      if (t === 'port')        { e.preventDefault(); savePort(d.rid, d.iid, d.pid); }
+      if (t === 'snake')       { e.preventDefault(); saveSnakeLine(d.sid, d.lid); }
+      if (t === 'addEq')       { e.preventDefault(); confirmAddEq(d.rid); }
+      if (t === 'editEq')      { e.preventDefault(); confirmEditEq(d.rid, d.iid); }
+      if (t === 'addRack')     { e.preventDefault(); confirmAddRack(); }
+      if (t === 'renameRack')  { e.preventDefault(); confirmRenameRack(d.rid); }
+      if (t === 'renameProj')  { e.preventDefault(); confirmRenameProj(); }
+      if (t === 'addType')     { /* textarea needs shift-enter */ }
+      if (t === 'editType')    { /* textarea needs shift-enter */ }
+    }
+  });
+
+  render();
+}
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  RENDER ENGINE                                           ║
+// ╚══════════════════════════════════════════════════════════╝
+
+function render() {
+  document.getElementById('root').innerHTML = buildApp();
+}
+
+function buildApp() {
+  return rHeader() + `<div id="app-body">${rSidebar()}${rMain()}</div>` + (S.modal ? rModal() : '');
+}
+
+// ── Header ────────────────────────────────────────────────
+function rHeader() {
+  return `<header id="app-header">
+    <div id="logo">⚡ Rack Builder</div>
+    <div id="project-name" onclick="openRenameProj()">${h(S.project?.name)}</div>
+    <span style="font-size:9px;color:var(--text-muted)">v${h(S.project?.version||'1')}</span>
+    <div class="hspacer"></div>
+    <button class="hbtn hbtn-ghost" onclick="exportJSON()">Export JSON</button>
+    <button class="hbtn hbtn-ghost" onclick="trigImport()">Import JSON</button>
+    <input type="file" id="file-imp" accept=".json" style="display:none" onchange="importJSON(event)">
+    <button class="hbtn hbtn-primary" onclick="exportPDF()">🖨 Export PDF</button>
+  </header>`;
+}
+
+// ── Sidebar ───────────────────────────────────────────────
+function rSidebar() {
+  const racks = S.project?.racks || [];
+  return `<nav id="sidebar">
+    <div class="sb-section flex1">
+      <div class="sb-head">
+        <span>Racks</span>
+        <button onclick="openAddRack()" title="Add rack">+</button>
+      </div>
+      <div class="sb-items">
+        ${racks.map(r => `
+          <div class="sb-item ${S.rackId===r.id&&S.view==='rack'?'active':''}" onclick="selectRack('${r.id}')">
+            <span class="sb-dot" style="background:${r.color}"></span>
+            ${h(r.name)}
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section flex1">
+      <div class="sb-head">
+        <span>Snakes</span>
+        <button onclick="openAddSnake()" title="Add snake">+</button>
+      </div>
+      <div class="sb-items">
+        ${(S.project?.snakes||[]).map(s => `
+          <div class="sb-item ${S.snakeId===s.id&&S.view==='snake'?'active':''}" onclick="selectSnake('${s.id}')">
+            <span class="sb-dot" style="background:${s.color||'#f97316'}"></span>
+            ${h(s.name)} <span style="font-size:8px;color:var(--text-muted);margin-left:auto">${s.type==='cpc8'?'8ch':'4ch'}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-head">
+        <span>Equipment Lib</span>
+        <button onclick="openAddType()" title="Add type">+</button>
+      </div>
+      <div class="sb-items">
+        <div class="sb-item ${S.view==='library'?'active':''}" onclick="selectView('library')">
+          📦 All Types (${allTypes().length})
+        </div>
+      </div>
+    </div>
+  </nav>`;
+}
+
+// ── Main ──────────────────────────────────────────────────
+function rMain() {
+  return `<div id="main">${rToolbar()}
+    <div id="main-scroll">${S.view==='library' ? rLibrary() : S.view==='snake' ? rSnake() : rRack()}</div>
+  </div>`;
+}
+
+function rToolbar() {
+  if (S.view === 'library') return `<div id="toolbar">
+    <div id="rack-title">Equipment Library</div>
+    <div class="hspacer"></div>
+    <button class="hbtn hbtn-ghost" onclick="openAddType()">+ Add Equipment Type</button>
+  </div>`;
+
+  if (S.view === 'snake') {
+    const snake = activeSnake();
+    if (!snake) return `<div id="toolbar"><div id="rack-title" style="color:var(--text-muted)">Select a snake</div></div>`;
+    const stype = snake.type==='cpc8' ? '8-Channel' : snake.type==='cpc4' ? '4-Channel' : 'Custom';
+    return `<div id="toolbar">
+      <span class="sb-dot" style="background:${snake.color||'#f97316'};width:9px;height:9px"></span>
+      <div id="rack-title">${h(snake.name)}</div>
+      <span style="font-size:9px;color:var(--text-muted)">${stype} · ${snake.lines.length} lines</span>
+      <div class="hspacer"></div>
+      <button class="hbtn hbtn-ghost" onclick="openEditSnake('${snake.id}')">Edit</button>
+      <button class="hbtn hbtn-ghost" style="color:#ef4444;border-color:#ef4444" onclick="deleteSnake('${snake.id}')">Delete Snake</button>
+    </div>`;
+  }
+
+  const rack = activeRack();
+  if (!rack) return `<div id="toolbar"><div id="rack-title" style="color:var(--text-muted)">Select a rack</div></div>`;
+
+  return `<div id="toolbar">
+    <span class="sb-dot" style="background:${rack.color};width:9px;height:9px"></span>
+    <div id="rack-title">${h(rack.name)}</div>
+    <span style="font-size:9px;color:var(--text-muted)">${rack.equipment.length} items</span>
+    <div class="hspacer"></div>
+    <button class="hbtn hbtn-ghost" onclick="openRenameRack('${rack.id}')">Rename</button>
+    <button class="hbtn hbtn-ghost" onclick="openDupRack('${rack.id}')">Duplicate</button>
+    <button class="hbtn hbtn-ghost" onclick="clearAllPortAssignments('${rack.id}')" title="Clear all port labels, universes, and connections from every piece of equipment in this rack">Clear Port Assignments</button>
+    <button class="hbtn hbtn-ghost" onclick="openAddEq('${rack.id}')">+ Add Equipment</button>
+    <button class="hbtn hbtn-ghost" style="color:#ef4444;border-color:#ef4444" onclick="deleteRack('${rack.id}')">Delete Rack</button>
+  </div>`;
+}
+
+// ── Rack View ─────────────────────────────────────────────
+function rRack() {
+  const rack = activeRack();
+  if (!rack) return `<div class="empty-rack"><div class="empty-icon">🗄</div>Select a rack from the sidebar, or create a new one.</div>`;
+  if (!rack.equipment.length) return `<div class="rack-wrap">
+    <div class="empty-rack"><div class="empty-icon">📦</div>This rack is empty. Add some equipment to get started.</div>
+    <div class="add-row"><button class="add-btn" onclick="openAddEq('${rack.id}')">+ Add Equipment</button></div>
+  </div>`;
+
+  const rows = rack.equipment.map((item, idx) => rEquipBlock(rack, item, idx)).join('');
+  return `<div class="rack-wrap">
+    <h1 class="print-title" style="display:none">${h(rack.name)}</h1>
+    <div class="rack-frame">
+      <div class="rack-rail">
+        <div class="rack-screw-row"><span class="rack-screw">+</span><span class="rack-screw">+</span></div>
+        <span class="rack-cap-label">19 in &nbsp;·&nbsp; 482 mm</span>
+        <div class="rack-screw-row"><span class="rack-screw">+</span><span class="rack-screw">+</span></div>
+      </div>
+      ${rows}
+      <div class="rack-rail bottom">
+        <div class="rack-screw-row"><span class="rack-screw">+</span><span class="rack-screw">+</span></div>
+        <span class="rack-cap-label">${rack.equipment.length}U loaded</span>
+        <div class="rack-screw-row"><span class="rack-screw">+</span><span class="rack-screw">+</span></div>
+      </div>
+    </div>
+    <div class="add-row"><button class="add-btn" onclick="openAddEq('${rack.id}')">+ Add Equipment</button></div>
+  </div>`;
+}
+
+function rEquipBlock(rack, item, idx) {
+  const type = getType(item.typeId);
+  if (!type) return '';
+
+  const isSpare = /spare/i.test(item.label || '');
+  const color   = isSpare ? '#ec4899' : (rack.color || '#4a9eff');
+  const canUp  = idx > 0;
+  const canDn  = idx < rack.equipment.length - 1;
+  // Show copy-to-spare button only on non-spare items that have a matching spare
+  const hasSpare = !isSpare && rack.equipment.some(e =>
+    e.id !== item.id && e.typeId === item.typeId && /spare/i.test(e.label || '')
+  );
+
+  // Group ports
+  const groups = {};
+  type.ports.forEach(p => {
+    const g = p.group || 'Ports';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(p);
+  });
+  const gNames = Object.keys(groups);
+  const multiGroup = gNames.length > 1;
+
+  const portHTML = gNames.map(gn => {
+    const portsHTML = groups[gn].map(p => {
+      const pl = item.portLabels?.[p.id] || {};
+      const lab = pl.label || '';
+      const ci = connInfo(rack.id, pl);
+      const isDmx = (p.type === 'output' || p.type === 'input');
+      const univBadge = (isDmx && pl.universe) ? `<span class="puniv" title="Universe">${h(pl.universe)}</span>` : '';
+      const hasBot = !!(lab || ci || univBadge);
+      return `<div class="port-row" onclick="openPort('${rack.id}','${item.id}','${p.id}')">
+        <div class="prow-top">
+          <span class="pdot ${p.type}${ci?' port-connected':''}"></span>
+          <span class="pname">PORT ${h(p.name)}</span>
+          <span class="pedit">✏</span>
+        </div>
+        ${hasBot ? `<div class="prow-bot">
+          ${univBadge}
+          <span class="plabel${lab?'':' empty'}">${lab ? h(lab) : ''}</span>
+          ${ci ? `<span class="pconn ${ci.type==='snake'?'pconn-snake':ci.crossRack?'pconn-remote':'pconn-local'}" title="${h(ci.full)}"><span class="pconn-arr">&#x27F6;</span>${h(ci.short)}</span>` : ''}
+        </div>` : ''}
+      </div>`;
+    }).join('');
+    return `${multiGroup ? `<div class="port-group-label">${h(gn)}</div>` : ''}
+    <div class="ports-grid">${portsHTML}</div>`;
+  }).join('');
+
+  return `<div class="rack-row">
+    <div class="rack-num">${String(idx+1).padStart(2,'0')}</div>
+    <div class="rack-cell">
+      <div class="eq-block" style="border-left-color:${color}">
+        <div class="eq-head">
+          <span class="eq-name">${h(item.label)}</span>
+          <span class="eq-badge">${h(type.name)}</span>
+          <span class="eq-ru">${type.ruHeight}U</span>
+          ${item.ip ? `<span class="eq-ip">${h(item.ip)}</span>` : ''}
+          <div class="eq-acts">
+            ${canUp ? `<button class="eq-btn" onclick="moveItem('${rack.id}','${item.id}',-1)" title="Move up">▲</button>` : ''}
+            ${canDn ? `<button class="eq-btn" onclick="moveItem('${rack.id}','${item.id}',1)"  title="Move down">▼</button>` : ''}
+            ${hasSpare ? `<button class="eq-btn" onclick="copyUniversesToSpare('${rack.id}','${item.id}')" title="Copy universes to spare" style="color:var(--cyan)">⇒S</button>` : ''}
+            <button class="eq-btn" onclick="openBulkPorts('${rack.id}','${item.id}')" title="Bulk edit ports">⊞</button>
+            <button class="eq-btn" onclick="openEditEq('${rack.id}','${item.id}')" title="Edit">✏</button>
+            <button class="eq-btn del" onclick="removeItem('${rack.id}','${item.id}')" title="Remove">✕</button>
+          </div>
+        </div>
+        <div class="ports-area">${portHTML}</div>
+      </div>
+    </div>
+    <div class="rack-rail-r"></div>
+  </div>`;
+}
+
+// ── Library View ──────────────────────────────────────────
+function rLibrary() {
+  return `<div class="lib-grid">
+    ${allTypes().map(t => {
+      const isCustom = !BUILTIN_TYPES.find(b => b.id === t.id);
+      return `<div class="lib-card" style="border-left-color:${t.color||'#4a9eff'}">
+        <div class="lib-name">${h(t.name)}</div>
+        <div class="lib-meta">${h(t.manufacturer)||'—'} · ${t.ruHeight}U · ${t.ports.length} ports${isCustom?' · Custom':' · Built-in'}</div>
+        <div class="lib-ports">${t.ports.map(p=>`<span class="lib-port-chip">${h(p.name)}</span>`).join('')}</div>
+        ${isCustom ? `<div class="lib-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openEditType('${t.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteType('${t.id}')">Delete</button>
+        </div>` : ''}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ── Snake View ───────────────────────────────────────────────
+function activeSnake() {
+  return S.project?.snakes?.find(s => s.id === S.snakeId) || null;
+}
+
+function rSnake() {
+  const snake = activeSnake();
+  if (!snake) return `<div class="empty-rack"><div class="empty-icon">🐍</div>Select a snake from the sidebar, or add a new one.</div>`;
+
+  const linesHTML = snake.lines.map((line, li) => {
+    const ci = snakeLineConnInfo(line);
+    const isSpLine = /SP/i.test(line.universe || '');
+    return `<div class="sline-row${isSpLine ? ' sline-spare' : ''}">
+      <span class="sline-num">${line.lineNum}</span>
+      <input class="sl-input sl-pos"
+             data-sid="${snake.id}" data-lid="${line.id}" data-field="position"
+             value="${h(line.position || snake.location || '')}" placeholder="Position…"
+             onblur="saveInlineField(this)" onkeydown="slKeyNav(event,this)">
+      <input class="sl-input sl-univ"
+             data-sid="${snake.id}" data-lid="${line.id}" data-field="universe"
+             value="${h(line.universe||'')}" placeholder="Universe…"
+             onblur="saveInlineField(this)" onkeydown="slKeyNav(event,this)"
+             oninput="onUnivInput(this)">
+      ${isSpLine
+        ? `<span class="sl-input sl-fx" style="color:var(--text-muted);font-style:italic;display:flex;align-items:center">spare</span>`
+        : `<input class="sl-input sl-fx"
+             data-sid="${snake.id}" data-lid="${line.id}" data-field="firstFixture"
+             value="${h(line.firstFixture||'')}" placeholder="First FX…"
+             onblur="saveInlineField(this)" onkeydown="slKeyNav(event,this)">`
+      }
+      <div class="sline-conn-area">
+        ${ci ? `<span class="pconn pconn-snake" title="${h(ci.full)}"><span class="pconn-arr">&#x27F6;</span>${h(ci.short)}</span>` : ''}
+        <button class="sline-conn-btn" onclick="openSnakeLineConn('${snake.id}','${line.id}')" title="Assign break-in connection">🔗</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="rack-wrap">
+    <div class="snake-block" style="border-left-color:${snake.color||'#f97316'}">
+      <div class="snake-head">
+        <span class="eq-name">${h(snake.name)}</span>
+        <span class="eq-badge">${snake.type==='cpc8'?'8-Channel CPC8':snake.type==='cpc4'?'4-Channel CPC4':'Custom'} Snake</span>
+        ${snake.location ? `<span class="eq-badge" style="color:var(--text-secondary)">${h(snake.location)}</span>` : ''}
+      </div>
+      <div class="slines-area">
+        <div class="slines-header">
+          <span class="sline-num">#</span>
+          <span style="flex:2;padding-left:5px">Position / Breakout</span>
+          <span style="width:90px;flex-shrink:0;padding-left:5px">Universe</span>
+          <span style="flex:1;padding-left:5px">First FX</span>
+          <span style="width:80px;flex-shrink:0;text-align:right;padding-right:4px">Break-in</span>
+        </div>
+        ${linesHTML}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  MODAL RENDERING                                         ║
+// ╚══════════════════════════════════════════════════════════╝
+
+function rModal() {
+  const { type, data } = S.modal;
+  let body = '';
+
+  // ── Edit Port Label ──────────────────────────────────
+  if (type === 'port') {
+    const rack = S.project.racks.find(r=>r.id===data.rid);
+    const item = rack?.equipment.find(e=>e.id===data.iid);
+    const typ  = getType(item?.typeId);
+    const port = typ?.ports.find(p=>p.id===data.pid);
+    const pl   = item?.portLabels?.[data.pid] || {};
+    const allRacks   = S.project.racks;
+    const connRackId = pl.connRackId || '';
+    const connItemId = pl.connItemId || '';
+    const connPortId = pl.connPortId || '';
+    const connRack   = allRacks.find(r=>r.id===connRackId);
+    const connItem   = connRack?.equipment.find(e=>e.id===connItemId);
+    const connTyp    = connItem ? getType(connItem.typeId) : null;
+    const connPort2  = connTyp?.ports.find(p=>p.id===connPortId);
+    const hasCurrent = !!(connRackId && connItemId && connPortId);
+    // Snake connection
+    const psSnakeId  = pl.snakeId     || '';
+    const psLineId   = pl.snakeLineId || '';
+    const psSnake    = (S.project.snakes||[]).find(s=>s.id===psSnakeId);
+    const psLine     = psSnake?.lines.find(l=>l.id===psLineId);
+    const hasSnake   = !!(psSnakeId && psLineId);
+    const allSnakes  = S.project.snakes || [];
+    const psLineOpts = psSnake
+      ? psSnake.lines.map(l=>{
+          const d=[l.lineNum,l.position,l.universe].filter(Boolean).join(' · ');
+          return `<option value="${l.id}" ${l.id===psLineId?'selected':''}>${d}</option>`;
+        }).join('')
+      : '';
+    const connEqOpts = connRack
+      ? connRack.equipment.filter(e=>e.id!==data.iid)
+          .map(e=>`<option value="${e.id}" ${e.id===connItemId?'selected':''}>${h(eqLabel(e))}</option>`).join('')
+      : '';
+    const connPortOpts = connTyp
+      ? connTyp.ports.map(p=>`<option value="${p.id}" ${p.id===connPortId?'selected':''}>${h(portLabel(p))}</option>`).join('')
+      : '';
+    body = `
+      <div class="modal-title">Edit Port Label</div>
+      <div class="modal-sub">${h(item?.label)} &rsaquo; ${h(typ?.name)} &rsaquo; ${h(port?.name)}</div>
+      <div class="fg">
+        <label class="flabel">Label / Destination</label>
+        <input class="finput" id="pl-label" value="${h(pl.label)}"
+               placeholder="e.g. USL FLR · DRAPE" autofocus>
+      </div>
+      ${(port?.type==='output'||port?.type==='input') ? `
+      <div class="fg">
+        <label class="flabel" style="color:var(--cyan)">Universe <small style="color:var(--text-muted)">(DMX universe assignment)</small></label>
+        <input class="finput" id="pl-univ" value="${h(pl.universe||'')}"
+               placeholder="e.g. UNIV 5" style="font-weight:700;color:var(--cyan)">
+      </div>` : '<input type="hidden" id="pl-univ" value="">'}
+      <div class="fg">
+        <label class="flabel">Notes <small>(optional)</small></label>
+        <input class="finput" id="pl-notes" value="${h(pl.notes)}" placeholder="Additional notes…">
+      </div>
+      <div class="conn-section">
+        <div class="flabel" style="margin-bottom:8px">Cable Connection <small>(links port to another)</small></div>
+        ${hasCurrent ? `<div class="conn-current">
+          <span class="conn-label">&#x27F6; ${h(connRack?.name)} &rsaquo; ${h(connItem?.label)} &rsaquo; PORT ${h(connPort2?.name)}</span>
+          <button class="conn-clear" onclick="clearConn('${data.rid}','${data.iid}','${data.pid}')" title="Remove">&#x2715;</button>
+        </div>` : ''}
+        <div class="conn-pickers">
+          <select class="fselect" id="conn-rack" onchange="onConnRackChange()">
+            <option value="">— Rack —</option>
+            ${allRacks.map(r=>`<option value="${r.id}" ${r.id===connRackId?'selected':''}>${h(r.name)}</option>`).join('')}
+          </select>
+          <select class="fselect" id="conn-eq" onchange="onConnEqChange()">
+            <option value="">— Equipment —</option>
+            ${connEqOpts}
+          </select>
+          <select class="fselect" id="conn-port">
+            <option value="">— Port —</option>
+            ${connPortOpts}
+          </select>
+        </div>
+      </div>
+      <div class="conn-section" style="margin-top:10px">
+        <div class="flabel" style="margin-bottom:8px">Snake Line <small>(patch this port from a snake break-in)</small></div>
+        ${hasSnake ? `<div class="conn-current">
+          <span class="conn-label" style="color:var(--orange)">&#x27F6; ${h(psSnake?.name)} · Line ${psLine?.lineNum}${psLine?.position?' — '+psLine.position:''}</span>
+          <button class="conn-clear" onclick="clearPortSnakeConn('${data.rid}','${data.iid}','${data.pid}')" title="Remove">&#x2715;</button>
+        </div>` : ''}
+        <div class="conn-pickers">
+          <select class="fselect" id="ps-snake" onchange="onPortSnakeChange()" style="flex:1">
+            <option value="">— Snake —</option>
+            ${allSnakes.map(s=>`<option value="${s.id}" ${s.id===psSnakeId?'selected':''}>${h(s.name)} (${s.type==='cpc8'?'8ch':'4ch'})</option>`).join('')}
+          </select>
+          <select class="fselect" id="ps-line" style="flex:2">
+            <option value="">— Line —</option>
+            ${psLineOpts}
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="savePort('${data.rid}','${data.iid}','${data.pid}')">Save</button>
+      </div>`;
+  }
+
+  // ── Add Equipment ────────────────────────────────────
+  else if (type === 'addEq') {
+    const types = allTypes();
+    body = `
+      <div class="modal-title">Add Equipment to Rack</div>
+      <div class="fg">
+        <label class="flabel">Equipment Type</label>
+        <select class="fselect" id="ae-type">
+          ${types.map(t=>`<option value="${t.id}">${h(t.name)} — ${t.ruHeight}U, ${t.ports.length} ports</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg">
+        <label class="flabel">Name / Label</label>
+        <input class="finput" id="ae-label" placeholder="e.g. OPTO 5, STAGE LEFT NPU" autofocus>
+      </div>
+      <div class="fg">
+        <label class="flabel">IP Address <small>(leave blank if N/A)</small></label>
+        <input class="finput" id="ae-ip" placeholder="e.g. 192.168.1.130">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmAddEq('${data.rid}')">Add to Rack</button>
+      </div>`;
+  }
+
+  // ── Edit Equipment ───────────────────────────────────
+  // ── Bulk Edit Ports ─────────────────────────────────
+  else if (type === 'bulkPort') {
+    const rack = S.project.racks.find(r=>r.id===data.rid);
+    const item = rack?.equipment.find(e=>e.id===data.iid);
+    const typ  = getType(item?.typeId);
+    if (!item || !typ) { body = '<div class="modal-title">Not found</div>'; }
+    else {
+      const groups = {};
+      typ.ports.forEach(p => {
+        const g = p.group || 'Ports';
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(p);
+      });
+      const gNames = Object.keys(groups);
+      const multiGroup = gNames.length > 1;
+
+      const dotColor = t => t==='output'?'var(--red)':t==='input'?'var(--blue)':t==='network'?'var(--cyan)':'var(--yellow)';
+
+      const tableRows = gNames.map(gn => {
+        const header = multiGroup ? `<tr><td colspan="3" class="bulk-sep">${h(gn)}</td></tr>` : '';
+        const rows = groups[gn].map(p => {
+          const pl = item.portLabels?.[p.id] || {};
+          const isDmx = (p.type==='output'||p.type==='input');
+          const univInput = isDmx
+            ? `<input class="finput bulk-univ" id="bu-u-${p.id}" value="${h(pl.universe||'')}" placeholder="UNIV #" style="font-size:10px;font-weight:700;color:var(--cyan);padding:4px 6px;">`
+            : `<span style="color:var(--text-muted);font-size:9px">—</span>`;
+          return `<tr>
+            <td class="bulk-pname"><span class="bulk-pdot" style="background:${dotColor(p.type)}"></span>${h(p.name)}</td>
+            <td>${univInput}</td>
+            <td><input class="finput bulk-label" id="bu-l-${p.id}" value="${h(pl.label||'')}" placeholder="label / dest…" style="font-size:10px;padding:4px 6px;"></td>
+          </tr>`;
+        }).join('');
+        return header + rows;
+      }).join('');
+
+      body = `
+        <div class="modal-title">Bulk Edit Ports</div>
+        <div class="modal-sub">${h(item.label)} &rsaquo; ${h(typ.name)} &rsaquo; ${typ.ports.length} ports</div>
+        <div style="overflow-y:auto;max-height:420px;margin-top:8px">
+          <table class="bulk-table">
+            <thead><tr>
+              <th>Port</th>
+              <th style="color:var(--cyan)">Universe</th>
+              <th>Label</th>
+            </tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>
+        <div class="modal-actions" style="margin-top:12px">
+          <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveBulkPorts('${data.rid}','${data.iid}')">Save All</button>
+        </div>`;
+    }
+  }
+
+  else if (type === 'editEq') {
+    const rack = S.project.racks.find(r=>r.id===data.rid);
+    const item = rack?.equipment.find(e=>e.id===data.iid);
+    body = `
+      <div class="modal-title">Edit Equipment</div>
+      <div class="fg">
+        <label class="flabel">Name / Label</label>
+        <input class="finput" id="ee-label" value="${h(item?.label)}" autofocus>
+      </div>
+      <div class="fg">
+        <label class="flabel">IP Address</label>
+        <input class="finput" id="ee-ip" value="${h(item?.ip)}">
+      </div>
+      <div class="fg">
+        <label class="flabel">Notes</label>
+        <input class="finput" id="ee-notes" value="${h(item?.notes)}">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmEditEq('${data.rid}','${data.iid}')">Save</button>
+      </div>`;
+  }
+
+  // ── Edit Snake Line ──────────────────────────────────
+  else if (type === 'snake') {
+    const snake = S.project.snakes.find(s=>s.id===data.sid);
+    const line  = snake?.lines.find(l=>l.id===data.lid);
+    const allRacks   = S.project.racks;
+    const connRackId = line?.connRackId || '';
+    const connItemId = line?.connItemId || '';
+    const connPortId = line?.connPortId || '';
+    const connRack   = allRacks.find(r=>r.id===connRackId);
+    const connItem   = connRack?.equipment.find(e=>e.id===connItemId);
+    const connTyp    = connItem ? getType(connItem.typeId) : null;
+    const connPort2  = connTyp?.ports.find(p=>p.id===connPortId);
+    const hasCurr    = !!(connRackId && connItemId && connPortId);
+    const connEqOpts = connRack
+      ? connRack.equipment.map(e=>`<option value="${e.id}" ${e.id===connItemId?'selected':''}>${h(eqLabel(e))}</option>`).join('')
+      : '';
+    const connPortOpts = connTyp
+      ? connTyp.ports.map(p=>`<option value="${p.id}" ${p.id===connPortId?'selected':''}>${h(portLabel(p))}</option>`).join('')
+      : '';
+    body = `
+      <div class="modal-title">Break-in Connection</div>
+      <div class="modal-sub">${h(snake?.name)} &rsaquo; Line ${line?.lineNum}${line?.position?' — '+h(line.position):''}</div>
+      <div class="conn-section" style="margin-top:4px">
+        <div class="flabel" style="margin-bottom:8px">Rack Port <small>(node / splitter input in rack)</small></div>
+        ${hasCurr ? `<div class="conn-current">
+          <span class="conn-label">&#x27F6; ${h(connRack?.name)} &rsaquo; ${h(connItem?.label)} &rsaquo; PORT ${h(connPort2?.name)}</span>
+          <button class="conn-clear" onclick="clearSnakeLineConn('${data.sid}','${data.lid}')" title="Remove">&#x2715;</button>
+        </div>` : ''}
+        <div class="conn-pickers">
+          <select class="fselect" id="sl-rack" onchange="onSlRackChange()">
+            <option value="">— Rack —</option>
+            ${allRacks.map(r=>`<option value="${r.id}" ${r.id===connRackId?'selected':''}>${h(r.name)}</option>`).join('')}
+          </select>
+          <select class="fselect" id="sl-eq" onchange="onSlEqChange()">
+            <option value="">— Equipment —</option>
+            ${connEqOpts}
+          </select>
+          <select class="fselect" id="sl-port">
+            <option value="">— Port —</option>
+            ${connPortOpts}
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveSnakeLine('${data.sid}','${data.lid}')">Save</button>
+      </div>`;
+  }
+
+  // ── Add Snake ─────────────────────────────────────────
+  else if (type === 'addSnake') {
+    body = `
+      <div class="modal-title">Add Snake Run</div>
+      <div class="fg">
+        <label class="flabel">Name</label>
+        <input class="finput" id="as-name" placeholder="e.g. GRID, J, USR" autofocus>
+      </div>
+      <div class="fg">
+        <label class="flabel">Type</label>
+        <select class="fselect" id="as-type" onchange="onAsTypeChange()">
+          <option value="cpc8">8-Channel (CPC8)</option>
+          <option value="cpc4">4-Channel (CPC4)</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="fg" id="as-custom-fg" style="display:none">
+        <label class="flabel">Number of Lines</label>
+        <input class="finput" id="as-lines" type="number" value="8" min="1" max="64">
+      </div>
+      <div class="fg">
+        <label class="flabel">Color</label>
+        <select class="fselect" id="as-color">
+          ${COLORS.map((c,i)=>`<option value="${c}">${['Blue','Green','Purple','Orange','Pink','Cyan','Yellow','Red','White','Grey','Teal'][i]}</option>`).join('')}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmAddSnake()">Add Snake</button>
+      </div>`;
+  }
+
+  // ── Edit Snake ────────────────────────────────────────
+  else if (type === 'editSnake') {
+    const snake = S.project.snakes.find(s=>s.id===data.sid);
+    body = `
+      <div class="modal-title">Edit Snake</div>
+      <div class="fg">
+        <label class="flabel">Name</label>
+        <input class="finput" id="es-name" value="${h(snake?.name)}" autofocus>
+      </div>
+      <div class="fg">
+        <label class="flabel">Color</label>
+        <select class="fselect" id="es-color">
+          ${COLORS.map((c,i)=>`<option value="${c}" ${c===snake?.color?'selected':''}>${['Blue','Green','Purple','Orange','Pink','Cyan','Yellow','Red','White','Grey','Teal'][i]}</option>`).join('')}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmEditSnake('${data.sid}')">Save</button>
+      </div>`;
+  }
+
+  // ── Add / Edit Equipment Type ────────────────────────
+  else if (type === 'addType' || type === 'editType') {
+    const isEdit = type === 'editType';
+    const existing = isEdit ? getType(data.tid) : null;
+    const portsTxt = existing?.ports.map(p=>`${p.name}|${p.group||'Ports'}|${p.type}`).join('\n') || '';
+    body = `
+      <div class="modal-title">${isEdit?'Edit':'Add'} Equipment Type</div>
+      <div class="fg">
+        <label class="flabel">Name</label>
+        <input class="finput" id="at-name" value="${h(existing?.name)}" placeholder="e.g. Network Switch" autofocus>
+      </div>
+      <div class="fg">
+        <label class="flabel">Manufacturer</label>
+        <input class="finput" id="at-mfr" value="${h(existing?.manufacturer)}" placeholder="e.g. Cisco">
+      </div>
+      <div class="fg">
+        <label class="flabel">Model</label>
+        <input class="finput" id="at-model" value="${h(existing?.model)}" placeholder="e.g. SG350-28">
+      </div>
+      <div class="fg">
+        <label class="flabel">Rack Units (Height)</label>
+        <input class="finput" id="at-ru" type="number" value="${existing?.ruHeight||1}" min="1" max="12">
+      </div>
+      <div class="fg">
+        <label class="flabel">Accent Color</label>
+        <input class="finput" id="at-color" type="color" value="${existing?.color||'#4a9eff'}" style="height:38px;cursor:pointer">
+      </div>
+      <div class="fg">
+        <label class="flabel">
+          Ports <small>(one per line · format: Name|Group|Type)</small><br>
+          <small style="color:var(--text-muted)">Types: output · input · network · power<br>
+          Example: Port 1|DMX Out|output</small>
+        </label>
+        <textarea class="ftextarea finput" id="at-ports" rows="10" placeholder="Port 1|DMX Out|output&#10;Port 2|DMX Out|output&#10;ETH 1|Network|network">${portsTxt}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmSaveType(${isEdit?`'${data.tid}'`:'null'})">${isEdit?'Save Changes':'Add Type'}</button>
+      </div>`;
+  }
+
+  // ── Duplicate Rack ───────────────────────────────────
+  else if (type === 'dupRack') {
+    const srcRack = S.project.racks.find(r=>r.id===data.rid);
+    body = `
+      <div class="modal-title">Duplicate Rack</div>
+      <div class="modal-sub">Copies all equipment and port labels from <strong>${h(srcRack?.name)}</strong></div>
+      <div class="fg">
+        <label class="flabel">New Rack Name</label>
+        <input class="finput" id="dr-name" value="${h(srcRack?.name)} (Copy)" autofocus>
+      </div>
+      <div class="fg">
+        <label class="flabel">Color</label>
+        <select class="fselect" id="dr-color">
+          ${COLORS.map((c,i)=>`<option value="${c}">${['Blue','Green','Purple','Orange','Pink','Cyan','Yellow','Red','White','Grey','Teal'][i]}</option>`).join('')}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmDupRack('${data.rid}')">Duplicate</button>
+      </div>`;
+  }
+
+  // ── Add Rack ─────────────────────────────────────────
+  else if (type === 'addRack') {
+    body = `
+      <div class="modal-title">Add New Rack</div>
+      <div class="fg">
+        <label class="flabel">Rack Name</label>
+        <input class="finput" id="ar-name" placeholder="e.g. DOWNSTAGE RIGHT" autofocus>
+      </div>
+      <div class="fg">
+        <label class="flabel">Color</label>
+        <select class="fselect" id="ar-color">
+          ${COLORS.map((c,i)=>`<option value="${c}">${['Blue','Green','Purple','Orange','Pink','Cyan','Yellow','Red','White','Grey','Teal'][i]}</option>`).join('')}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmAddRack()">Create Rack</button>
+      </div>`;
+  }
+
+  // ── Rename Rack ──────────────────────────────────────
+  else if (type === 'renameRack') {
+    const rack = S.project.racks.find(r=>r.id===data.rid);
+    body = `
+      <div class="modal-title">Rename Rack</div>
+      <div class="fg">
+        <label class="flabel">Rack Name</label>
+        <input class="finput" id="rr-name" value="${h(rack?.name)}" autofocus>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmRenameRack('${data.rid}')">Save</button>
+      </div>`;
+  }
+
+  // ── Rename Project ───────────────────────────────────
+  else if (type === 'renameProj') {
+    body = `
+      <div class="modal-title">Rename Project</div>
+      <div class="fg">
+        <label class="flabel">Project Name</label>
+        <input class="finput" id="rp-name" value="${h(S.project?.name)}" autofocus>
+      </div>
+      <div class="fg">
+        <label class="flabel">Version</label>
+        <input class="finput" id="rp-ver" value="${h(S.project?.version)}">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmRenameProj()">Save</button>
+      </div>`;
+  }
+
+  return `<div class="overlay" onclick="overlayClick(event)">
+    <div class="modal">${body}</div>
+  </div>`;
+}
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  ACTIONS                                                 ║
+// ╚══════════════════════════════════════════════════════════╝
+
+function overlayClick(e) { if (e.target===e.currentTarget) closeModal(); }
+function closeModal() { S.modal=null; render(); }
+
+function focusDelay(id) { setTimeout(()=>{ const el=document.getElementById(id); if(el){el.focus();try{el.select();}catch(e){}} }, 60); }
+
+// Navigation
+function selectRack(id) { S.rackId=id; S.view='rack'; render(); }
+function selectView(v)   { S.view=v; render(); }
+
+// Port
+function openPort(rid,iid,pid) {
+  S.modal = { type:'port', data:{rid,iid,pid} };
+  render(); focusDelay('pl-label');
+}
+function savePort(rid,iid,pid) {
+  const rack = S.project.racks.find(r=>r.id===rid);
+  const item = rack?.equipment.find(e=>e.id===iid);
+  if (!item) return;
+  if (!item.portLabels) item.portLabels={};
+
+  const oldPl       = item.portLabels[pid] || {};
+  const newConnRack = document.getElementById('conn-rack')?.value||'';
+  const newConnEq   = document.getElementById('conn-eq')?.value||'';
+  const newConnPort = document.getElementById('conn-port')?.value||'';
+  const newPsSnake  = document.getElementById('ps-snake')?.value||'';
+  const newPsLine   = document.getElementById('ps-line')?.value||'';
+
+  // Clear old port-to-port reverse link
+  if (oldPl.connRackId && oldPl.connItemId && oldPl.connPortId) {
+    clearReverseConn(oldPl.connRackId, oldPl.connItemId, oldPl.connPortId);
+  }
+  // Clear old snake line back-reference
+  if (oldPl.snakeId && oldPl.snakeLineId) {
+    const oldSnake = (S.project.snakes||[]).find(s=>s.id===oldPl.snakeId);
+    const oldLine  = oldSnake?.lines.find(l=>l.id===oldPl.snakeLineId);
+    if (oldLine) { oldLine.connRackId=''; oldLine.connItemId=''; oldLine.connPortId=''; }
+  }
+
+  const newPl = {
+    label:    document.getElementById('pl-label')?.value?.trim()||'',
+    notes:    document.getElementById('pl-notes')?.value?.trim()||'',
+    universe: document.getElementById('pl-univ')?.value?.trim()||''
+  };
+
+  if (newPsSnake && newPsLine) {
+    // Snake connection takes priority
+    newPl.snakeId     = newPsSnake;
+    newPl.snakeLineId = newPsLine;
+    const snake = (S.project.snakes||[]).find(s=>s.id===newPsSnake);
+    const line  = snake?.lines.find(l=>l.id===newPsLine);
+    if (line) { line.connRackId=rid; line.connItemId=iid; line.connPortId=pid; }
+  } else if (newConnRack && newConnEq && newConnPort) {
+    // Port-to-port connection
+    newPl.connRackId = newConnRack;
+    newPl.connItemId = newConnEq;
+    newPl.connPortId = newConnPort;
+    setReverseConn(newConnRack, newConnEq, newConnPort, rid, iid, pid);
+  }
+
+  item.portLabels[pid] = newPl;
+  closeModal(); save();
+}
+
+// ── Connection helpers ───────────────────────────────────────────────────────
+// ── Display helpers ──────────────────────────────────────
+function portLabel(port) { return 'PORT ' + port.name; }
+function eqLabel(e) {
+  const typ = getType(e.typeId);
+  return typ ? typ.name.toUpperCase() + ' · ' + e.label : e.label;
+}
+
+function connInfo(rackId, pl) {
+  // Snake tag — port is occupied by a snake line break-in
+  if (pl?.snakeId && pl?.snakeLineId) {
+    const snake = S.project.snakes?.find(s=>s.id===pl.snakeId);
+    const line  = snake?.lines.find(l=>l.id===pl.snakeLineId);
+    if (snake && line) {
+      const pos = line.position ? ' — ' + line.position : '';
+      return {
+        short: snake.name + ' · LINE ' + line.lineNum,
+        full:  'Snake ' + snake.name + ' · Line ' + line.lineNum + pos,
+        crossRack: false, type: 'snake'
+      };
+    }
+  }
+  // Port-to-port connection
+  if (!pl?.connRackId || !pl?.connItemId || !pl?.connPortId) return null;
+  const cRack = S.project.racks.find(r=>r.id===pl.connRackId);
+  const cItem = cRack?.equipment.find(e=>e.id===pl.connItemId);
+  const cTyp  = cItem ? getType(cItem.typeId) : null;
+  const cPort = cTyp?.ports.find(p=>p.id===pl.connPortId);
+  if (!cRack || !cItem || !cPort) return null;
+  const crossRack = pl.connRackId !== rackId;
+  const pName = portLabel(cPort);
+  const short = cRack.name + ' · ' + cItem.label + ' · ' + pName;
+  const full  = cRack.name + ' › ' + eqLabel(cItem) + ' › ' + pName;
+  return { short, full, crossRack, type: 'port' };
+}
+
+function snakeLineConnInfo(line) {
+  if (!line?.connRackId || !line?.connItemId || !line?.connPortId) return null;
+  const rack = S.project.racks.find(r=>r.id===line.connRackId);
+  const item = rack?.equipment.find(e=>e.id===line.connItemId);
+  const typ  = item ? getType(item.typeId) : null;
+  const port = typ?.ports.find(p=>p.id===line.connPortId);
+  if (!rack || !item || !port) return null;
+  const pName = portLabel(port);
+  return {
+    short: rack.name + ' · ' + item.label + ' · ' + pName,
+    full:  rack.name + ' › ' + eqLabel(item) + ' › ' + pName
+  };
+}
+
+function setReverseConn(tRackId, tItemId, tPortId, srcRackId, srcItemId, srcPortId) {
+  const rack = S.project.racks.find(r=>r.id===tRackId);
+  const item = rack?.equipment.find(e=>e.id===tItemId);
+  if (!item) return;
+  if (!item.portLabels) item.portLabels={};
+  if (!item.portLabels[tPortId]) item.portLabels[tPortId]={ label:'', notes:'' };
+  item.portLabels[tPortId].connRackId = srcRackId;
+  item.portLabels[tPortId].connItemId = srcItemId;
+  item.portLabels[tPortId].connPortId = srcPortId;
+}
+
+function clearReverseConn(tRackId, tItemId, tPortId) {
+  const rack = S.project.racks.find(r=>r.id===tRackId);
+  const item = rack?.equipment.find(e=>e.id===tItemId);
+  if (!item?.portLabels?.[tPortId]) return;
+  delete item.portLabels[tPortId].connRackId;
+  delete item.portLabels[tPortId].connItemId;
+  delete item.portLabels[tPortId].connPortId;
+}
+
+function clearConn(rid, iid, pid) {
+  const rack = S.project.racks.find(r=>r.id===rid);
+  const item = rack?.equipment.find(e=>e.id===iid);
+  if (!item?.portLabels?.[pid]) return;
+  const pl = item.portLabels[pid];
+  if (pl.connRackId && pl.connItemId && pl.connPortId) {
+    clearReverseConn(pl.connRackId, pl.connItemId, pl.connPortId);
+  }
+  delete pl.connRackId; delete pl.connItemId; delete pl.connPortId;
+  save(); S.modal=null; render();
+}
+
+function clearPortSnakeConn(rid, iid, pid) {
+  const rack = S.project.racks.find(r=>r.id===rid);
+  const item = rack?.equipment.find(e=>e.id===iid);
+  if (!item?.portLabels?.[pid]) return;
+  const pl = item.portLabels[pid];
+  if (pl.snakeId && pl.snakeLineId) {
+    const snake = (S.project.snakes||[]).find(s=>s.id===pl.snakeId);
+    const line  = snake?.lines.find(l=>l.id===pl.snakeLineId);
+    if (line) { line.connRackId=''; line.connItemId=''; line.connPortId=''; }
+  }
+  delete pl.snakeId; delete pl.snakeLineId;
+  save(); S.modal=null; render();
+}
+
+function onPortSnakeChange() {
+  const snakeId = document.getElementById('ps-snake')?.value||'';
+  const lineSel = document.getElementById('ps-line');
+  if (!lineSel) return;
+  const snake = (S.project.snakes||[]).find(s=>s.id===snakeId);
+  lineSel.innerHTML = '<option value="">— Line —</option>' +
+    (snake ? snake.lines.map(l => {
+      const d = [l.lineNum, l.position, l.universe].filter(Boolean).join(' · ');
+      return `<option value="${l.id}">${d}</option>`;
+    }).join('') : '');
+}
+
+function onConnRackChange() {
+  const rackId = document.getElementById('conn-rack')?.value||'';
+  const eqSel  = document.getElementById('conn-eq');
+  const ptSel  = document.getElementById('conn-port');
+  if (!eqSel || !ptSel) return;
+  const rack   = S.project.racks.find(r=>r.id===rackId);
+  const curIid = S.modal?.data?.iid;
+  eqSel.innerHTML = '<option value="">— Equipment —</option>' +
+    (rack ? rack.equipment.filter(e=>e.id!==curIid)
+      .map(e=>`<option value="${e.id}">${h(eqLabel(e))}</option>`).join('') : '');
+  ptSel.innerHTML = '<option value="">— Port —</option>';
+}
+
+function onConnEqChange() {
+  const eqId  = document.getElementById('conn-eq')?.value||'';
+  const ptSel = document.getElementById('conn-port');
+  if (!ptSel) return;
+  let item = null;
+  for (const r of S.project.racks) {
+    item = r.equipment.find(e=>e.id===eqId); if (item) break;
+  }
+  const type = item ? getType(item.typeId) : null;
+  ptSel.innerHTML = '<option value="">— Port —</option>' +
+    (type ? type.ports.map(p=>`<option value="${p.id}">${h(portLabel(p))}</option>`).join('') : '');
+}
+
+// Equipment in rack
+function openAddEq(rid) { S.modal={type:'addEq',data:{rid}}; render(); focusDelay('ae-label'); }
+function confirmAddEq(rid) {
+  const typeId   = document.getElementById('ae-type')?.value;
+  const rawLabel = document.getElementById('ae-label')?.value?.trim()||'New Equipment';
+  const ip       = document.getElementById('ae-ip')?.value?.trim()||'';
+  const rack     = S.project.racks.find(r=>r.id===rid);
+  if (!rack) return;
+  const pfx   = rackColorName(rack);
+  const label = pfx ? pfx + ' ' + rawLabel : rawLabel;
+  rack.equipment.push(newItem(typeId,label,ip,{}));
+  closeModal(); save();
+}
+
+function openEditEq(rid,iid) { S.modal={type:'editEq',data:{rid,iid}}; render(); focusDelay('ee-label'); }
+
+// ── Toast notification ────────────────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'show toast-' + type;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = ''; }, 2800);
+}
+
+// ── Copy universes from main → matching spare ────────────────────────────────
+function copyUniversesToSpare(rid, iid) {
+  const rack  = S.project.racks.find(r => r.id === rid);
+  const main  = rack?.equipment.find(e => e.id === iid);
+  if (!main) return;
+  const typ   = getType(main.typeId);
+  if (!typ) return;
+
+  // Find spare: same typeId, 'SPARE' in name, not itself
+  const spares = rack.equipment.filter(e =>
+    e.id !== iid && e.typeId === main.typeId && /spare/i.test(e.label || '')
+  );
+  if (!spares.length) { showToast('No matching spare found in this rack.', 'warn'); return; }
+  const spare = spares[0];  // use first match
+
+  if (!spare.portLabels) spare.portLabels = {};
+  let count = 0;
+  typ.ports.forEach(p => {
+    const u = main.portLabels?.[p.id]?.universe || '';
+    if (u) {
+      if (!spare.portLabels[p.id]) spare.portLabels[p.id] = {};
+      spare.portLabels[p.id].universe = u;
+      count++;
+    }
+  });
+  save();
+  showToast(count ? `Copied ${count} universe${count!==1?'s':''} → ${spare.label}` : 'No universes to copy.', count ? 'ok' : 'warn');
+}
+function openBulkPorts(rid,iid) { S.modal={type:'bulkPort',data:{rid,iid}}; render(); }
+function saveBulkPorts(rid,iid) {
+  const rack = S.project.racks.find(r=>r.id===rid);
+  const item = rack?.equipment.find(e=>e.id===iid);
+  const typ  = getType(item?.typeId);
+  if (!item||!typ) return;
+  if (!item.portLabels) item.portLabels = {};
+  typ.ports.forEach(p => {
+    const uEl = document.getElementById('bu-u-'+p.id);
+    const lEl = document.getElementById('bu-l-'+p.id);
+    if (!uEl && !lEl) return;
+    const existing = item.portLabels[p.id] || {};
+    item.portLabels[p.id] = Object.assign({}, existing, {
+      universe: (uEl?.value||'').trim(),
+      label:    (lEl?.value||'').trim()
+    });
+  });
+  closeModal(); save();
+}
+function confirmEditEq(rid,iid) {
+  const rack = S.project.racks.find(r=>r.id===rid);
+  const item = rack?.equipment.find(e=>e.id===iid);
+  if (!item) return;
+  item.label = document.getElementById('ee-label')?.value?.trim()||item.label;
+  item.ip    = document.getElementById('ee-ip')?.value?.trim()||'';
+  item.notes = document.getElementById('ee-notes')?.value?.trim()||'';
+  closeModal(); save();
+}
+
+function removeItem(rid,iid) {
+  if (!confirm('Remove this equipment from the rack?')) return;
+  const rack = S.project.racks.find(r=>r.id===rid);
+  if (!rack) return;
+  rack.equipment = rack.equipment.filter(e=>e.id!==iid);
+  save(); render();
+}
+
+function moveItem(rid,iid,dir) {
+  const rack = S.project.racks.find(r=>r.id===rid);
+  if (!rack) return;
+  const i = rack.equipment.findIndex(e=>e.id===iid);
+  if (i===-1) return;
+  const j = i+dir;
+  if (j<0||j>=rack.equipment.length) return;
+  [rack.equipment[i],rack.equipment[j]] = [rack.equipment[j],rack.equipment[i]];
+  save(); render();
+}
+
+// Racks
+function openDupRack(rid) { S.modal={type:'dupRack',data:{rid}}; render(); focusDelay('dr-name'); }
+function confirmDupRack(rid) {
+  const src   = S.project.racks.find(r=>r.id===rid);
+  if (!src) return;
+  const name  = document.getElementById('dr-name')?.value?.trim() || src.name + ' (Copy)';
+  const color = document.getElementById('dr-color')?.value || COLORS[0];
+  // Deep-clone equipment, assign fresh IDs
+  const idMap = {};
+  const equipment = src.equipment.map(item => {
+    const newId = uid();
+    idMap[item.id] = newId;
+    return {
+      ...item,
+      id: newId,
+      portLabels: JSON.parse(JSON.stringify(item.portLabels || {}))
+    };
+  });
+  // Remap any intra-rack connections to new IDs; cross-rack stay as-is
+  equipment.forEach(item => {
+    Object.values(item.portLabels).forEach(pl => {
+      if (pl.connRackId === rid) {
+        pl.connRackId = undefined; // will be set below
+        if (idMap[pl.connItemId]) pl.connItemId = idMap[pl.connItemId];
+      }
+    });
+  });
+  const newRack = { id: uid(), name, color, equipment };
+  // Fix intra-rack connRackId now that we have newRack.id
+  newRack.equipment.forEach(item => {
+    Object.values(item.portLabels).forEach(pl => {
+      if (pl.connRackId === undefined && pl.connItemId) pl.connRackId = newRack.id;
+    });
+  });
+  S.project.racks.push(newRack);
+  S.rackId = newRack.id; S.view = 'rack';
+  closeModal(); save();
+}
+
+function openAddRack()    { S.modal={type:'addRack',data:{}}; render(); focusDelay('ar-name'); }
+function confirmAddRack() {
+  const name  = document.getElementById('ar-name')?.value?.trim();
+  const color = document.getElementById('ar-color')?.value || COLORS[0];
+  if (!name) return;
+  const rack = { id:uid(), name, color, equipment:[] };
+  S.project.racks.push(rack);
+  S.rackId=rack.id; S.view='rack';
+  closeModal(); save();
+}
+
+function openRenameRack(rid)    { S.modal={type:'renameRack',data:{rid}}; render(); focusDelay('rr-name'); }
+function confirmRenameRack(rid) {
+  const name = document.getElementById('rr-name')?.value?.trim();
+  if (!name) return;
+  const rack = S.project.racks.find(r=>r.id===rid);
+  if (rack) rack.name=name;
+  closeModal(); save();
+}
+
+function clearAllPortAssignments(rid) {
+  const rack = S.project.racks.find(r=>r.id===rid);
+  if (!rack) return;
+  if (!confirm(`Clear ALL port assignments from every piece of equipment in "${rack.name}"?\n\nThis removes all labels, universes, and connections. This cannot be undone.`)) return;
+
+  rack.equipment.forEach(item => {
+    if (item.portLabels) {
+      Object.values(item.portLabels).forEach(pl => {
+        if (pl.connRackId && pl.connItemId && pl.connPortId)
+          clearReverseConn(pl.connRackId, pl.connItemId, pl.connPortId);
+        if (pl.snakeId && pl.snakeLineId) {
+          const snake = (S.project.snakes||[]).find(s=>s.id===pl.snakeId);
+          const line  = snake?.lines.find(l=>l.id===pl.snakeLineId);
+          if (line) { line.connRackId=''; line.connItemId=''; line.connPortId=''; }
+        }
+      });
+    }
+    item.portLabels = {};
+  });
+  save(); render();
+  showToast(`Port assignments cleared from ${rack.equipment.length} item${rack.equipment.length!==1?'s':''}.`, 'ok');
+}
+
+function deleteRack(rid) {
+  if (!confirm('Delete this rack and all its equipment? This cannot be undone.')) return;
+  S.project.racks = S.project.racks.filter(r=>r.id!==rid);
+  if (S.rackId===rid) S.rackId = S.project.racks[0]?.id||null;
+  save(); render();
+}
+
+// Equipment types
+function openAddType()    { S.modal={type:'addType',data:{}}; render(); focusDelay('at-name'); }
+function openEditType(tid){ S.modal={type:'editType',data:{tid}}; render(); focusDelay('at-name'); }
+function confirmSaveType(existingId) {
+  const name = document.getElementById('at-name')?.value?.trim();
+  if (!name) return;
+  const raw   = document.getElementById('at-ports')?.value?.trim()||'';
+  const ports = raw.split('\n').filter(l=>l.trim()).map((line,i)=>{
+    const [n,g,t] = line.split('|').map(s=>s?.trim());
+    return { id:'p'+i+'_'+uid().slice(0,4), name:n||`Port ${i+1}`, group:g||'Ports', type:t||'output' };
+  });
+  const obj = {
+    id: existingId || uid(),
+    name,
+    manufacturer: document.getElementById('at-mfr')?.value?.trim()||'',
+    model:        document.getElementById('at-model')?.value?.trim()||'',
+    ruHeight:     parseInt(document.getElementById('at-ru')?.value)||1,
+    color:        document.getElementById('at-color')?.value||'#4a9eff',
+    hasIp: true, ports
+  };
+  if (existingId) {
+    const idx = S.project.customTypes.findIndex(t=>t.id===existingId);
+    if (idx>=0) S.project.customTypes[idx]=obj;
+    else S.project.customTypes.push(obj);
+  } else {
+    S.project.customTypes.push(obj);
+  }
+  closeModal(); save();
+}
+
+function deleteType(tid) {
+  if (!confirm('Delete this equipment type?')) return;
+  S.project.customTypes = S.project.customTypes.filter(t=>t.id!==tid);
+  save(); render();
+}
+
+// Project
+function openRenameProj()   { S.modal={type:'renameProj',data:{}}; render(); focusDelay('rp-name'); }
+function confirmRenameProj(){
+  const name = document.getElementById('rp-name')?.value?.trim();
+  const ver  = document.getElementById('rp-ver')?.value?.trim();
+  if (!name) return;
+  S.project.name=name;
+  if (ver) S.project.version=ver;
+  closeModal(); save();
+}
+
+// ── Snake actions ────────────────────────────────────────────
+function selectSnake(id) { S.snakeId=id; S.view='snake'; render(); }
+
+function openSnakeLine(sid, lid) {
+  S.modal = { type:'snake', data:{sid,lid} };
+  render(); focusDelay('sl-pos');
+}
+function openSnakeLineConn(sid, lid) {
+  S.modal = { type:'snake', data:{sid,lid} };
+  render();
+}
+
+// ── Inline spreadsheet field save ────────────────────────────────────────────
+// Live spare detection as user types in Universe field
+// Live spare detection while typing in Universe field
+function onUnivInput(el) {
+  const row = el.closest('.sline-row');
+  if (!row) return;
+  const isSp = /\bSP\b/i.test(el.value);
+  row.classList.toggle('sline-spare', isSp);
+}
+
+// Save a single inline field on blur — NO full re-render (would kill focus + Enter nav)
+function saveInlineField(el) {
+  const sid   = el.dataset.sid;
+  const lid   = el.dataset.lid;
+  const field = el.dataset.field;
+  const snake = S.project.snakes?.find(s => s.id === sid);
+  const line  = snake?.lines.find(l => l.id === lid);
+  if (!line) return;
+  line[field] = el.value.trim();
+  save();
+  // Universe change: swap FX cell in-place without re-rendering
+  if (field === 'universe') _applySpareRowDOM(el, sid, lid, line);
+}
+
+// Swap the FX cell between <input> and a "spare" label without touching the rest of the DOM
+function _applySpareRowDOM(univEl, sid, lid, line) {
+  const row = univEl.closest('.sline-row');
+  if (!row) return;
+  const isSp = /\bSP\b/i.test(line.universe);
+  row.classList.toggle('sline-spare', isSp);
+
+  const existing = row.querySelector('[data-field="firstFixture"], .sline-spare-fx');
+  if (!existing) return;
+
+  if (isSp && existing.tagName === 'INPUT') {
+    // Swap input → spare label
+    line.firstFixture = '';
+    const span = document.createElement('span');
+    span.className = 'sl-input sl-fx sline-spare-fx';
+    span.style.cssText = 'color:var(--text-muted);font-style:italic;display:flex;align-items:center;';
+    span.textContent = 'spare';
+    existing.replaceWith(span);
+  } else if (!isSp && existing.tagName !== 'INPUT') {
+    // Swap spare label → input
+    const input = document.createElement('input');
+    input.className = 'sl-input sl-fx';
+    input.dataset.sid   = sid;
+    input.dataset.lid   = lid;
+    input.dataset.field = 'firstFixture';
+    input.value         = line.firstFixture || '';
+    input.placeholder   = 'First FX…';
+    input.onblur    = function() { saveInlineField(this); };
+    input.onkeydown = function(e) { slKeyNav(e, this); };
+    existing.replaceWith(input);
+  }
+}
+
+// ── Enter/Shift+Enter navigation: move down/up within same column ─────────────
+function slKeyNav(e, el) {
+  if (e.key === 'Tab') return; // let browser handle natural tab order
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const field  = el.dataset.field;
+  const inputs = [...document.querySelectorAll(`.sl-input[data-field="${field}"]`)];
+  const idx    = inputs.indexOf(el);
+  const next   = e.shiftKey ? inputs[idx - 1] : inputs[idx + 1];
+  if (next) { next.focus(); next.select(); }
+}
+
+function saveSnakeLine(sid, lid) {
+  const snake = S.project.snakes.find(s=>s.id===sid);
+  const line  = snake?.lines.find(l=>l.id===lid);
+  if (!line) return;
+
+  const oldRack = line.connRackId, oldItem = line.connItemId, oldPort = line.connPortId;
+  const newRack = document.getElementById('sl-rack')?.value||'';
+  const newItem = document.getElementById('sl-eq')?.value||'';
+  const newPort = document.getElementById('sl-port')?.value||'';
+
+  // Clear old snake tag on rack port
+  if (oldRack && oldItem && oldPort) clearSnakeTag(oldRack, oldItem, oldPort);
+
+  line.connRackId = newRack;
+  line.connItemId = newItem;
+  line.connPortId = newPort;
+
+  // Set new snake tag on rack port
+  if (newRack && newItem && newPort) setSnakeTag(newRack, newItem, newPort, sid, lid);
+
+  closeModal(); save();
+}
+
+function clearSnakeLineConn(sid, lid) {
+  const snake = S.project.snakes.find(s=>s.id===sid);
+  const line  = snake?.lines.find(l=>l.id===lid);
+  if (!line) return;
+  if (line.connRackId && line.connItemId && line.connPortId)
+    clearSnakeTag(line.connRackId, line.connItemId, line.connPortId);
+  line.connRackId=''; line.connItemId=''; line.connPortId='';
+  save(); S.modal=null; render();
+}
+
+function setSnakeTag(rackId, itemId, portId, snakeId, lineId) {
+  const rack = S.project.racks.find(r=>r.id===rackId);
+  const item = rack?.equipment.find(e=>e.id===itemId);
+  if (!item) return;
+  if (!item.portLabels) item.portLabels={};
+  if (!item.portLabels[portId]) item.portLabels[portId]={label:'',notes:''};
+  item.portLabels[portId].snakeId     = snakeId;
+  item.portLabels[portId].snakeLineId = lineId;
+}
+
+function clearSnakeTag(rackId, itemId, portId) {
+  const rack = S.project.racks.find(r=>r.id===rackId);
+  const item = rack?.equipment.find(e=>e.id===itemId);
+  if (!item?.portLabels?.[portId]) return;
+  delete item.portLabels[portId].snakeId;
+  delete item.portLabels[portId].snakeLineId;
+}
+
+function onSlRackChange() {
+  const rackId = document.getElementById('sl-rack')?.value||'';
+  const eqSel  = document.getElementById('sl-eq');
+  const ptSel  = document.getElementById('sl-port');
+  if (!eqSel || !ptSel) return;
+  const rack = S.project.racks.find(r=>r.id===rackId);
+  eqSel.innerHTML = '<option value="">— Equipment —</option>' +
+    (rack ? rack.equipment.map(e=>`<option value="${e.id}">${h(eqLabel(e))}</option>`).join('') : '');
+  ptSel.innerHTML = '<option value="">— Port —</option>';
+}
+
+function onSlEqChange() {
+  const eqId  = document.getElementById('sl-eq')?.value||'';
+  const ptSel = document.getElementById('sl-port');
+  if (!ptSel) return;
+  let item = null;
+  for (const r of S.project.racks) { item=r.equipment.find(e=>e.id===eqId); if(item)break; }
+  const type = item ? getType(item.typeId) : null;
+  ptSel.innerHTML = '<option value="">— Port —</option>' +
+    (type ? type.ports.map(p => {
+      const univ = item.portLabels?.[p.id]?.universe || '';
+      const label = univ ? `${h(portLabel(p))}  —  ${h(univ)}` : h(portLabel(p));
+      return `<option value="${p.id}">${label}</option>`;
+    }).join('') : '');
+}
+
+function openAddSnake() { S.modal={type:'addSnake',data:{}}; render(); focusDelay('as-name'); }
+function onAsTypeChange() {
+  const t = document.getElementById('as-type')?.value;
+  const fg = document.getElementById('as-custom-fg');
+  if (fg) fg.style.display = t==='custom' ? '' : 'none';
+}
+function confirmAddSnake() {
+  const name  = document.getElementById('as-name')?.value?.trim();
+  if (!name) return;
+  const type  = document.getElementById('as-type')?.value || 'cpc8';
+  const color = document.getElementById('as-color')?.value || COLORS[3];
+  const count = type==='cpc8' ? 8 : type==='cpc4' ? 4 :
+                parseInt(document.getElementById('as-lines')?.value)||8;
+  const lines = Array.from({length:count},(_,i)=>newLine(i+1,'','',''));
+  const snake = { id:uid(), name, type, color, lines };
+  S.project.snakes.push(snake);
+  S.snakeId=snake.id; S.view='snake';
+  closeModal(); save();
+}
+
+function openEditSnake(sid) { S.modal={type:'editSnake',data:{sid}}; render(); focusDelay('es-name'); }
+function confirmEditSnake(sid) {
+  const snake = S.project.snakes.find(s=>s.id===sid);
+  if (!snake) return;
+  snake.name  = document.getElementById('es-name')?.value?.trim() || snake.name;
+  snake.color = document.getElementById('es-color')?.value || snake.color;
+  closeModal(); save();
+}
+
+function deleteSnake(sid) {
+  if (!confirm('Delete this snake and all its line data?')) return;
+  // Clear any snake tags on rack ports
+  const snake = S.project.snakes.find(s=>s.id===sid);
+  if (snake) {
+    snake.lines.forEach(line => {
+      if (line.connRackId && line.connItemId && line.connPortId)
+        clearSnakeTag(line.connRackId, line.connItemId, line.connPortId);
+    });
+  }
+  S.project.snakes = S.project.snakes.filter(s=>s.id!==sid);
+  if (S.snakeId===sid) {
+    S.snakeId = S.project.snakes[0]?.id || null;
+    if (!S.snakeId) S.view='rack';
+  }
+  save(); render();
+}
+
+// ── Import / Export ───────────────────────────────────────
+function exportJSON() {
+  const json = JSON.stringify(S.project, null, 2);
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([json],{type:'application/json'})),
+    download: (S.project?.name||'rack-builder') + '.json'
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+function trigImport() { document.getElementById('file-imp')?.click(); }
+function importJSON(e) {
+  const file = e.target.files?.[0]; if (!file) return;
+  const fr = new FileReader();
+  fr.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (!d.racks) throw new Error('Invalid file — missing racks');
+      S.project=d; S.rackId=d.racks[0]?.id||null;
+      save(); render();
+    } catch(err) { alert('Import failed: '+err.message); }
+  };
+  fr.readAsText(file);
+}
+
+// ── PDF Export ────────────────────────────────────────────
+function exportPDF() {
+  const win = window.open('','_blank');
+  win.document.write(buildPrintDoc());
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 600);
+}
+
+function buildPrintDoc() {
+  const p = S.project;
+  let body = '';
+
+  p.racks.forEach(rack => {
+    const rows = rack.equipment.map((item, idx) => {
+      const type = getType(item.typeId);
+      if (!type) return '';
+
+      const groups = {};
+      type.ports.forEach(pt => {
+        const g = pt.group || 'Ports';
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(pt);
+      });
+
+      const portCells = Object.entries(groups).map(([gn, pts]) => {
+        const pRows = pts.map(pt => {
+          const pl = item.portLabels?.[pt.id] || {};
+          const ci = connInfo(rack.id, pl);
+          const isDmxPt = (pt.type==='output'||pt.type==='input');
+          const univCell = isDmxPt
+            ? `<td style="font-size:8pt;font-weight:700;color:${pl.universe?'#006699':'#ccc'};padding:2px 6px;white-space:nowrap;font-family:monospace">${pl.universe||'—'}</td>`
+            : `<td style="color:#ccc;padding:2px 6px">—</td>`;
+          return `<tr>
+            <td style="color:#888;font-size:7.5pt;padding:2px 6px 2px 18px;white-space:nowrap">${h(pt.name)}</td>
+            ${univCell}
+            <td style="font-size:9pt;padding:2px 6px;font-weight:${pl.label?'bold':'normal'};color:${pl.label?'#000':'#bbb'}">${pl.label ? h(pl.label) : '—'}</td>
+            ${pl.notes ? `<td style="font-size:8pt;color:#666;padding:2px 6px;font-style:italic">${h(pl.notes)}</td>` : '<td></td>'}
+            ${ci ? `<td style="font-size:7.5pt;color:#005588;padding:2px 6px;white-space:nowrap">⟶ ${h(ci.full)}</td>` : '<td></td>'}
+          </tr>`;
+        }).join('');
+        return `<tr><td colspan="4" style="font-size:7pt;color:#aaa;letter-spacing:.1em;text-transform:uppercase;padding:4px 6px 1px">${h(gn)}</td></tr>${pRows}`;
+      }).join('');
+
+      return `
+        <tr style="background:#eee;border-top:2px solid #999">
+          <td style="width:28px;text-align:center;font-size:8pt;color:#666;vertical-align:top;padding-top:7px">${idx+1}</td>
+          <td style="font-size:11pt;font-weight:bold;padding:6px 8px;vertical-align:top;white-space:nowrap">${h(item.label)}</td>
+          <td style="font-size:8pt;color:#555;vertical-align:top;padding:8px 6px;white-space:nowrap">${h(type.name)}</td>
+          <td style="font-size:8.5pt;color:#006600;font-family:monospace;vertical-align:top;padding:8px 6px;white-space:nowrap">${h(item.ip||'—')}</td>
+          <td colspan="3" style="padding:0">
+            <table style="width:100%;border-collapse:collapse">${portCells}</table>
+          </td>
+        </tr>`;
+    }).join('');
+
+    body += `
+      <div class="page">
+        <div class="ph">
+          <div class="ph-title">${h(p.name)} <span style="font-weight:normal;font-size:12pt">v${h(p.version)}</span></div>
+          <div class="ph-sub">${h(rack.name)} &nbsp;·&nbsp; ${rack.equipment.length} items &nbsp;·&nbsp; ${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+        </div>
+        <table class="rt">
+          <thead>
+            <tr>
+              <th style="width:28px">#</th>
+              <th style="min-width:140px">Equipment</th>
+              <th style="width:130px">Type</th>
+              <th style="width:120px">IP Address</th>
+              <th>Port</th>
+              <th style="width:90px">Universe</th>
+              <th style="min-width:130px">Label</th>
+              <th>Notes</th>
+              <th>Connected To</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  });
+
+  // ── Snake pages ──────────────────────────────────────
+  (p.snakes||[]).forEach(snake => {
+    const lRows = snake.lines.map(line => {
+      const ci = snakeLineConnInfo(line);
+      return `<tr>
+        <td style="text-align:center;font-size:8pt;color:#666;padding:3px 6px">${line.lineNum}</td>
+        <td style="font-size:9pt;padding:3px 7px;font-weight:${line.position?'normal':'normal'};color:${line.position?'#000':'#bbb'}">${line.position||'—'}</td>
+        <td style="font-size:9pt;padding:3px 7px;font-weight:bold;color:${line.universe?'#003388':'#bbb'}">${line.universe||'—'}</td>
+        <td style="font-size:8.5pt;padding:3px 7px;color:#555">${line.firstFixture||''}</td>
+        <td style="font-size:7.5pt;padding:3px 7px;color:#005588">${ci ? '⟶ '+ci.full : ''}</td>
+      </tr>`;
+    }).join('');
+    body += `
+      <div class="page">
+        <div class="ph">
+          <div class="ph-title">${h(p.name)} <span style="font-weight:normal;font-size:12pt">v${h(p.version)}</span></div>
+          <div class="ph-sub">${h(snake.name)} &nbsp;·&nbsp; ${snake.type==='cpc8'?'8-Channel CPC8':snake.type==='cpc4'?'4-Channel CPC4':'Custom'} Snake &nbsp;·&nbsp; ${snake.lines.length} lines &nbsp;·&nbsp; ${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+        </div>
+        <table class="rt">
+          <thead><tr>
+            <th style="width:30px">#</th>
+            <th style="min-width:150px">Position / Breakout</th>
+            <th style="min-width:110px">Universe</th>
+            <th style="width:90px">First FX</th>
+            <th>Break-in Connection</th>
+          </tr></thead>
+          <tbody>${lRows}</tbody>
+        </table>
+      </div>`;
+  });
+
+  return `<!DOCTYPE html><html><head>
+  <meta charset="UTF-8">
+  <title>${h(p.name)} — Rack Layouts</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000;background:white}
+    .page{padding:15mm;page-break-after:always}
+    .page:last-child{page-break-after:avoid}
+    .ph{margin-bottom:10px;border-bottom:2px solid #333;padding-bottom:8px}
+    .ph-title{font-size:15pt;font-weight:bold}
+    .ph-sub{font-size:10pt;color:#555;margin-top:2px}
+    .rt{width:100%;border-collapse:collapse;font-size:9pt}
+    .rt thead tr{background:#222;color:#fff}
+    .rt thead th{padding:5px 7px;text-align:left;font-size:8pt;letter-spacing:.04em;text-transform:uppercase}
+    .rt tbody tr:nth-child(even) td{background:#f8f8f8}
+    .rt td{border-bottom:1px solid #e0e0e0;vertical-align:middle}
+    @media print{@page{size:letter portrait;margin:12mm}.page{padding:0}}
+  </style>
+</head><body>${body}</body></html>`;
+}
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  BOOT                                                    ║
+// ╚══════════════════════════════════════════════════════════╝
+init();
+</script>
+<div id="toast"></div>
+</body>
+</html>

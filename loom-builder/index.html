@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loom Builder</title>
+<style>
+:root {
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2433;--surface3:#21262d;
+  --border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;
+  --danger:#f85149;--success:#3fb950;--warn:#d29922;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+button{cursor:pointer;font-family:inherit;font-size:13px;}
+input,select,textarea{font-family:inherit;font-size:13px;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* ── HEADER ── */
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:12px;height:52px;flex-shrink:0;}
+.show-name-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
+#show-name-display{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:4px 8px;border-radius:6px;}
+#show-name-display:hover{background:var(--surface2);}
+.show-meta{color:var(--muted);font-size:12px;white-space:nowrap;}
+.save-status{font-size:11px;padding:3px 10px;border-radius:12px;white-space:nowrap;}
+.save-status.saved{color:var(--success);background:#0f2a16;}
+.save-status.unsaved{color:var(--warn);background:#2d2200;}
+.header-btns{display:flex;gap:6px;flex-shrink:0;}
+.btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);transition:background .15s;}
+.btn:hover{background:var(--surface3);}
+.btn-primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600;}
+.btn-primary:hover{background:#79b8ff;}
+.btn-danger{background:transparent;color:var(--danger);border-color:var(--danger);}
+.btn-danger:hover{background:#2d1515;}
+.btn-sm{padding:4px 10px;font-size:12px;}
+.btn-icon{padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);}
+.btn-icon:hover{background:var(--surface2);color:var(--text);}
+
+/* ── TABS ── */
+.tabs{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;gap:2px;flex-shrink:0;}
+.tab{padding:10px 16px;cursor:pointer;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;user-select:none;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow:hidden;display:none;flex-direction:column;}
+.content.active{display:flex;}
+.scroll-area{flex:1;overflow-y:auto;padding:20px;}
+
+/* ── STAT CARDS ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
+.stat-card .num{font-size:28px;font-weight:700;}
+.stat-card .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+
+/* ── LOCATION CARDS GRID ── */
+.loc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
+.loc-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.loc-card-header{padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.loc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.loc-title{font-weight:700;font-size:13px;flex:1;}
+.loc-card-body{padding:6px 14px 12px;border-top:1px solid var(--border);}
+.type-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.pill{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;flex-shrink:0;padding:16px 20px 0;}
+.search-box{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:6px;font-size:13px;flex:1;min-width:180px;outline:none;}
+.search-box:focus{border-color:var(--accent);}
+.filter-sel{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;outline:none;cursor:pointer;}
+.results-count{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap;}
+
+/* ── TABLE ── */
+.table-wrap{flex:1;overflow:auto;padding:0 20px 20px;}
+table{width:100%;border-collapse:collapse;min-width:700px;}
+th{text-align:left;padding:8px 10px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;top:0;background:var(--bg);z-index:1;}
+th.sortable{cursor:pointer;}
+th.sortable:hover{color:var(--text);}
+td{padding:7px 10px;border-bottom:1px solid #1c2433;vertical-align:middle;white-space:nowrap;}
+tr:hover td{background:var(--surface2);}
+.td-actions{display:flex;gap:4px;opacity:0;transition:opacity .1s;}
+tr:hover .td-actions{opacity:1;}
+.color-chip{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle;flex-shrink:0;}
+.type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
+.parts-str{color:var(--muted);font-size:11px;font-family:'SF Mono','Fira Code',monospace;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-state h3{font-size:18px;color:var(--text);margin-bottom:8px;}
+
+/* ── BUILD LIST ── */
+.build-section{margin-bottom:24px;}
+.build-section-header{display:flex;align-items:center;gap:12px;padding:10px 16px;border:1px solid var(--border);border-radius:8px 8px 0 0;}
+.build-section-header h3{font-size:14px;font-weight:700;}
+.build-count{color:var(--muted);font-size:12px;margin-left:auto;}
+.build-tbl{width:100%;border-collapse:collapse;border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;}
+.build-tbl th{background:var(--surface);padding:6px 14px;font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em;border-bottom:1px solid var(--border);position:static;}
+.build-tbl td{padding:8px 14px;border-bottom:1px solid var(--border);}
+.build-tbl tr:last-child td{border-bottom:none;}
+.checkbox-col{width:28px;text-align:center;}
+input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
+
+/* ── INVENTORY ── */
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+.inv-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.inv-card h3{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.bar-label{width:36px;text-align:right;color:var(--muted);font-size:11px;font-family:monospace;}
+.bar-track{flex:1;height:14px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;}
+.bar-qty{width:28px;font-size:11px;text-align:right;color:var(--muted);}
+.inv-total{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);display:flex;justify-content:space-between;}
+
+/* ── SETTINGS ── */
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+.settings-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px;}
+.settings-card h3{font-size:13px;font-weight:700;margin-bottom:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;}
+.field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{resize:vertical;min-height:60px;}
+.loc-list{margin-top:8px;}
+.loc-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;}
+.loc-item-color{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+.loc-item-name{flex:1;font-weight:600;}
+.loc-item-count{font-size:11px;color:var(--muted);}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.hidden{display:none;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6);}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-header h2{font-size:15px;font-weight:700;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:18px;line-height:1;padding:4px;border-radius:4px;}
+.modal-close:hover{color:var(--text);background:var(--surface2);}
+.modal-body{padding:20px;overflow-y:auto;flex:1;}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-row.three{grid-template-columns:1fr 1fr 1fr;}
+.parts-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+.parts-grid input{text-align:center;}
+
+/* ── COLOR SELECT ── */
+.color-select-wrap{position:relative;}
+.color-select-btn{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;}
+.color-select-btn:hover{border-color:var(--accent);}
+.color-picker-popup{position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+.color-picker-popup.hidden{display:none;}
+.color-swatch{width:28px;height:28px;border-radius:5px;border:2px solid transparent;cursor:pointer;}
+.color-swatch:hover,.color-swatch.selected{border-color:white;transform:scale(1.1);}
+
+/* ── CONFIRM MODAL ── */
+.confirm-modal{max-width:400px;}
+
+/* ── SHOW PICKER ── */
+.show-picker-list{max-height:300px;overflow-y:auto;}
+.show-item{padding:10px 14px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.show-item:hover{background:var(--surface2);}
+.show-item.active-show{background:var(--surface2);border:1px solid var(--accent);}
+.show-item-meta{font-size:11px;color:var(--muted);}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:13px;z-index:500;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(20px);opacity:0;transition:all .2s;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:var(--success);color:var(--success);}
+.toast.error{border-color:var(--danger);color:var(--danger);}
+
+/* ── PRINT ── */
+@media print{
+  .app-header,.tabs,.toolbar,td .td-actions,.btn,button{display:none!important;}
+  body{background:#fff;color:#000;}
+  .content{display:block!important;overflow:visible;}
+  .scroll-area,.table-wrap{overflow:visible;}
+  .build-section-header{background:#eee!important;border-color:#ccc!important;}
+  .build-tbl td,.build-tbl th{border-color:#ccc!important;color:#000!important;}
+  #tab-overview,#tab-cables,#tab-inventory,#tab-settings{display:none!important;}
+  #tab-build{display:block!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── APP HEADER ── -->
+<div class="app-header">
+  <div class="show-name-wrap">
+    <span id="show-name-display" title="Click to rename show" onclick="openShowSettings()">New Show</span>
+    <span class="show-meta" id="show-meta-display"></span>
+  </div>
+  <span class="save-status saved" id="save-status">● Saved</span>
+  <div class="header-btns">
+    <button class="btn btn-sm" onclick="openShowPicker()" title="Switch or manage shows">Shows ▾</button>
+    <button class="btn btn-sm" onclick="importShow()" title="Load show from JSON file">Import</button>
+    <button class="btn btn-sm" onclick="exportShow()" title="Save show as JSON file">Export</button>
+    <button class="btn btn-primary btn-sm" onclick="openAddCable()">+ Add Cable</button>
+  </div>
+</div>
+
+<!-- ── TABS ── -->
+<div class="tabs">
+  <div class="tab active" data-tab="overview" onclick="switchTab(this)">Overview</div>
+  <div class="tab" data-tab="cables" onclick="switchTab(this)">Cables <span id="cable-tab-count" style="color:var(--muted);font-size:11px"></span></div>
+  <div class="tab" data-tab="build" onclick="switchTab(this)">Build List</div>
+  <div class="tab" data-tab="inventory" onclick="switchTab(this)">Cable Inventory</div>
+  <div class="tab" data-tab="settings" onclick="switchTab(this)">⚙ Settings</div>
+</div>
+
+<!-- ── OVERVIEW ── -->
+<div class="content active" id="tab-overview">
+  <div class="scroll-area">
+    <div class="stats" id="overview-stats"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <h2 style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;">Locations</h2>
+      <button class="btn btn-sm" onclick="openAddLocation()">+ Add Location</button>
+    </div>
+    <div class="loc-grid" id="loc-grid"></div>
+    <div id="overview-empty" class="empty-state" style="display:none;">
+      <h3>No locations yet</h3>
+      <p style="margin-bottom:16px;">Start by adding your first location (truss, floor position, etc.)</p>
+      <button class="btn btn-primary" onclick="openAddLocation()">+ Add First Location</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CABLES ── -->
+<div class="content" id="tab-cables">
+  <div class="toolbar">
+    <input class="search-box" type="text" id="cable-search" placeholder="Search label, location, type, loom…" oninput="renderCables()">
+    <select class="filter-sel" id="filter-loc" onchange="renderCables()"><option value="">All Locations</option></select>
+    <select class="filter-sel" id="filter-type" onchange="renderCables()"><option value="">All Types</option></select>
+    <span class="results-count" id="cable-count-label"></span>
+    <button class="btn btn-sm" onclick="exportCSV()">↓ CSV</button>
+    <button class="btn btn-sm" onclick="exportLightwright()">↓ Lightwright</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="sortable" onclick="sortCables('location')">Location</th>
+          <th class="sortable" onclick="sortCables('label')">Label</th>
+          <th>Color</th>
+          <th class="sortable" onclick="sortCables('type')">Type</th>
+          <th>Parts (ft)</th>
+          <th>Breakout</th>
+          <th>Loom / Case</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody id="cable-tbody"></tbody>
+    </table>
+    <div id="cables-empty" class="empty-state" style="display:none;">
+      <h3>No cables yet</h3>
+      <p style="margin-bottom:16px;">Add your first cable to get started.</p>
+      <button class="btn btn-primary" onclick="openAddCable()">+ Add Cable</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── BUILD LIST ── -->
+<div class="content" id="tab-build">
+  <div class="toolbar">
+    <button class="btn btn-sm" onclick="window.print()">🖨 Print</button>
+    <input class="search-box" type="text" id="build-search" placeholder="Filter…" oninput="renderBuild()" style="max-width:260px;">
+    <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;cursor:pointer;">
+      <input type="checkbox" id="build-checklist" onchange="renderBuild()"> Checklist mode
+    </label>
+    <span class="results-count" id="build-count-label"></span>
+  </div>
+  <div class="scroll-area" style="padding-top:0;" id="build-list"></div>
+</div>
+
+<!-- ── INVENTORY ── -->
+<div class="content" id="tab-inventory">
+  <div class="scroll-area">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <h2 style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;">Cable Counts by Type &amp; Length</h2>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px;">Auto-calculated from your cable data. Use for pull lists and ordering.</p>
+      </div>
+      <button class="btn btn-sm" onclick="exportInventoryCSV()">↓ Export Order Sheet</button>
+    </div>
+    <div class="inv-grid" id="inv-grid"></div>
+    <div id="inv-empty" class="empty-state" style="display:none;">
+      <h3>No cables yet</h3>
+      <p>Add cables to see inventory counts.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── SETTINGS ── -->
+<div class="content" id="tab-settings">
+  <div class="scroll-area">
+    <div class="settings-grid">
+      <!-- Show Info -->
+      <div class="settings-card">
+        <h3>Show Info</h3>
+        <div class="field"><label>Show Name</label><input id="s-name" oninput="updateShowField('name',this.value)"></div>
+        <div class="field"><label>Client / Production</label><input id="s-client" oninput="updateShowField('client',this.value)"></div>
+        <div class="field"><label>Venue</label><input id="s-venue" oninput="updateShowField('venue',this.value)"></div>
+        <div class="field"><label>Date</label><input id="s-date" oninput="updateShowField('date',this.value)"></div>
+        <div class="field"><label>Version</label><input id="s-version" oninput="updateShowField('version',this.value)" style="width:80px"></div>
+        <div class="field"><label>Notes</label><textarea id="s-notes" oninput="updateShowField('notes',this.value)"></textarea></div>
+      </div>
+      <!-- Locations -->
+      <div class="settings-card">
+        <h3>Locations</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Manage truss positions and locations. Drag to reorder.</p>
+        <div class="loc-list" id="loc-list"></div>
+        <button class="btn btn-sm" style="margin-top:10px;width:100%" onclick="openAddLocation()">+ Add Location</button>
+      </div>
+      <!-- Data -->
+      <div class="settings-card">
+        <h3>Data</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Import and export your show data.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn" onclick="exportShow()">↓ Export Show (JSON)</button>
+          <button class="btn" onclick="importShow()">↑ Import Show (JSON)</button>
+          <button class="btn" onclick="exportCSV()">↓ Export Cables (CSV)</button>
+          <button class="btn" onclick="exportInventoryCSV()">↓ Export Order Sheet (CSV)</button>
+          <button class="btn" onclick="exportLightwright()">↓ Export Lightwright Strings</button>
+          <hr style="border-color:var(--border);margin:4px 0">
+          <button class="btn btn-danger" onclick="confirmClearShow()">⚠ Clear All Cables</button>
+          <button class="btn btn-danger" onclick="confirmDeleteShow()">⚠ Delete This Show</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODALS ── -->
+
+<!-- Add/Edit Cable -->
+<div class="modal-overlay hidden" id="cable-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="cable-modal-title">Add Cable</h2>
+      <button class="modal-close" onclick="closeModal('cable-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field">
+          <label>Location *</label>
+          <select id="f-location" required style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;"></select>
+        </div>
+        <div class="field">
+          <label>Label *</label>
+          <input id="f-label" placeholder="A1, B-GRID, FOH…" required style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Cable Type *</label>
+          <select id="f-type" required style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;" onchange="onTypeChange()">
+            <option value="SOCAPEX">SOCAPEX</option>
+            <option value="DMX">DMX (5-pin)</option>
+            <option value="DMX 2x">DMX 2x</option>
+            <option value="DMX 3x">DMX 3x</option>
+            <option value="DMX 4x">DMX 4x</option>
+            <option value="ETHERCON">ETHERCON</option>
+            <option value="ETHERCON 2x">ETHERCON 2x</option>
+            <option value="ETHERCON 3x">ETHERCON 3x</option>
+            <option value="ETHERCON 4x">ETHERCON 4x</option>
+            <option value="CPC8">CPC8</option>
+            <option value="CPC4">CPC4</option>
+            <option value="QM-8">QM-8</option>
+            <option value="FIBER">FIBER</option>
+            <option value="EDISON">EDISON</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Breakout / Connector</label>
+          <select id="f-breakout" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;">
+            <option value="">—</option>
+            <option>TRUE-1</option>
+            <option>8-Way</option>
+            <option>CPC4</option>
+            <option>CPC8</option>
+            <option>2x DMX</option>
+            <option>MED/FED</option>
+            <option>EDISON</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Primary Color</label>
+          <div class="color-select-wrap" id="color-wrap-primary">
+            <button type="button" class="color-select-btn" id="color-btn-primary" onclick="toggleColorPicker('primary')">
+              <span class="color-chip" id="color-chip-primary" style="background:#444"></span>
+              <span id="color-text-primary">—</span>
+            </button>
+            <div class="color-picker-popup hidden" id="color-popup-primary"></div>
+          </div>
+          <input type="hidden" id="f-color">
+        </div>
+        <div class="field">
+          <label>Secondary Color</label>
+          <div class="color-select-wrap" id="color-wrap-secondary">
+            <button type="button" class="color-select-btn" id="color-btn-secondary" onclick="toggleColorPicker('secondary')">
+              <span class="color-chip" id="color-chip-secondary" style="background:#444"></span>
+              <span id="color-text-secondary">—</span>
+            </button>
+            <div class="color-picker-popup hidden" id="color-popup-secondary"></div>
+          </div>
+          <input type="hidden" id="f-sec-color">
+        </div>
+      </div>
+      <div class="field">
+        <label>Cable Lengths — Parts 1–6 (feet, leave blank if unused)</label>
+        <div class="parts-grid" id="parts-grid">
+          <input id="f-p1" type="number" min="1" placeholder="Pt 1" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 6px;border-radius:6px;outline:none;text-align:center;">
+          <input id="f-p2" type="number" min="1" placeholder="Pt 2" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 6px;border-radius:6px;outline:none;text-align:center;">
+          <input id="f-p3" type="number" min="1" placeholder="Pt 3" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 6px;border-radius:6px;outline:none;text-align:center;">
+          <input id="f-p4" type="number" min="1" placeholder="Pt 4" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 6px;border-radius:6px;outline:none;text-align:center;">
+          <input id="f-p5" type="number" min="1" placeholder="Pt 5" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 6px;border-radius:6px;outline:none;text-align:center;">
+          <input id="f-p6" type="number" min="1" placeholder="Pt 6" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 6px;border-radius:6px;outline:none;text-align:center;">
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:5px;" id="parts-hint">SOCAPEX: Part 1 = from distro, Part 2 = trunk run, remaining = on-truss</p>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Loom / Case ID</label>
+          <input id="f-loom" placeholder="A LOOP, DD DROP, PICK 6…" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;">
+        </div>
+        <div class="field">
+          <label>Notes</label>
+          <input id="f-notes" placeholder="Build notes, special instructions…" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('cable-modal')">Cancel</button>
+      <button class="btn btn-sm" id="cable-dup-btn" style="display:none" onclick="duplicateCable()">Duplicate</button>
+      <button class="btn btn-primary" onclick="saveCable()">Save Cable</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Location -->
+<div class="modal-overlay hidden" id="loc-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h2 id="loc-modal-title">Add Location</h2>
+      <button class="modal-close" onclick="closeModal('loc-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Location Name *</label>
+        <input id="lf-name" placeholder="TRUSS A, USC FLOOR, FOH…" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;">
+      </div>
+      <div class="field">
+        <label>Rig Color (tape color for this location)</label>
+        <div class="color-select-wrap">
+          <button type="button" class="color-select-btn" id="loc-color-btn" onclick="toggleColorPicker('loc')">
+            <span class="color-chip" id="loc-color-chip" style="background:#444"></span>
+            <span id="loc-color-text">—</span>
+          </button>
+          <div class="color-picker-popup hidden" id="color-popup-loc"></div>
+        </div>
+        <input type="hidden" id="lf-color">
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <input id="lf-notes" placeholder="e.g. SR Truss, upstage…" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;outline:none;">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('loc-modal')">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="loc-delete-btn" style="display:none;margin-right:auto" onclick="deleteLocation()">Delete Location</button>
+      <button class="btn btn-primary" onclick="saveLocation()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="modal-overlay hidden" id="confirm-modal">
+  <div class="modal confirm-modal">
+    <div class="modal-header">
+      <h2 id="confirm-title">Are you sure?</h2>
+      <button class="modal-close" onclick="closeModal('confirm-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-msg" style="color:var(--muted);line-height:1.5;"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('confirm-modal')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Show Picker -->
+<div class="modal-overlay hidden" id="show-picker-modal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h2>Shows</h2>
+      <button class="modal-close" onclick="closeModal('show-picker-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="show-picker-list" id="show-picker-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('show-picker-modal')">Close</button>
+      <button class="btn btn-primary" onclick="newShow()">+ New Show</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const COLORS = {
+  RED:    '#ff3b30',
+  ORANGE: '#ff6b00',
+  YELLOW: '#ffcc00',
+  GREEN:  '#30d158',
+  BLUE:   '#0a84ff',
+  PURPLE: '#bf5af2',
+  GREY:   '#98989d',
+  TEAL:   '#40c8e0',
+  BLACK:  '#3a3a3c',
+  WHITE:  '#e5e5ea',
+  PINK:   '#ff2d78',
+  LIME:   '#b8e000',
+  CYAN:   '#00c7be',
+  BROWN:  '#ac8560',
+};
+
+const TYPE_STYLE = {
+  SOCAPEX:        {bg:'#0a84ff',fg:'#ffffff'},
+  DMX:            {bg:'#bf5af2',fg:'#ffffff'},
+  'DMX 2x':       {bg:'#bf5af2',fg:'#ffffff'},
+  'DMX 3x':       {bg:'#bf5af2',fg:'#ffffff'},
+  'DMX 4x':       {bg:'#bf5af2',fg:'#ffffff'},
+  ETHERCON:       {bg:'#40c8e0',fg:'#000000'},
+  'ETHERCON 2x':  {bg:'#40c8e0',fg:'#000000'},
+  'ETHERCON 3x':  {bg:'#40c8e0',fg:'#000000'},
+  'ETHERCON 4x':  {bg:'#40c8e0',fg:'#000000'},
+  CPC8:           {bg:'#ff6b00',fg:'#ffffff'},
+  CPC4:           {bg:'#ffcc00',fg:'#000000'},
+  'QM-8':         {bg:'#30d158',fg:'#000000'},
+  FIBER:          {bg:'#6e6e73',fg:'#ffffff'},
+  EDISON:         {bg:'#ff9f0a',fg:'#000000'},
+};
+
+const PARTS_HINTS = {
+  SOCAPEX:  'Pt1=from distro, Pt2=trunk run, Pt3–6=on-truss/drops',
+  DMX:      'Pt1=from node, Pt2=trunk, Pt3=last leg (if looped)',
+  ETHERCON: 'Pt1=from switch, Pt2=trunk run',
+  CPC8:     'Pt1=from distro, Pt2=trunk',
+  CPC4:     'Pt1=from distro, Pt2=trunk',
+  DEFAULT:  'Enter cable lengths in feet for each segment',
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE & STORAGE
+// ═══════════════════════════════════════════════════════════
+const STORAGE_KEY   = 'loom_builder_shows';
+const ACTIVE_KEY    = 'loom_builder_active';
+
+function newShowObj(name='New Show') {
+  return {
+    id: 'show_' + Date.now(),
+    show: { name, client:'', venue:'', date:'', version:'1', notes:'' },
+    locations: [],
+    cables: []
+  };
+}
+
+function loadAllShows() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function saveAllShows(all) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+}
+
+let shows = loadAllShows();
+let activeId = localStorage.getItem(ACTIVE_KEY);
+
+// Seed a new show if nothing exists
+if (!Object.keys(shows).length) {
+  const s = newShowObj();
+  shows[s.id] = s;
+  activeId = s.id;
+  saveAllShows(shows);
+  localStorage.setItem(ACTIVE_KEY, activeId);
+}
+if (!activeId || !shows[activeId]) {
+  activeId = Object.keys(shows)[0];
+  localStorage.setItem(ACTIVE_KEY, activeId);
+}
+
+function getShow() { return shows[activeId]; }
+
+let saveTimer = null;
+function markDirty() {
+  document.getElementById('save-status').textContent = '● Unsaved';
+  document.getElementById('save-status').className = 'save-status unsaved';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persistSave, 800);
+}
+
+function persistSave() {
+  saveAllShows(shows);
+  document.getElementById('save-status').textContent = '● Saved';
+  document.getElementById('save-status').className = 'save-status saved';
+}
+
+// ═══════════════════════════════════════════════════════════
+// SORT STATE
+// ═══════════════════════════════════════════════════════════
+let cableSort = {col:'location', asc:true};
+
+// ═══════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function switchTab(el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+el.dataset.tab).classList.add('active');
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════════════════════
+function renderAll() {
+  const s = getShow();
+  // Header
+  document.getElementById('show-name-display').textContent = s.show.name || 'New Show';
+  const meta = [s.show.client, s.show.venue, s.show.date].filter(Boolean).join(' · ');
+  document.getElementById('show-meta-display').textContent = meta;
+  // Tab cable count
+  document.getElementById('cable-tab-count').textContent = s.cables.length ? `(${s.cables.length})` : '';
+  // Active tab
+  const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+  if (activeTab==='overview')   renderOverview();
+  if (activeTab==='cables')     renderCables();
+  if (activeTab==='build')      renderBuild();
+  if (activeTab==='inventory')  renderInventory();
+  if (activeTab==='settings')   renderSettings();
+}
+
+// ═══════════════════════════════════════════════════════════
+// OVERVIEW
+// ═══════════════════════════════════════════════════════════
+function renderOverview() {
+  const s = getShow();
+  const locs = s.locations;
+  const cables = s.cables;
+
+  // Stats
+  const byType = {};
+  cables.forEach(c => byType[c.type]=(byType[c.type]||0)+1);
+  const statsEl = document.getElementById('overview-stats');
+  statsEl.innerHTML = `
+    <div class="stat-card"><div class="num">${cables.length}</div><div class="lbl">Total Cables</div></div>
+    <div class="stat-card"><div class="num">${locs.length}</div><div class="lbl">Locations</div></div>
+    <div class="stat-card"><div class="num" style="color:#90caf9">${byType['SOCAPEX']||0}</div><div class="lbl">SOCAPEX</div></div>
+    <div class="stat-card"><div class="num" style="color:#ce93d8">${(byType['DMX']||0)+(byType['DMX 2x']||0)+(byType['DMX 3x']||0)+(byType['DMX 4x']||0)}</div><div class="lbl">DMX</div></div>
+    <div class="stat-card"><div class="num" style="color:#80cbc4">${Object.keys(byType).filter(k=>k.startsWith('ETHERCON')).reduce((a,k)=>a+(byType[k]||0),0)}</div><div class="lbl">ETHERCON</div></div>
+    <div class="stat-card"><div class="num" style="color:#ffcc80">${(byType['CPC8']||0)+(byType['CPC4']||0)}</div><div class="lbl">CPC</div></div>
+  `;
+
+  const grid = document.getElementById('loc-grid');
+  const empty = document.getElementById('overview-empty');
+  if (!locs.length) { grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  grid.innerHTML = locs.map(loc => {
+    const lcables = cables.filter(c=>c.locationId===loc.id);
+    const tCounts = {};
+    lcables.forEach(c => tCounts[c.type]=(tCounts[c.type]||0)+1);
+    const color = COLORS[loc.color] || '#444';
+    const pills = Object.entries(tCounts).map(([t,n]) => {
+      const ts = TYPE_STYLE[t]||{bg:'#333',fg:'#aaa'};
+      const short = t.replace('ETHERCON','ETH').replace('SOCAPEX','SOCA');
+      return `<span class="pill" style="background:${ts.bg};color:${ts.fg}">${short}×${n}</span>`;
+    }).join('');
+    return `<div class="loc-card" style="border-color:${color}">
+      <div class="loc-card-header" style="cursor:pointer;border-left:3px solid ${color}" onclick="filterToLoc('${loc.id}')">
+        <div class="loc-dot" style="background:${color}"></div>
+        <div class="loc-title">${esc(loc.name)}</div>
+        <button class="btn-icon" style="padding:2px 6px;font-size:11px" onclick="event.stopPropagation();openEditLocation('${loc.id}')">✎</button>
+      </div>
+      <div class="loc-card-body">
+        <div style="font-size:11px;color:var(--muted)">${lcables.length} cable${lcables.length!==1?'s':''}</div>
+        <div class="type-pills">${pills||'<span style="font-size:11px;color:var(--muted)">No cables yet</span>'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// CABLES TABLE
+// ═══════════════════════════════════════════════════════════
+function renderCables() {
+  const s = getShow();
+  // Populate filters
+  const locSel = document.getElementById('filter-loc');
+  const typeSel = document.getElementById('filter-type');
+  const curLoc = locSel.value, curType = typeSel.value;
+  locSel.innerHTML = '<option value="">All Locations</option>' +
+    s.locations.map(l=>`<option value="${l.id}" ${l.id===curLoc?'selected':''}>${esc(l.name)}</option>`).join('');
+  const allTypes = [...new Set(s.cables.map(c=>c.type))].sort();
+  typeSel.innerHTML = '<option value="">All Types</option>' +
+    allTypes.map(t=>`<option value="${t}" ${t===curType?'selected':''}>${t}</option>`).join('');
+
+  const q = document.getElementById('cable-search').value.toLowerCase();
+  const locF = document.getElementById('filter-loc').value;
+  const typeF = document.getElementById('filter-type').value;
+
+  let cables = s.cables.filter(c =>
+    (!locF  || c.locationId===locF) &&
+    (!typeF || c.type===typeF) &&
+    (!q     || [c.label,getLocName(c.locationId),c.type,c.loomId,c.notes].join(' ').toLowerCase().includes(q))
+  );
+
+  // Sort
+  cables.sort((a,b) => {
+    let va = cableSort.col==='location' ? getLocName(a.locationId) : (a[cableSort.col]||'');
+    let vb = cableSort.col==='location' ? getLocName(b.locationId) : (b[cableSort.col]||'');
+    return cableSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+
+  document.getElementById('cable-count-label').textContent = `${cables.length} of ${s.cables.length}`;
+  const tbody = document.getElementById('cable-tbody');
+  const empty = document.getElementById('cables-empty');
+
+  if (!s.cables.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  tbody.innerHTML = cables.map(c => {
+    const loc = s.locations.find(l=>l.id===c.locationId);
+    const color = COLORS[c.color]||'#444';
+    const locColor = loc ? (COLORS[loc.color]||'#444') : '#444';
+    const ts = TYPE_STYLE[c.type]||{bg:'#333',fg:'#aaa'};
+    const partsStr = c.parts.filter(p=>p).map(p=>`${p}'`).join(' + ');
+    return `<tr>
+      <td>
+        <span class="color-chip" style="background:${locColor}"></span>
+        ${esc(getLocName(c.locationId))}
+      </td>
+      <td><strong>${esc(c.label)}</strong></td>
+      <td><span class="color-chip" style="background:${color}"></span>${c.color||'—'}</td>
+      <td><span class="type-badge" style="background:${ts.bg};color:${ts.fg}">${c.type}</span></td>
+      <td class="parts-str">${partsStr||'—'}</td>
+      <td style="color:var(--muted)">${esc(c.breakout)||'—'}</td>
+      <td style="color:var(--muted)">${esc(c.loomId)||'—'}</td>
+      <td><div class="td-actions">
+        <button class="btn-icon btn-sm" onclick="openEditCable('${c.id}')" title="Edit">✎</button>
+        <button class="btn-icon btn-sm" onclick="confirmDeleteCable('${c.id}')" title="Delete" style="color:var(--danger)">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function sortCables(col) {
+  if (cableSort.col===col) cableSort.asc=!cableSort.asc;
+  else { cableSort.col=col; cableSort.asc=true; }
+  renderCables();
+}
+
+function filterToLoc(locId) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',t.dataset.tab==='cables'));
+  document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-cables').classList.add('active');
+  document.getElementById('filter-loc').value = locId;
+  renderCables();
+}
+
+// ═══════════════════════════════════════════════════════════
+// BUILD LIST
+// ═══════════════════════════════════════════════════════════
+function renderBuild() {
+  const s = getShow();
+  const q = (document.getElementById('build-search').value||'').toLowerCase();
+  const checklist = document.getElementById('build-checklist').checked;
+  const el = document.getElementById('build-list');
+  const countEl = document.getElementById('build-count-label');
+
+  if (!s.cables.length) {
+    el.innerHTML = '<div class="empty-state"><h3>No cables yet</h3><p>Add cables to generate a build list.</p></div>';
+    return;
+  }
+
+  let total = 0;
+  const html = s.locations.map(loc => {
+    let cables = s.cables.filter(c=>c.locationId===loc.id);
+    if (q) cables = cables.filter(c=>[c.label,c.type,c.loomId,c.notes].join(' ').toLowerCase().includes(q));
+    if (!cables.length) return '';
+    total += cables.length;
+    const color = COLORS[loc.color]||'#444';
+    const chkCol = checklist ? '<th class="checkbox-col"></th>' : '';
+    const rows = cables.map(c => {
+      const ts = TYPE_STYLE[c.type]||{bg:'#333',fg:'#aaa'};
+      const partsStr = c.parts.filter(p=>p).map(p=>`${p}'`).join(' + ') || '—';
+      const colorStr = c.color ? `<span class="color-chip" style="background:${COLORS[c.color]||'#444'}"></span>${c.color}` : '—';
+      const chk = checklist ? `<td class="checkbox-col"><input type="checkbox"></td>` : '';
+      const notes = c.notes ? `<br><span style="font-size:10px;color:var(--muted)">${esc(c.notes)}</span>` : '';
+      return `<tr>${chk}
+        <td style="font-weight:700">${esc(c.label)}${notes}</td>
+        <td>${colorStr}</td>
+        <td><span class="type-badge" style="background:${ts.bg};color:${ts.fg}">${c.type}</span></td>
+        <td style="font-family:monospace;font-size:12px">${partsStr}</td>
+        <td style="color:var(--muted)">${esc(c.breakout)||'—'}</td>
+        <td style="color:var(--muted)">${esc(c.loomId)||'—'}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="build-section">
+      <div class="build-section-header" style="background:var(--surface2);border-color:${color};border-left:4px solid ${color}">
+        <div style="width:14px;height:14px;border-radius:4px;background:${color};flex-shrink:0"></div>
+        <h3>${esc(loc.name)}</h3>
+        ${loc.color?`<span style="font-size:11px;color:#000;background:${color};padding:2px 8px;border-radius:4px;font-weight:600">${loc.color}</span>`:''}
+        <span class="build-count">${cables.length} cable${cables.length!==1?'s':''}</span>
+      </div>
+      <table class="build-tbl">
+        <thead><tr>${chkCol}<th>Label</th><th>Color</th><th>Type</th><th>Parts (ft)</th><th>Breakout</th><th>Loom / Case</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  el.innerHTML = html || '<div class="empty-state"><p style="color:var(--muted)">No cables match your filter.</p></div>';
+  countEl.textContent = `${total} cables`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// INVENTORY
+// ═══════════════════════════════════════════════════════════
+function renderInventory() {
+  const s = getShow();
+  const el = document.getElementById('inv-grid');
+  const empty = document.getElementById('inv-empty');
+  if (!s.cables.length) { el.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  // ── CABLE LENGTHS by type ──
+  const byType = {};
+  s.cables.forEach(c => {
+    c.parts.filter(p=>p).forEach(p => {
+      if (!byType[c.type]) byType[c.type]={};
+      byType[c.type][p] = (byType[c.type][p]||0) + 1;
+    });
+  });
+
+  const cableCards = Object.entries(byType).sort((a,b)=>a[0].localeCompare(b[0])).map(([type, lengths]) => {
+    const ts = TYPE_STYLE[type]||{bg:'#333',fg:'#aaa'};
+    const sorted = Object.entries(lengths).sort((a,b)=>Number(a[0])-Number(b[0]));
+    const maxQ = Math.max(...sorted.map(e=>e[1]));
+    const total = sorted.reduce((a,e)=>a+e[1],0);
+    const rows = sorted.map(([len,qty]) =>
+      `<div class="bar-row">
+        <div class="bar-label">${len}'</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(qty/maxQ*100)}%;background:${ts.bg}"></div></div>
+        <div class="bar-qty">${qty}</div>
+      </div>`
+    ).join('');
+    return `<div class="inv-card">
+      <h3><span style="background:${ts.bg};color:${ts.fg};padding:2px 10px;border-radius:4px;font-size:12px">${type}</span>
+        <span style="color:var(--muted);font-size:11px;font-weight:400">${total} pieces total</span>
+      </h3>
+      ${rows}
+    </div>`;
+  }).join('');
+
+  // ── BREAKOUTS: power vs data, classified by name ──
+  const POWER_BO = ['TRUE-1','8-WAY','8-WAY B/O','TRUE1','L6-20','EDISON','MED/FED','6-WAY','HUBBELL','BATES'];
+  const DATA_BO  = ['CPC4','CPC8','2X DMX','DMX 2X','QM-8','FIBER','ETHERCON','CAT5','CAT6'];
+
+  const powerCounts = {}, dataCounts = {}, otherCounts = {};
+  s.cables.forEach(c => {
+    if (!c.breakout) return;
+    const bo    = c.breakout;
+    const boKey = bo.toUpperCase().replace(/\s+/g,'');
+    if (POWER_BO.some(p => p.replace(/\s+/g,'') === boKey)) {
+      powerCounts[bo] = (powerCounts[bo]||0) + 1;
+    } else if (DATA_BO.some(p => p.replace(/\s+/g,'') === boKey)) {
+      dataCounts[bo]  = (dataCounts[bo]||0)  + 1;
+    } else {
+      otherCounts[bo] = (otherCounts[bo]||0) + 1;
+    }
+  });
+
+  function boCard(title, icon, counts, accentFg, accentBg) {
+    const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    if (!entries.length) return '';
+    const maxQ  = Math.max(...entries.map(e=>e[1]));
+    const total = entries.reduce((a,e)=>a+e[1],0);
+    const rows  = entries.map(([name,qty]) =>
+      `<div class="bar-row">
+        <div class="bar-label" style="width:84px;text-align:right;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis" title="${esc(name)}">${esc(name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(qty/maxQ*100)}%;background:${accentBg}"></div></div>
+        <div class="bar-qty">${qty}</div>
+      </div>`
+    ).join('');
+    return `<div class="inv-card">
+      <h3>
+        <span style="background:${accentBg};color:${accentFg};padding:2px 10px;border-radius:4px;font-size:12px">${icon} ${title}</span>
+        <span style="color:var(--muted);font-size:11px;font-weight:400">${total} total</span>
+      </h3>
+      ${rows}
+    </div>`;
+  }
+
+  const hasBreakouts = Object.keys(powerCounts).length || Object.keys(dataCounts).length || Object.keys(otherCounts).length;
+  const breakoutSection = hasBreakouts
+    ? `<div style="grid-column:1/-1;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600;">Snake Heads &amp; Breakouts</div>
+       ${boCard('Power Breakouts','⚡',powerCounts,'#000000','#ff9f0a')}
+       ${boCard('Data Snake Heads','⬡',dataCounts,'#000000','#40c8e0')}
+       ${boCard('Other Breakouts','◈',otherCounts,'#ffffff','#6e6e73')}`
+    : '';
+
+  el.innerHTML = `
+    <div style="grid-column:1/-1;margin-bottom:4px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600;">Cable Lengths</div>
+    ${cableCards}
+    ${breakoutSection}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════
+function renderSettings() {
+  const s = getShow();
+  document.getElementById('s-name').value    = s.show.name||'';
+  document.getElementById('s-client').value  = s.show.client||'';
+  document.getElementById('s-venue').value   = s.show.venue||'';
+  document.getElementById('s-date').value    = s.show.date||'';
+  document.getElementById('s-version').value = s.show.version||'';
+  document.getElementById('s-notes').value   = s.show.notes||'';
+  renderLocList();
+}
+
+function updateShowField(field, val) {
+  getShow().show[field] = val;
+  markDirty();
+  // Update header
+  document.getElementById('show-name-display').textContent = getShow().show.name || 'New Show';
+  const meta = [getShow().show.client, getShow().show.venue, getShow().show.date].filter(Boolean).join(' · ');
+  document.getElementById('show-meta-display').textContent = meta;
+}
+
+function renderLocList() {
+  const locs = getShow().locations;
+  const cables = getShow().cables;
+  document.getElementById('loc-list').innerHTML = locs.length
+    ? locs.map(loc => {
+        const count = cables.filter(c=>c.locationId===loc.id).length;
+        const color = COLORS[loc.color]||'#444';
+        return `<div class="loc-item">
+          <div class="loc-item-color" style="background:${color}"></div>
+          <div class="loc-item-name">${esc(loc.name)}</div>
+          <div class="loc-item-count">${count} cable${count!==1?'s':''}</div>
+          <button class="btn-icon btn-sm" onclick="openEditLocation('${loc.id}')">✎</button>
+        </div>`;
+      }).join('')
+    : '<p style="color:var(--muted);font-size:12px">No locations yet.</p>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// CABLE CRUD
+// ═══════════════════════════════════════════════════════════
+let editingCableId = null;
+
+function openAddCable() {
+  editingCableId = null;
+  document.getElementById('cable-modal-title').textContent = 'Add Cable';
+  document.getElementById('cable-dup-btn').style.display = 'none';
+  clearCableForm();
+  openModal('cable-modal');
+  document.getElementById('f-label').focus();
+}
+
+function openEditCable(id) {
+  editingCableId = id;
+  const cable = getShow().cables.find(c=>c.id===id);
+  if (!cable) return;
+  document.getElementById('cable-modal-title').textContent = 'Edit Cable';
+  document.getElementById('cable-dup-btn').style.display = 'inline-block';
+  populateCableForm(cable);
+  openModal('cable-modal');
+}
+
+function clearCableForm() {
+  populateLocDropdown();
+  document.getElementById('f-label').value = '';
+  document.getElementById('f-type').value = 'SOCAPEX';
+  document.getElementById('f-breakout').value = '';
+  document.getElementById('f-loom').value = '';
+  document.getElementById('f-notes').value = '';
+  setColorPicker('primary', '');
+  setColorPicker('secondary', '');
+  for (let i=1;i<=6;i++) document.getElementById('f-p'+i).value='';
+  onTypeChange();
+}
+
+function populateCableForm(cable) {
+  populateLocDropdown(cable.locationId);
+  document.getElementById('f-label').value    = cable.label||'';
+  document.getElementById('f-type').value     = cable.type||'SOCAPEX';
+  document.getElementById('f-breakout').value = cable.breakout||'';
+  document.getElementById('f-loom').value     = cable.loomId||'';
+  document.getElementById('f-notes').value    = cable.notes||'';
+  setColorPicker('primary', cable.color||'');
+  setColorPicker('secondary', cable.secColor||'');
+  for (let i=1;i<=6;i++) {
+    document.getElementById('f-p'+i).value = (cable.parts&&cable.parts[i-1]) ? cable.parts[i-1] : '';
+  }
+  onTypeChange();
+}
+
+function populateLocDropdown(selected) {
+  const locs = getShow().locations;
+  const sel = document.getElementById('f-location');
+  sel.innerHTML = locs.length
+    ? locs.map(l=>`<option value="${l.id}" ${l.id===selected?'selected':''}>${esc(l.name)}</option>`).join('')
+    : '<option value="">— Add locations first —</option>';
+}
+
+function onTypeChange() {
+  const type = document.getElementById('f-type').value;
+  const hint = PARTS_HINTS[type] || PARTS_HINTS.DEFAULT;
+  document.getElementById('parts-hint').textContent = hint;
+}
+
+function saveCable() {
+  const locId = document.getElementById('f-location').value;
+  const label = document.getElementById('f-label').value.trim();
+  const type  = document.getElementById('f-type').value;
+  if (!locId) { showToast('Select a location first', 'error'); return; }
+  if (!label) { showToast('Label is required', 'error'); return; }
+  if (!type)  { showToast('Select a cable type', 'error'); return; }
+
+  const parts = [];
+  for (let i=1;i<=6;i++) {
+    const v = document.getElementById('f-p'+i).value.trim();
+    if (v) parts.push(v);
+  }
+
+  const cable = {
+    id:         editingCableId || 'c_'+Date.now(),
+    locationId: locId,
+    label,
+    color:      document.getElementById('f-color').value,
+    secColor:   document.getElementById('f-sec-color').value,
+    type,
+    parts,
+    breakout:   document.getElementById('f-breakout').value,
+    loomId:     document.getElementById('f-loom').value.trim(),
+    notes:      document.getElementById('f-notes').value.trim(),
+  };
+
+  const s = getShow();
+  if (editingCableId) {
+    const idx = s.cables.findIndex(c=>c.id===editingCableId);
+    if (idx>=0) s.cables[idx] = cable;
+  } else {
+    s.cables.push(cable);
+  }
+  markDirty();
+  closeModal('cable-modal');
+  renderAll();
+  showToast(editingCableId ? 'Cable updated' : 'Cable added', 'success');
+}
+
+function duplicateCable() {
+  const src = getShow().cables.find(c=>c.id===editingCableId);
+  if (!src) return;
+  const dup = {...src, id:'c_'+Date.now(), label:src.label+' copy'};
+  getShow().cables.push(dup);
+  markDirty();
+  editingCableId = dup.id;
+  document.getElementById('cable-modal-title').textContent = 'Edit Cable (duplicate)';
+  document.getElementById('f-label').value = dup.label;
+  showToast('Duplicated — now editing the copy', 'success');
+}
+
+function confirmDeleteCable(id) {
+  const cable = getShow().cables.find(c=>c.id===id);
+  showConfirm(`Delete cable "${cable?.label}"?`, 'This cannot be undone.', () => {
+    getShow().cables = getShow().cables.filter(c=>c.id!==id);
+    markDirty(); renderAll();
+    showToast('Cable deleted');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOCATION CRUD
+// ═══════════════════════════════════════════════════════════
+let editingLocId = null;
+
+function openAddLocation() {
+  editingLocId = null;
+  document.getElementById('loc-modal-title').textContent = 'Add Location';
+  document.getElementById('loc-delete-btn').style.display = 'none';
+  document.getElementById('lf-name').value = '';
+  document.getElementById('lf-notes').value = '';
+  setColorPicker('loc', '');
+  openModal('loc-modal');
+  document.getElementById('lf-name').focus();
+}
+
+function openEditLocation(id) {
+  editingLocId = id;
+  const loc = getShow().locations.find(l=>l.id===id);
+  if (!loc) return;
+  document.getElementById('loc-modal-title').textContent = 'Edit Location';
+  document.getElementById('loc-delete-btn').style.display = 'inline-block';
+  document.getElementById('lf-name').value = loc.name||'';
+  document.getElementById('lf-notes').value = loc.notes||'';
+  setColorPicker('loc', loc.color||'');
+  openModal('loc-modal');
+}
+
+function saveLocation() {
+  const name = document.getElementById('lf-name').value.trim();
+  if (!name) { showToast('Name is required', 'error'); return; }
+  const loc = {
+    id:    editingLocId || 'loc_'+Date.now(),
+    name,
+    color: document.getElementById('lf-color').value,
+    notes: document.getElementById('lf-notes').value.trim(),
+  };
+  const s = getShow();
+  if (editingLocId) {
+    const idx = s.locations.findIndex(l=>l.id===editingLocId);
+    if (idx>=0) s.locations[idx] = loc;
+  } else {
+    s.locations.push(loc);
+  }
+  markDirty();
+  closeModal('loc-modal');
+  renderAll();
+  showToast(editingLocId ? 'Location updated' : 'Location added', 'success');
+}
+
+function deleteLocation() {
+  const loc = getShow().locations.find(l=>l.id===editingLocId);
+  const count = getShow().cables.filter(c=>c.locationId===editingLocId).length;
+  showConfirm(
+    `Delete location "${loc?.name}"?`,
+    count ? `This will also delete ${count} cable${count!==1?'s':''} in this location.` : 'This cannot be undone.',
+    () => {
+      getShow().locations = getShow().locations.filter(l=>l.id!==editingLocId);
+      getShow().cables    = getShow().cables.filter(c=>c.locationId!==editingLocId);
+      markDirty(); closeModal('loc-modal'); renderAll();
+      showToast('Location deleted');
+    }
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHOW MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+function newShow() {
+  const s = newShowObj();
+  shows[s.id] = s;
+  activeId = s.id;
+  localStorage.setItem(ACTIVE_KEY, activeId);
+  saveAllShows(shows);
+  closeModal('show-picker-modal');
+  renderAll();
+  openShowSettings();
+}
+
+function openShowSettings() {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab==='settings'));
+  document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-settings').classList.add('active');
+  renderSettings();
+}
+
+function openShowPicker() {
+  const list = document.getElementById('show-picker-list');
+  list.innerHTML = Object.values(shows).map(s => {
+    const meta = [s.show.client, s.show.venue, s.show.date].filter(Boolean).join(' · ');
+    return `<div class="show-item ${s.id===activeId?'active-show':''}" onclick="switchShow('${s.id}')">
+      <div>
+        <div style="font-weight:700">${esc(s.show.name)}</div>
+        ${meta?`<div class="show-item-meta">${esc(meta)}</div>`:''}
+        <div class="show-item-meta">${s.cables.length} cables · ${s.locations.length} locations</div>
+      </div>
+      ${s.id===activeId?'<span style="color:var(--accent);font-size:11px">Active</span>':''}
+    </div>`;
+  }).join('') || '<p style="color:var(--muted);padding:10px">No shows yet.</p>';
+  openModal('show-picker-modal');
+}
+
+function switchShow(id) {
+  activeId = id;
+  localStorage.setItem(ACTIVE_KEY, activeId);
+  closeModal('show-picker-modal');
+  renderAll();
+  showToast(`Switched to "${shows[id].show.name}"`);
+}
+
+function confirmClearShow() {
+  showConfirm('Clear all cables?', 'This removes all cables but keeps locations. Cannot be undone.', () => {
+    getShow().cables = [];
+    markDirty(); renderAll();
+    showToast('All cables cleared');
+  });
+}
+
+function confirmDeleteShow() {
+  if (Object.keys(shows).length <= 1) { showToast('Cannot delete the only show', 'error'); return; }
+  showConfirm(`Delete "${getShow().show.name}"?`, 'This removes the show and all its data permanently.', () => {
+    delete shows[activeId];
+    activeId = Object.keys(shows)[0];
+    localStorage.setItem(ACTIVE_KEY, activeId);
+    saveAllShows(shows);
+    renderAll();
+    showToast('Show deleted');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMPORT / EXPORT
+// ═══════════════════════════════════════════════════════════
+function exportShow() {
+  const s = getShow();
+  const json = JSON.stringify(s, null, 2);
+  const slug = (s.show.name||'show').replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'').toLowerCase();
+  downloadFile(json, `loom-${slug}.json`, 'application/json');
+}
+
+function importShow() {
+  document.getElementById('import-file').click();
+}
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const data = JSON.parse(evt.target.result);
+      if (!data.show || !Array.isArray(data.cables)) throw new Error('Invalid format');
+      const id = data.id || 'show_'+Date.now();
+      data.id = id;
+      shows[id] = data;
+      activeId = id;
+      localStorage.setItem(ACTIVE_KEY, activeId);
+      saveAllShows(shows);
+      renderAll();
+      showToast(`Imported "${data.show.name}"`, 'success');
+    } catch(err) {
+      showToast('Import failed: invalid file', 'error');
+    }
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+function exportCSV() {
+  const s = getShow();
+  const rows = [['Location','Label','Color','SecColor','Type','Parts','Breakout','LoomCase','Notes']];
+  s.cables.forEach(c => rows.push([
+    getLocName(c.locationId), c.label, c.color, c.secColor, c.type,
+    c.parts.join('+'), c.breakout, c.loomId, c.notes
+  ]));
+  const csv = rows.map(r=>r.map(v=>'"'+(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  downloadFile(csv, 'cables.csv', 'text/csv');
+}
+
+function exportInventoryCSV() {
+  const s = getShow();
+  const rows = [['Item','Detail','Qty Needed','Qty Ordered','Remaining']];
+
+  // Cable lengths
+  const byType = {};
+  s.cables.forEach(c => {
+    c.parts.filter(p=>p).forEach(p => {
+      if(!byType[c.type]) byType[c.type]={};
+      byType[c.type][p]=(byType[c.type][p]||0)+1;
+    });
+  });
+  rows.push(['--- CABLES ---','','','','']);
+  Object.entries(byType).sort().forEach(([type, lengths]) => {
+    Object.entries(lengths).sort((a,b)=>Number(a[0])-Number(b[0])).forEach(([len,qty]) => {
+      rows.push([type, len+"'", qty, '', '=C'+rows.length+'-D'+rows.length]);
+    });
+  });
+
+  // Breakouts
+  const boCounts = {};
+  s.cables.forEach(c => {
+    if (!c.breakout) return;
+    boCounts[c.breakout] = (boCounts[c.breakout]||0) + 1;
+  });
+  if (Object.keys(boCounts).length) {
+    rows.push(['','','','','']);
+    rows.push(['--- BREAKOUTS / SNAKE HEADS ---','','','','']);
+    Object.entries(boCounts).sort().forEach(([bo,qty]) => {
+      rows.push([bo, '', qty, '', '=C'+rows.length+'-D'+rows.length]);
+    });
+  }
+
+  const csv = rows.map(r=>r.map(v=>'"'+(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  downloadFile(csv, 'cable-order-sheet.csv', 'text/csv');
+}
+
+function exportLightwright() {
+  const s = getShow();
+  let out = `LIGHTWRIGHT CABLE STRINGS — ${s.show.name}\n`;
+  out += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+  s.locations.forEach(loc => {
+    const cables = s.cables.filter(c=>c.locationId===loc.id);
+    if (!cables.length) return;
+    out += `=== ${loc.name} ===\n`;
+    cables.forEach(c => {
+      const parts = c.parts.filter(p=>p);
+      if (!parts.length) { out += `${c.label}: (no parts)\n`; return; }
+      const str = parts.map(p=>`${p} ${c.type}`).join(', ');
+      out += `${c.label}: ${str}\n`;
+    });
+    out += '\n';
+  });
+  downloadFile(out, 'lightwright-strings.txt', 'text/plain');
+}
+
+function downloadFile(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content],{type}));
+  a.download = filename;
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════════════
+// COLOR PICKER
+// ═══════════════════════════════════════════════════════════
+function buildColorPickers() {
+  ['primary','secondary','loc'].forEach(which => {
+    const popup = document.getElementById('color-popup-'+which);
+    if (!popup) return;
+    popup.innerHTML = `<div class="color-swatch" data-color="" style="background:var(--surface3);border:1px dashed var(--border)" title="None" onclick="selectColor('${which}','')">✕</div>` +
+      Object.entries(COLORS).map(([name,hex])=>
+        `<div class="color-swatch" data-color="${name}" style="background:${hex}" title="${name}" onclick="selectColor('${which}','${name}')"></div>`
+      ).join('');
+  });
+}
+
+function toggleColorPicker(which) {
+  const popup = document.getElementById('color-popup-'+which);
+  popup.classList.toggle('hidden');
+  // close others
+  ['primary','secondary','loc'].filter(w=>w!==which).forEach(w => {
+    document.getElementById('color-popup-'+w)?.classList.add('hidden');
+  });
+}
+
+function selectColor(which, name) {
+  setColorPicker(which, name);
+  document.getElementById('color-popup-'+which).classList.add('hidden');
+}
+
+function setColorPicker(which, name) {
+  const hex = COLORS[name]||'#444';
+  if (which==='loc') {
+    document.getElementById('loc-color-chip').style.background = hex;
+    document.getElementById('loc-color-text').textContent = name||'—';
+    document.getElementById('lf-color').value = name;
+    // update swatches
+    document.querySelectorAll('#color-popup-loc .color-swatch').forEach(s=>
+      s.classList.toggle('selected', s.dataset.color===name));
+  } else {
+    document.getElementById('color-chip-'+which).style.background = hex;
+    document.getElementById('color-text-'+which).textContent = name||'—';
+    document.getElementById(which==='primary'?'f-color':'f-sec-color').value = name;
+    document.querySelectorAll(`#color-popup-${which} .color-swatch`).forEach(s=>
+      s.classList.toggle('selected', s.dataset.color===name));
+  }
+}
+
+// Close color pickers on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.color-select-wrap')) {
+    document.querySelectorAll('.color-picker-popup').forEach(p=>p.classList.add('hidden'));
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.remove('hidden');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target===o) closeModal(o.id); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(o=>closeModal(o.id));
+});
+
+// ═══════════════════════════════════════════════════════════
+// CONFIRM DIALOG
+// ═══════════════════════════════════════════════════════════
+function showConfirm(title, msg, onOk) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  const btn = document.getElementById('confirm-ok-btn');
+  btn.onclick = () => { onOk(); closeModal('confirm-modal'); };
+  openModal('confirm-modal');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type?' '+type:'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function getLocName(id) {
+  return getShow().locations.find(l=>l.id===id)?.name || '(unknown)';
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+buildColorPickers();
+renderAll();
+</script>
+</body>
+</html>
