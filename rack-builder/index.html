@@ -1886,11 +1886,26 @@ function rModal() {
   // ── Edit Snake ────────────────────────────────────────
   else if (type === 'editSnake') {
     const snake = S.project.snakes.find(s=>s.id===data.sid);
+    const curType = snake?.type || 'cpc8';
+    const curLines = snake?.lines?.length || 8;
+    const isCustom = curType !== 'cpc4' && curType !== 'cpc8';
     body = `
       <div class="modal-title">Edit Snake</div>
       <div class="fg">
         <label class="flabel">Name</label>
         <input class="finput" id="es-name" value="${h(snake?.name)}" autofocus>
+      </div>
+      <div class="fg">
+        <label class="flabel">Type</label>
+        <select class="fselect" id="es-type" onchange="onEsTypeChange()">
+          <option value="cpc8" ${curType==='cpc8'?'selected':''}>8-Channel (CPC8)</option>
+          <option value="cpc4" ${curType==='cpc4'?'selected':''}>4-Channel (CPC4)</option>
+          <option value="custom" ${isCustom?'selected':''}>Custom</option>
+        </select>
+      </div>
+      <div class="fg" id="es-custom-fg" style="display:${isCustom?'block':'none'}">
+        <label class="flabel">Number of Lines</label>
+        <input class="finput" id="es-lines" type="number" value="${curLines}" min="1" max="64">
       </div>
       <div class="fg">
         <label class="flabel">Color</label>
@@ -2644,12 +2659,42 @@ function confirmAddSnake() {
 }
 
 function openEditSnake(sid) { S.modal={type:'editSnake',data:{sid}}; render(); focusDelay('es-name'); }
+function onEsTypeChange() {
+  const t = document.getElementById('es-type')?.value;
+  const fg = document.getElementById('es-custom-fg');
+  if (fg) fg.style.display = t === 'custom' ? 'block' : 'none';
+}
 function confirmEditSnake(sid) {
   const snake = S.project.snakes.find(s=>s.id===sid);
   if (!snake) return;
   snake.name  = document.getElementById('es-name')?.value?.trim() || snake.name;
   snake.color = document.getElementById('es-color')?.value || snake.color;
-  closeModal(); save();
+
+  const newTypeVal = document.getElementById('es-type')?.value || snake.type;
+  const targetCount = newTypeVal === 'cpc8' ? 8 : newTypeVal === 'cpc4' ? 4
+    : parseInt(document.getElementById('es-lines')?.value, 10) || snake.lines.length;
+
+  snake.type = newTypeVal === 'custom' ? snake.type : newTypeVal;
+
+  // Resize lines array to match new type
+  const cur = snake.lines.length;
+  if (targetCount > cur) {
+    // Add blank lines for the extra channels
+    for (let i = cur + 1; i <= targetCount; i++) {
+      snake.lines.push({ id: uid(), lineNum: i, position: '', universe: '', firstFixture: '', connRackId: null, connItemId: null, connPortId: null });
+    }
+  } else if (targetCount < cur) {
+    // Trim lines — clear any rack port tags for removed lines first
+    snake.lines.slice(targetCount).forEach(line => {
+      if (line.connRackId && line.connItemId && line.connPortId)
+        clearSnakeTag(line.connRackId, line.connItemId, line.connPortId);
+    });
+    snake.lines = snake.lines.slice(0, targetCount);
+  }
+  // Re-number lines to keep lineNum in sync
+  snake.lines.forEach((l, i) => l.lineNum = i + 1);
+
+  closeModal(); save(); render();
 }
 
 function deleteSnake(sid) {
