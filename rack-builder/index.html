@@ -118,13 +118,11 @@ body {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   flex-shrink: 0;
-  min-height: 0;
-  height: 100%;
 }
-.sb-section { display: flex; flex-direction: column; overflow: hidden; }
-.sb-section.flex1 { flex: 1; min-height: 0; }
+.sb-section { display: flex; flex-direction: column; }
+.sb-section.flex1 { flex: 1; }
 .sb-head {
   padding: 10px 12px 5px;
   font-size: 8px;
@@ -144,7 +142,7 @@ body {
   transition: color .15s;
 }
 .sb-head button:hover { color: var(--blue); }
-.sb-items { overflow-y: auto; flex: 1; }
+.sb-items { }
 .sb-item {
   padding: 7px 12px;
   font-size: 11px;
