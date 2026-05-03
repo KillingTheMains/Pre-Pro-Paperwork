@@ -157,6 +157,7 @@ body {
   user-select: none;
 }
 .sb-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.sb-item-orphan { opacity: .5; }
 .sb-item.active {
   background: var(--bg-card);
   color: var(--text-primary);
@@ -826,12 +827,140 @@ const BUILTIN_TYPES = [
 ];
 
 // ╔══════════════════════════════════════════════════════════╗
-// ║  DEFAULT PROJECT DATA (BMW ABBS 2026 from spreadsheet)  ║
+// ║  PRE-PRO SUITE SHARED STATE                              ║
+// ╚══════════════════════════════════════════════════════════╝
+const PPS_KEY  = 'pps_suite';
+const LOOM_KEY = 'loom_builder_shows';
+const LOOM_ACTIVE_KEY = 'loom_builder_active';
+
+function _ppsGetShowName() {
+  try { return JSON.parse(localStorage.getItem(PPS_KEY))?.showName || ''; } catch(e){return'';}
+}
+
+// Map Loom Builder color names to Rack Builder hex values
+const LOOM_COLOR_TO_HEX = {
+  RED:'#ef4444', ORANGE:'#f97316', YELLOW:'#facc15', GREEN:'#3dd68c',
+  BLUE:'#4a9eff', PURPLE:'#a855f7', GREY:'#9ca3af', TEAL:'#14b8a6',
+  BLACK:'#9ca3af', WHITE:'#f0f0f0', PINK:'#ec4899', LIME:'#3dd68c',
+  CYAN:'#22d3ee', BROWN:'#f97316',
+};
+
+// Normalize Loom Builder cable type to Rack Builder snake type
+function _loomTypeToSnakeType(t) {
+  if (!t) return 'cpc8';
+  const u = t.toUpperCase();
+  if (u === 'CPC4') return 'cpc4';
+  if (u === 'CPC8') return 'cpc8';
+  return 'custom';
+}
+
+function _lineCountForType(t, existingCount) {
+  if (t === 'cpc4') return 4;
+  if (t === 'cpc8') return 8;
+  return existingCount || 4;
+}
+
+// Read the active Loom Builder show's cables
+function _getLoomCables() {
+  try {
+    const raw = localStorage.getItem(LOOM_KEY);
+    if (!raw) return null;
+    const shows = JSON.parse(raw);
+    const activeId = localStorage.getItem(LOOM_ACTIVE_KEY);
+    const show = (activeId && shows[activeId]) || Object.values(shows)[0];
+    if (!show) return null;
+    return { cables: show.cables || [], locations: show.locations || [], showName: show.show?.name };
+  } catch(e) { return null; }
+}
+
+// Sync Rack Builder snakes from Loom Builder cable list
+function syncFromLoom() {
+  const loom = _getLoomCables();
+  if (!loom) return;  // Loom Builder has no data yet
+
+  const { cables, locations, showName } = loom;
+  if (!S.project) return;
+
+  // Adopt show name from Loom if project still has a generic name
+  if (showName && (!S.project.name || S.project.name === 'New Show')) {
+    S.project.name = showName;
+  }
+
+  const snakes = S.project.snakes;
+
+  cables.forEach(cable => {
+    const snakeType = _loomTypeToSnakeType(cable.type);
+    const targetCount = _lineCountForType(snakeType, 4);
+    const colorHex = LOOM_COLOR_TO_HEX[cable.color] || '#9ca3af';
+    const loc = locations.find(l => l.id === cable.locationId);
+    const locationName = loc ? loc.name : '';
+
+    // Find existing snake: first by loomCableId, then by name (migration)
+    let snake = snakes.find(s => s.loomCableId === cable.id)
+             || snakes.find(s => !s.loomCableId && s.name === cable.label);
+
+    if (snake) {
+      // Update identity fields from Loom
+      const oldType = snake.type;
+      snake.loomCableId = cable.id;
+      snake.name        = cable.label;
+      snake.type        = snakeType;
+      snake.color       = colorHex;
+      if (locationName) snake.location = locationName;
+
+      // Resize lines if type changed
+      if (oldType !== snakeType || snake.lines.length !== targetCount) {
+        const cur = snake.lines.length;
+        if (targetCount > cur) {
+          for (let i = cur + 1; i <= targetCount; i++) {
+            snake.lines.push({ id: uid(), lineNum: i, position: '', universe: '', firstFixture: '',
+              connRackId: null, connItemId: null, connPortId: null });
+          }
+        } else if (targetCount < cur) {
+          snake.lines.slice(targetCount).forEach(line => {
+            if (line.connRackId && line.connItemId && line.connPortId)
+              clearSnakeTag(line.connRackId, line.connItemId, line.connPortId);
+          });
+          snake.lines = snake.lines.slice(0, targetCount);
+        }
+        snake.lines.forEach((l, i) => l.lineNum = i + 1);
+      }
+    } else {
+      // New cable in Loom — create a matching snake with empty line data
+      const newLines = [];
+      for (let i = 1; i <= targetCount; i++) {
+        newLines.push({ id: uid(), lineNum: i, position: '', universe: '', firstFixture: '',
+          connRackId: null, connItemId: null, connPortId: null });
+      }
+      snakes.push({
+        id: uid(), loomCableId: cable.id,
+        name: cable.label, type: snakeType,
+        location: locationName, color: colorHex,
+        lines: newLines
+      });
+    }
+  });
+
+  // Mark orphaned snakes (their Loom cable was deleted)
+  snakes.forEach(s => {
+    if (s.loomCableId && !cables.find(c => c.id === s.loomCableId)) {
+      s.orphaned = true;
+    } else if (s.loomCableId) {
+      delete s.orphaned;
+    }
+  });
+
+  save();
+}
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  DEFAULT PROJECT DATA                                    ║
 // ╚══════════════════════════════════════════════════════════╝
 
 function defaultProject() {
+  const showName = _ppsGetShowName() || 'New Show';
   return {
-    id: uid(), name: 'BMW ABBS 2026', version: 'v1',
+    id: uid(), name: showName, version: 'v1',
     created: new Date().toISOString(),
     modified: new Date().toISOString(),
     customTypes: [],
@@ -1038,7 +1167,7 @@ function defaultProject() {
         newLine(3,'US LEFT','UNIV 42',''), newLine(4,'US LEFT','UNIV 42',''),
       ]},
 
-      // ── Loom List Snakes (BMW 2026) ─────────────────────
+      // ── Loom List Snakes (synced from Loom Builder) ─────
       { id:uid(), name:'B1', location:'TRUSS B1', type:'cpc4', color:'#3dd68c', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'B1 SP', location:'TRUSS B1', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'B2', location:'TRUSS B2', type:'cpc4', color:'#facc15', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
@@ -1256,8 +1385,27 @@ function init() {
     loomDefs.forEach(s => { if (!existing.has(s.name)) { S.project.snakes.push(s); added++; } });
     if (added) { save(); }
   })();
+  // Sync from Loom Builder on load
+  syncFromLoom();
+
   S.rackId  = S.project.racks[0]?.id  || null;
   S.snakeId = S.project.snakes[0]?.id || null;
+
+  // Cross-tab: re-sync whenever Loom Builder or pps_suite changes
+  window.addEventListener('storage', e => {
+    if (e.key === LOOM_KEY) {
+      syncFromLoom();
+      render();
+    }
+    if (e.key === PPS_KEY) {
+      const name = _ppsGetShowName();
+      if (name && S.project && (!S.project.name || S.project.name === 'New Show')) {
+        S.project.name = name;
+        save();
+        render();
+      }
+    }
+  });
 
   // Keyboard handler
   document.addEventListener('keydown', e => {
@@ -1349,9 +1497,9 @@ function rSidebar() {
       </div>
       <div class="sb-items" id="sb-snakes-list">
         ${(S.project?.snakes||[]).map(s => `
-          <div class="sb-item ${S.snakeId===s.id&&S.view==='snake'?'active':''}" onclick="selectSnake('${s.id}')">
+          <div class="sb-item ${S.snakeId===s.id&&S.view==='snake'?'active':''} ${s.orphaned?'sb-item-orphan':''}" onclick="selectSnake('${s.id}')" title="${s.orphaned?'Orphaned — cable removed from Loom Builder':''}">
             <span class="sb-dot" style="background:${s.color||'#f97316'}"></span>
-            ${h(s.name)} <span style="font-size:8px;color:var(--text-muted);margin-left:auto">${s.type==='cpc8'?'8ch':'4ch'}</span>
+            ${h(s.name)} <span style="font-size:8px;color:var(--text-muted);margin-left:auto">${s.type==='cpc8'?'8ch':s.type==='cpc4'?'4ch':'?ch'}${s.orphaned?' ⚠':''}${s.loomCableId?' ⬡':''}</span>
           </div>`).join('')}
       </div>
     </div>

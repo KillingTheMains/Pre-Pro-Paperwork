@@ -259,6 +259,48 @@ Overview · Cables · Build View · Inventory · Settings
 
 ---
 
+## Pre-Pro Suite architecture
+
+### localStorage keys
+| Key | Owner | Contents |
+|---|---|---|
+| `pps_suite` | Landing page | `{ showName, client, venue, year }` — suite-wide show identity |
+| `loom_builder_shows` | Loom Builder | All shows data; active show is source of truth for cable list |
+| `loom_builder_active` | Loom Builder | ID of currently active show |
+| `rb_project` | Rack Builder | Rack layout, snakes (with `loomCableId`), equipment, connections |
+
+### Data ownership
+- **Show name / identity** (`pps_suite`) — set on landing page, synced to/from Loom Builder's active show name
+- **Cable list** — owned by Loom Builder (Overview page is the master cable manager). Rack Builder reads from it via `syncFromLoom()`.
+- **Rack layout / universe assignments** — owned by Rack Builder only
+- **Loom segment lengths / cable groups** — owned by Loom Builder only
+
+### Cable sync (Rack Builder ← Loom Builder)
+`syncFromLoom()` runs on Rack Builder `init()` and on every `storage` event for `loom_builder_shows`. It:
+1. Reads the active Loom Builder show's cables
+2. Matches each cable to a snake by `loomCableId` (or by `name` for migration)
+3. Updates snake identity fields: `name`, `type`, `color`, `location`
+4. Resizes the `lines[]` array if type changed (CPC4↔CPC8), preserving existing universe data
+5. Creates new snakes for cables that don't yet have one (empty line data)
+6. Marks snakes whose Loom cable was deleted as `orphaned: true` (dimmed in sidebar, data preserved)
+
+### Color mapping (Loom → Rack Builder hex)
+```js
+LOOM_COLOR_TO_HEX = { RED:'#ef4444', ORANGE:'#f97316', YELLOW:'#facc15', GREEN:'#3dd68c',
+  BLUE:'#4a9eff', PURPLE:'#a855f7', GREY:'#9ca3af', TEAL:'#14b8a6',
+  WHITE:'#f0f0f0', PINK:'#ec4899', CYAN:'#22d3ee', ... }
+```
+
+### Cross-tab live sync
+`window.addEventListener('storage', ...)` in both apps:
+- Rack Builder re-runs `syncFromLoom()` when `loom_builder_shows` changes
+- Both apps update their show name display when `pps_suite` changes
+
+### Snake `loomCableId` field
+Each Rack Builder snake that originated from Loom Builder has `loomCableId` pointing to the Loom Builder cable's `id`. Snakes without this field are rack-only (legacy or manually added).
+
+---
+
 ## Shared conventions
 
 - **Dark theme** throughout: deep navy/charcoal backgrounds, accent colors per entity type

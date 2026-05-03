@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pre-Pro Paperwork</title>
+  <title>Pre-Pro Suite</title>
   <style>
     :root {
       --bg-deep: #05050c;
       --bg-surface: #0f0f18;
       --bg-card: #13131f;
       --border: #1e1e2e;
+      --border-light: #2a2a3e;
       --text-primary: #e8e8f0;
       --text-secondary: #9090a8;
       --text-muted: #555568;
@@ -19,7 +20,7 @@
       --orange: #f97316;
       --cyan: #22d3ee;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       height: 100%;
       font-family: 'SF Mono', ui-monospace, 'Fira Code', monospace;
@@ -31,28 +32,128 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 32px 16px;
-      gap: 48px;
+      padding: 40px 16px;
+      gap: 40px;
+      min-height: 100vh;
     }
-    .header {
+
+    /* ── Suite header ── */
+    .suite-header {
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
     }
-    .header h1 {
-      font-size: 22px;
+    .suite-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .suite-wordmark {
+      font-size: 20px;
       font-weight: 900;
-      letter-spacing: .1em;
+      letter-spacing: .12em;
       text-transform: uppercase;
       color: var(--text-primary);
     }
-    .header p {
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--text-muted);
-      letter-spacing: .05em;
+
+    /* ── Show name block ── */
+    .show-block {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 32px;
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
+    .show-block-title {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .show-name-display {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      cursor: pointer;
+      padding: 4px 0;
+      border-bottom: 1px solid transparent;
+      transition: border-color .15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .show-name-display:hover { border-bottom-color: var(--border-light); }
+    .show-name-display .edit-hint {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: .04em;
+    }
+    .show-meta-fields {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .meta-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+      min-width: 120px;
+    }
+    .meta-label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .meta-input {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 11px;
+      padding: 5px 8px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .meta-input:focus { border-color: var(--blue); }
+    .meta-input::placeholder { color: var(--text-muted); }
+
+    /* ── Show name edit mode ── */
+    .show-name-input {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      background: var(--bg-surface);
+      border: 1px solid var(--blue);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-family: inherit;
+      padding: 6px 10px;
+      outline: none;
+      width: 100%;
+      display: none;
+    }
+
+    /* ── Tool cards ── */
     .tools {
       display: flex;
-      gap: 20px;
+      gap: 16px;
       flex-wrap: wrap;
       justify-content: center;
     }
@@ -60,13 +161,13 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 28px 32px;
-      width: 280px;
+      padding: 24px 28px;
+      width: 260px;
       text-decoration: none;
       color: inherit;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
       transition: border-color .15s, background .15s;
       position: relative;
       overflow: hidden;
@@ -82,12 +183,9 @@
       border-color: var(--accent);
       background: #16161f;
     }
-    .tool-icon {
-      font-size: 28px;
-      line-height: 1;
-    }
+    .tool-icon { font-size: 24px; line-height: 1; }
     .tool-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       letter-spacing: .08em;
       text-transform: uppercase;
@@ -100,33 +198,90 @@
     }
     .tool-tags {
       display: flex;
-      gap: 6px;
+      gap: 5px;
       flex-wrap: wrap;
-      margin-top: 4px;
+      margin-top: 2px;
     }
     .tag {
-      font-size: 10px;
-      padding: 2px 7px;
+      font-size: 9px;
+      padding: 2px 6px;
       border-radius: 3px;
       background: rgba(255,255,255,.05);
       color: var(--text-muted);
       letter-spacing: .04em;
     }
+    .tool-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      opacity: .6;
+      padding: 2px 6px;
+      border: 1px solid currentColor;
+      border-radius: 3px;
+      align-self: flex-start;
+    }
+
+    /* ── Footer ── */
     .footer {
-      font-size: 10px;
+      font-size: 9px;
       color: var(--text-muted);
-      letter-spacing: .06em;
+      letter-spacing: .08em;
+      text-align: center;
+      line-height: 1.8;
     }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <h1>Pre-Pro Paperwork</h1>
-    <p>Entertainment lighting pre-production tools</p>
+  <div class="suite-header">
+    <div class="suite-label">Killing The Mains</div>
+    <div class="suite-wordmark">⚡ Pre-Pro Suite</div>
   </div>
 
+  <!-- Show info block -->
+  <div class="show-block">
+    <div class="show-block-title">Current Show</div>
+    <div id="show-name-display" class="show-name-display" onclick="startEditShowName()" title="Click to rename">
+      <span id="show-name-text">Loading…</span>
+      <span class="edit-hint">✎</span>
+    </div>
+    <input id="show-name-input" class="show-name-input"
+      placeholder="SHOW NAME"
+      onblur="saveShowName()"
+      onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')cancelEditShowName()">
+    <div class="show-meta-fields">
+      <div class="meta-field">
+        <div class="meta-label">Client</div>
+        <input id="meta-client" class="meta-input" placeholder="Client name" oninput="saveMeta()">
+      </div>
+      <div class="meta-field">
+        <div class="meta-label">Venue</div>
+        <input id="meta-venue" class="meta-input" placeholder="Venue" oninput="saveMeta()">
+      </div>
+      <div class="meta-field">
+        <div class="meta-label">Year</div>
+        <input id="meta-year" class="meta-input" placeholder="2026" oninput="saveMeta()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Tool cards -->
   <div class="tools">
+    <a class="tool-card" href="loom-builder/index.html" style="--accent: var(--green)">
+      <div class="tool-badge">Cable Master</div>
+      <div class="tool-icon">🔌</div>
+      <div class="tool-name">Loom Builder</div>
+      <div class="tool-desc">Master cable list for the rig. Manage all cables by location — CPC, SOCAPEX, DMX, network, and power. Drives all other tools.</div>
+      <div class="tool-tags">
+        <span class="tag">MASTER LIST</span>
+        <span class="tag">CPC4/8</span>
+        <span class="tag">SOCAPEX</span>
+        <span class="tag">LIGHTWRIGHT</span>
+      </div>
+    </a>
+
     <a class="tool-card" href="rack-builder/index.html" style="--accent: var(--blue)">
       <div class="tool-icon">🗄</div>
       <div class="tool-name">Rack Builder</div>
@@ -138,21 +293,80 @@
         <span class="tag">NETWORK</span>
       </div>
     </a>
-
-    <a class="tool-card" href="loom-builder/index.html" style="--accent: var(--green)">
-      <div class="tool-icon">🔌</div>
-      <div class="tool-name">Loom Builder</div>
-      <div class="tool-desc">Loom list planning and cable tracking. Log cable types, segment lengths, loom groups, and export to Lightwright.</div>
-      <div class="tool-tags">
-        <span class="tag">SOCAPEX</span>
-        <span class="tag">CPC4</span>
-        <span class="tag">CPC8</span>
-        <span class="tag">LIGHTWRIGHT</span>
-      </div>
-    </a>
   </div>
 
-  <div class="footer">BMW 2026 · Killing The Mains</div>
+  <div class="footer" id="footer-text">Pre-Pro Suite · Killing The Mains</div>
 
+  <script>
+    const PPS_KEY = 'pps_suite';
+
+    function getSuite() {
+      try { return JSON.parse(localStorage.getItem(PPS_KEY)) || {}; } catch(e) { return {}; }
+    }
+    function setSuite(updates) {
+      const s = getSuite();
+      Object.assign(s, updates);
+      localStorage.setItem(PPS_KEY, JSON.stringify(s));
+    }
+
+    function loadUI() {
+      const s = getSuite();
+      const name = s.showName || 'NEW SHOW';
+      document.getElementById('show-name-text').textContent = name;
+      document.title = name + ' · Pre-Pro Suite';
+      document.getElementById('footer-text').textContent =
+        [name, s.client, s.venue, s.year].filter(Boolean).join(' · ');
+      document.getElementById('meta-client').value = s.client || '';
+      document.getElementById('meta-venue').value  = s.venue  || '';
+      document.getElementById('meta-year').value   = s.year   || '';
+    }
+
+    function startEditShowName() {
+      const display = document.getElementById('show-name-display');
+      const input   = document.getElementById('show-name-input');
+      input.value   = getSuite().showName || '';
+      display.style.display = 'none';
+      input.style.display   = 'block';
+      input.focus();
+      input.select();
+    }
+
+    function saveShowName() {
+      const input   = document.getElementById('show-name-input');
+      const display = document.getElementById('show-name-display');
+      const val = input.value.trim().toUpperCase() || 'NEW SHOW';
+      setSuite({ showName: val });
+      input.style.display   = 'none';
+      display.style.display = 'flex';
+      loadUI();
+    }
+
+    function cancelEditShowName() {
+      const input   = document.getElementById('show-name-input');
+      const display = document.getElementById('show-name-display');
+      input.style.display   = 'none';
+      display.style.display = 'flex';
+    }
+
+    let metaTimer;
+    function saveMeta() {
+      clearTimeout(metaTimer);
+      metaTimer = setTimeout(() => {
+        setSuite({
+          client: document.getElementById('meta-client').value.trim(),
+          venue:  document.getElementById('meta-venue').value.trim(),
+          year:   document.getElementById('meta-year').value.trim(),
+        });
+        loadUI();
+      }, 600);
+    }
+
+    // Pick up changes from other tabs
+    window.addEventListener('storage', e => {
+      if (e.key === PPS_KEY || e.key === 'loom_builder_shows') loadUI();
+    });
+
+    loadUI();
+  </script>
 </body>
 </html>
