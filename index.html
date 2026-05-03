@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pre-Pro Paperwork</title>
+  <style>
+    :root {
+      --bg-deep: #05050c;
+      --bg-surface: #0f0f18;
+      --bg-card: #13131f;
+      --border: #1e1e2e;
+      --text-primary: #e8e8f0;
+      --text-secondary: #9090a8;
+      --text-muted: #555568;
+      --blue: #4a9eff;
+      --green: #3dd68c;
+      --purple: #a855f7;
+      --orange: #f97316;
+      --cyan: #22d3ee;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: 'SF Mono', ui-monospace, 'Fira Code', monospace;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      gap: 48px;
+    }
+    .header {
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+    .header p {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: .05em;
+    }
+    .tools {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .tool-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px 32px;
+      width: 280px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color .15s, background .15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .tool-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--accent);
+    }
+    .tool-card:hover {
+      border-color: var(--accent);
+      background: #16161f;
+    }
+    .tool-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+    .tool-name {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .tool-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .tool-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .tag {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      background: rgba(255,255,255,.05);
+      color: var(--text-muted);
+      letter-spacing: .04em;
+    }
+    .footer {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: .06em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Pre-Pro Paperwork</h1>
+    <p>Entertainment lighting pre-production tools</p>
+  </div>
+
+  <div class="tools">
+    <a class="tool-card" href="rack-builder/index.html" style="--accent: var(--blue)">
+      <div class="tool-icon">🗄</div>
+      <div class="tool-name">Rack Builder</div>
+      <div class="tool-desc">Visual rack layout planner. Build racks, assign DMX universes, map snake connections, and export print-ready layouts.</div>
+      <div class="tool-tags">
+        <span class="tag">DMX</span>
+        <span class="tag">UNIVERSES</span>
+        <span class="tag">SNAKES</span>
+        <span class="tag">NETWORK</span>
+      </div>
+    </a>
+
+    <a class="tool-card" href="loom-builder/index.html" style="--accent: var(--green)">
+      <div class="tool-icon">🔌</div>
+      <div class="tool-name">Loom Builder</div>
+      <div class="tool-desc">Loom list planning and cable tracking. Log cable types, segment lengths, loom groups, and export to Lightwright.</div>
+      <div class="tool-tags">
+        <span class="tag">SOCAPEX</span>
+        <span class="tag">CPC4</span>
+        <span class="tag">CPC8</span>
+        <span class="tag">LIGHTWRIGHT</span>
+      </div>
+    </a>
+  </div>
+
+  <div class="footer">BMW 2026 · Killing The Mains</div>
+
+</body>
+</html>
