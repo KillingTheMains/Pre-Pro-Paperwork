@@ -107,6 +107,7 @@ body {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  align-items: stretch;
 }
 
 /* ============================================================
@@ -121,8 +122,8 @@ body {
   overflow-y: auto;
   flex-shrink: 0;
 }
-.sb-section { display: flex; flex-direction: column; }
-.sb-section.flex1 { flex: 1; }
+.sb-section { display: flex; flex-direction: column; flex-shrink: 0; }
+.sb-section.flex1 { flex: 0 0 auto; }
 .sb-head {
   padding: 10px 12px 5px;
   font-size: 8px;
