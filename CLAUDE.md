@@ -5,8 +5,8 @@ This folder contains standalone browser-based tools built for entertainment ligh
 The working folder on disk is:
 `~/jason@killingthemains.com - Google Drive/My Drive/Cowork Playground/Pre-Pro Paperwork/`
 
-**Live site:** https://pre-pro.netlify.app/
-Netlify auto-deploys on every push to `main`. No manual deploy step needed.
+**Live site:** https://killingthemains.github.io/Pre-Pro-Paperwork/
+GitHub Pages serves directly from the `main` branch root. Auto-deploys on every push — no manual deploy step needed.
 
 **After every code change, commit and push via desktop-commander** (the user should never have to run git manually):
 ```bash
