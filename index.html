@@ -19,22 +19,23 @@
       --purple: #a855f7;
       --orange: #f97316;
       --cyan: #22d3ee;
+      --yellow: #facc15;
+      --red: #ef4444;
+      --pink: #ec4899;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
-      height: 100%;
       font-family: 'SF Mono', ui-monospace, 'Fira Code', monospace;
       background: var(--bg-deep);
       color: var(--text-primary);
+      min-height: 100vh;
     }
     body {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 40px 16px;
-      gap: 40px;
-      min-height: 100vh;
+      padding: 40px 16px 60px;
+      gap: 32px;
     }
 
     /* ── Suite header ── */
@@ -46,191 +47,205 @@
       gap: 6px;
     }
     .suite-label {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: var(--text-muted);
+      font-size: 9px; font-weight: 700; letter-spacing: .18em;
+      text-transform: uppercase; color: var(--text-muted);
     }
     .suite-wordmark {
-      font-size: 20px;
-      font-weight: 900;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: var(--text-primary);
+      font-size: 20px; font-weight: 900; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--text-primary);
     }
 
-    /* ── Show name block ── */
-    .show-block {
+    /* ── GitHub status bar ── */
+    .github-bar {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 10px; color: var(--text-muted);
+    }
+    .github-bar button {
+      background: none; border: 1px solid var(--border); border-radius: 4px;
+      color: var(--text-muted); font-family: inherit; font-size: 10px;
+      padding: 3px 8px; cursor: pointer; transition: color .15s, border-color .15s;
+    }
+    .github-bar button:hover { color: var(--text-primary); border-color: var(--border-light); }
+    .pat-dot {
+      width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+    }
+    .pat-dot.ok   { background: var(--green); }
+    .pat-dot.none { background: var(--text-muted); }
+
+    /* ── Show manager ── */
+    .show-manager {
+      width: 100%; max-width: 680px;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 24px 32px;
-      width: 100%;
-      max-width: 520px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      overflow: hidden;
     }
-    .show-block-title {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: .15em;
-      text-transform: uppercase;
-      color: var(--text-muted);
+    .sm-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .show-name-display {
-      font-size: 26px;
-      font-weight: 900;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: var(--text-primary);
-      cursor: pointer;
-      padding: 4px 0;
-      border-bottom: 1px solid transparent;
-      transition: border-color .15s;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .sm-title {
+      font-size: 9px; font-weight: 700; letter-spacing: .15em;
+      text-transform: uppercase; color: var(--text-muted);
     }
-    .show-name-display:hover { border-bottom-color: var(--border-light); }
-    .show-name-display .edit-hint {
-      font-size: 11px;
-      font-weight: 400;
-      color: var(--text-muted);
-      letter-spacing: .04em;
+    .btn-new-show {
+      background: none; border: 1px solid var(--green); border-radius: 5px;
+      color: var(--green); font-family: inherit; font-size: 10px; font-weight: 700;
+      letter-spacing: .06em; padding: 4px 12px; cursor: pointer;
+      transition: background .15s;
     }
-    .show-meta-fields {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .meta-field {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      flex: 1;
-      min-width: 120px;
-    }
-    .meta-label {
-      font-size: 8px;
-      font-weight: 700;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-    .meta-input {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 11px;
-      padding: 5px 8px;
-      outline: none;
-      transition: border-color .15s;
-    }
-    .meta-input:focus { border-color: var(--blue); }
-    .meta-input::placeholder { color: var(--text-muted); }
+    .btn-new-show:hover { background: rgba(61,214,140,.08); }
 
-    /* ── Show name edit mode ── */
-    .show-name-input {
-      font-size: 22px;
-      font-weight: 900;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      background: var(--bg-surface);
-      border: 1px solid var(--blue);
-      border-radius: 6px;
-      color: var(--text-primary);
-      font-family: inherit;
-      padding: 6px 10px;
-      outline: none;
-      width: 100%;
-      display: none;
+    /* show rows */
+    .show-list { display: flex; flex-direction: column; }
+    .show-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+    }
+    .show-row:last-child { border-bottom: none; }
+    .show-row:hover { background: rgba(255,255,255,.02); }
+    .show-row.active-row { background: rgba(74,158,255,.04); }
+
+    .show-active-star {
+      font-size: 10px; color: var(--blue); width: 14px; flex-shrink: 0; text-align: center;
+    }
+    .show-info { flex: 1; min-width: 0; }
+    .show-info-name {
+      font-size: 13px; font-weight: 800; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--text-primary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .show-info-meta {
+      font-size: 9px; color: var(--text-muted); margin-top: 2px; letter-spacing: .04em;
+    }
+    .show-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .sra-btn {
+      background: none; border: 1px solid var(--border); border-radius: 4px;
+      color: var(--text-secondary); font-family: inherit; font-size: 10px;
+      padding: 4px 9px; cursor: pointer; transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .sra-btn:hover { color: var(--text-primary); border-color: var(--border-light); }
+    .sra-btn.enter { border-color: var(--blue); color: var(--blue); }
+    .sra-btn.enter:hover { background: rgba(74,158,255,.08); }
+    .sra-btn.danger:hover { color: var(--red); border-color: var(--red); }
+    .sra-btn.sync-ok { color: var(--green); border-color: var(--green); }
+
+    .show-empty {
+      padding: 32px 20px; text-align: center;
+      font-size: 11px; color: var(--text-muted); line-height: 2;
+    }
+
+    /* ── Active show strip ── */
+    .active-strip {
+      width: 100%; max-width: 680px;
+      background: rgba(74,158,255,.06);
+      border: 1px solid rgba(74,158,255,.2);
+      border-radius: 8px;
+      padding: 10px 18px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 10px; color: var(--text-secondary);
+    }
+    .active-strip-name {
+      font-size: 13px; font-weight: 800; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--blue); flex: 1;
     }
 
     /* ── Tool cards ── */
-    .tools {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
+    .tools { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
     .tool-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 24px 28px;
-      width: 260px;
-      text-decoration: none;
-      color: inherit;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 24px 28px; width: 210px;
+      text-decoration: none; color: inherit;
+      display: flex; flex-direction: column; gap: 10px;
       transition: border-color .15s, background .15s;
-      position: relative;
-      overflow: hidden;
+      position: relative; overflow: hidden;
     }
     .tool-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: var(--accent);
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 3px; background: var(--accent);
     }
-    .tool-card:hover {
-      border-color: var(--accent);
-      background: #16161f;
-    }
-    .tool-icon { font-size: 24px; line-height: 1; }
+    .tool-card:hover { border-color: var(--accent); background: #16161f; }
+    .tool-icon { font-size: 22px; line-height: 1; }
     .tool-name {
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--accent);
+      font-size: 12px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--accent);
     }
-    .tool-desc {
-      font-size: 11px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-    .tool-tags {
-      display: flex;
-      gap: 5px;
-      flex-wrap: wrap;
-      margin-top: 2px;
-    }
+    .tool-desc { font-size: 10px; color: var(--text-secondary); line-height: 1.6; }
+    .tool-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
     .tag {
-      font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 3px;
-      background: rgba(255,255,255,.05);
-      color: var(--text-muted);
-      letter-spacing: .04em;
+      font-size: 9px; padding: 2px 6px; border-radius: 3px;
+      background: rgba(255,255,255,.05); color: var(--text-muted); letter-spacing: .04em;
     }
     .tool-badge {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--accent);
-      opacity: .6;
-      padding: 2px 6px;
-      border: 1px solid currentColor;
-      border-radius: 3px;
-      align-self: flex-start;
+      font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--accent); opacity: .6; padding: 2px 6px;
+      border: 1px solid currentColor; border-radius: 3px; align-self: flex-start;
     }
 
     /* ── Footer ── */
     .footer {
-      font-size: 9px;
-      color: var(--text-muted);
-      letter-spacing: .08em;
-      text-align: center;
-      line-height: 1.8;
+      font-size: 9px; color: var(--text-muted); letter-spacing: .08em;
+      text-align: center; line-height: 1.8;
     }
+
+    /* ── Modals ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 28px 32px; width: 420px; max-width: 95vw;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .modal-title {
+      font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    }
+    .modal-subtitle { font-size: 10px; color: var(--text-muted); line-height: 1.6; margin-top: -10px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field-label {
+      font-size: 8px; font-weight: 700; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .field-input {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--text-primary); font-family: inherit;
+      font-size: 12px; padding: 7px 10px; outline: none;
+      transition: border-color .15s;
+    }
+    .field-input:focus { border-color: var(--blue); }
+    .field-input::placeholder { color: var(--text-muted); }
+    .modal-fields { display: flex; gap: 10px; flex-wrap: wrap; }
+    .modal-fields .field { flex: 1; min-width: 120px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn {
+      background: none; border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text-secondary); font-family: inherit; font-size: 11px;
+      padding: 7px 16px; cursor: pointer; transition: all .15s;
+    }
+    .btn:hover { color: var(--text-primary); border-color: var(--border-light); }
+    .btn-primary {
+      background: var(--blue); border-color: var(--blue); color: #000; font-weight: 700;
+    }
+    .btn-primary:hover { background: #6ab4ff; border-color: #6ab4ff; color: #000; }
+    .btn-green {
+      background: var(--green); border-color: var(--green); color: #000; font-weight: 700;
+    }
+    .btn-green:hover { background: #5fffa8; border-color: #5fffa8; color: #000; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--bg-surface); border: 1px solid var(--border-light);
+      border-radius: 6px; padding: 8px 18px; font-size: 11px;
+      pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 200;
+    }
+    #toast.show { opacity: 1; }
   </style>
 </head>
 <body>
@@ -240,145 +255,547 @@
     <div class="suite-wordmark">⚡ Pre-Pro Suite</div>
   </div>
 
-  <!-- Show info block -->
-  <div class="show-block">
-    <div class="show-block-title">Current Show</div>
-    <div id="show-name-display" class="show-name-display" onclick="startEditShowName()" title="Click to rename">
-      <span id="show-name-text">Loading…</span>
-      <span class="edit-hint">✎</span>
-    </div>
-    <input id="show-name-input" class="show-name-input"
-      placeholder="SHOW NAME"
-      onblur="saveShowName()"
-      onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')cancelEditShowName()">
-    <div class="show-meta-fields">
-      <div class="meta-field">
-        <div class="meta-label">Client</div>
-        <input id="meta-client" class="meta-input" placeholder="Client name" oninput="saveMeta()">
-      </div>
-      <div class="meta-field">
-        <div class="meta-label">Venue</div>
-        <input id="meta-venue" class="meta-input" placeholder="Venue" oninput="saveMeta()">
-      </div>
-      <div class="meta-field">
-        <div class="meta-label">Year</div>
-        <input id="meta-year" class="meta-input" placeholder="2026" oninput="saveMeta()">
-      </div>
-    </div>
+  <!-- GitHub status bar -->
+  <div class="github-bar">
+    <span class="pat-dot" id="pat-dot"></span>
+    <span id="pat-label">GitHub not configured</span>
+    <button onclick="openPatModal()">⚙ Setup</button>
   </div>
 
-  <!-- Tool cards -->
+  <!-- Show manager -->
+  <div class="show-manager">
+    <div class="sm-header">
+      <div class="sm-title">Shows</div>
+      <button class="btn-new-show" onclick="openNewShowModal()">+ New Show</button>
+    </div>
+    <div class="show-list" id="show-list"></div>
+  </div>
+
+  <!-- Active show + tools -->
+  <div class="active-strip" id="active-strip" style="display:none">
+    <div>ACTIVE</div>
+    <div class="active-strip-name" id="active-strip-name"></div>
+    <div id="active-strip-meta" style="color:var(--text-muted);font-size:9px"></div>
+  </div>
+
   <div class="tools">
     <a class="tool-card" href="loom-builder/index.html" style="--accent: var(--green)">
       <div class="tool-badge">Cable Master</div>
       <div class="tool-icon">🔌</div>
       <div class="tool-name">Loom Builder</div>
-      <div class="tool-desc">Master cable list for the rig. Manage all cables by location — CPC, SOCAPEX, DMX, network, and power. Drives all other tools.</div>
+      <div class="tool-desc">Master cable list. Manage cables by location — CPC, SOCAPEX, DMX, network, and power.</div>
       <div class="tool-tags">
-        <span class="tag">MASTER LIST</span>
-        <span class="tag">CPC4/8</span>
-        <span class="tag">SOCAPEX</span>
-        <span class="tag">LIGHTWRIGHT</span>
+        <span class="tag">MASTER LIST</span><span class="tag">CPC4/8</span>
+        <span class="tag">SOCAPEX</span><span class="tag">LIGHTWRIGHT</span>
       </div>
     </a>
-
     <a class="tool-card" href="rack-builder/index.html" style="--accent: var(--blue)">
       <div class="tool-icon">🗄</div>
       <div class="tool-name">Rack Builder</div>
-      <div class="tool-desc">Visual rack layout planner. Build racks, assign DMX universes, map snake connections, and export print-ready layouts.</div>
+      <div class="tool-desc">Visual rack layout planner. Build racks, assign DMX universes, map snake connections.</div>
       <div class="tool-tags">
-        <span class="tag">DMX</span>
-        <span class="tag">UNIVERSES</span>
-        <span class="tag">SNAKES</span>
-        <span class="tag">NETWORK</span>
+        <span class="tag">DMX</span><span class="tag">UNIVERSES</span>
+        <span class="tag">SNAKES</span><span class="tag">NETWORK</span>
       </div>
     </a>
-
     <a class="tool-card" href="truss-builder/index.html" style="--accent: var(--orange)">
       <div class="tool-icon">🏗</div>
       <div class="tool-name">Truss Builder</div>
-      <div class="tool-desc">Build your truss inventory and print end labels. Tracks section types, lengths, colors, and generates OL1159LP label sheets ready to print.</div>
+      <div class="tool-desc">Truss inventory and end-label generator. Produces OL1159LP label sheets ready to print.</div>
       <div class="tool-tags">
-        <span class="tag">LABELS</span>
-        <span class="tag">INVENTORY</span>
-        <span class="tag">PDF</span>
-        <span class="tag">OL1159LP</span>
+        <span class="tag">LABELS</span><span class="tag">INVENTORY</span>
+        <span class="tag">PDF</span><span class="tag">OL1159LP</span>
       </div>
     </a>
   </div>
 
-  <div class="footer" id="footer-text">Pre-Pro Suite · Killing The Mains</div>
+  <div class="footer">Pre-Pro Suite · Killing The Mains</div>
+
+  <!-- ── New Show Modal ── -->
+  <div class="modal-backdrop" id="new-show-modal">
+    <div class="modal">
+      <div class="modal-title">New Show</div>
+      <div class="field">
+        <div class="field-label">Show Name</div>
+        <input class="field-input" id="ns-name" placeholder="BMW ABBS 2026"
+          onkeydown="if(event.key==='Enter')createShow()">
+      </div>
+      <div class="modal-fields">
+        <div class="field">
+          <div class="field-label">Client</div>
+          <input class="field-input" id="ns-client" placeholder="BMW">
+        </div>
+        <div class="field">
+          <div class="field-label">Venue</div>
+          <input class="field-input" id="ns-venue" placeholder="Vegas Arena">
+        </div>
+        <div class="field">
+          <div class="field-label">Year</div>
+          <input class="field-input" id="ns-year" placeholder="2026">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeNewShowModal()">Cancel</button>
+        <button class="btn btn-green" onclick="createShow()">Create Show</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GitHub PAT Modal ── -->
+  <div class="modal-backdrop" id="pat-modal">
+    <div class="modal">
+      <div class="modal-title">GitHub Setup</div>
+      <div class="modal-subtitle">
+        A Personal Access Token lets you push show data to GitHub for backup and sharing.
+        Create one at github.com → Settings → Developer settings → Personal access tokens.
+        Needs <strong>repo</strong> scope (Contents: read &amp; write).
+      </div>
+      <div class="field">
+        <div class="field-label">Personal Access Token</div>
+        <input class="field-input" id="pat-input" type="password"
+          placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+          onkeydown="if(event.key==='Enter')savePAT()">
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="clearPAT()" style="color:var(--red)">Clear PAT</button>
+        <button class="btn" onclick="closePatModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="savePAT()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Import Modal (from ?show= URL param) ── -->
+  <div class="modal-backdrop" id="import-modal">
+    <div class="modal">
+      <div class="modal-title">Load Show from GitHub</div>
+      <div class="modal-subtitle" id="import-subtitle"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeImportModal()">Cancel</button>
+        <button class="btn btn-primary" id="import-btn" onclick="importFromGitHub()">Load &amp; Enter</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
 
   <script>
-    const PPS_KEY = 'pps_suite';
+    // ═══════════════════════════════════════════════════════
+    // CONSTANTS & KEYS
+    // ═══════════════════════════════════════════════════════
+    const REPO          = 'KillingTheMains/Pre-Pro-Paperwork';
+    const SHOWS_KEY     = 'pps_shows';
+    const ACTIVE_KEY    = 'pps_active';
+    const PAT_KEY       = 'pps_github_pat';
+    const PPS_KEY       = 'pps_suite';
+    const TOOL_KEYS     = {
+      rack:       'rb_project',
+      truss:      'tb_project',
+      loom:       'loom_builder_shows',
+      loomActive: 'loom_builder_active',
+    };
 
-    function getSuite() {
-      try { return JSON.parse(localStorage.getItem(PPS_KEY)) || {}; } catch(e) { return {}; }
+    // ═══════════════════════════════════════════════════════
+    // SHOW DATA MODEL
+    // ═══════════════════════════════════════════════════════
+    function getShows() {
+      try { return JSON.parse(localStorage.getItem(SHOWS_KEY)) || []; } catch(e) { return []; }
     }
-    function setSuite(updates) {
-      const s = getSuite();
-      Object.assign(s, updates);
-      localStorage.setItem(PPS_KEY, JSON.stringify(s));
-    }
+    function setShows(arr) { localStorage.setItem(SHOWS_KEY, JSON.stringify(arr)); }
+    function getActiveId() { return localStorage.getItem(ACTIVE_KEY) || null; }
+    function setActiveId(id) { id ? localStorage.setItem(ACTIVE_KEY, id) : localStorage.removeItem(ACTIVE_KEY); }
 
-    function loadUI() {
-      const s = getSuite();
-      const name = s.showName || 'NEW SHOW';
-      document.getElementById('show-name-text').textContent = name;
-      document.title = name + ' · Pre-Pro Suite';
-      document.getElementById('footer-text').textContent =
-        [name, s.client, s.venue, s.year].filter(Boolean).join(' · ');
-      document.getElementById('meta-client').value = s.client || '';
-      document.getElementById('meta-venue').value  = s.venue  || '';
-      document.getElementById('meta-year').value   = s.year   || '';
+    function showBundleKey(id) { return `pps_show_${id}`; }
+    function getBundle(id) {
+      try { return JSON.parse(localStorage.getItem(showBundleKey(id))) || {}; } catch(e) { return {}; }
     }
-
-    function startEditShowName() {
-      const display = document.getElementById('show-name-display');
-      const input   = document.getElementById('show-name-input');
-      input.value   = getSuite().showName || '';
-      display.style.display = 'none';
-      input.style.display   = 'block';
-      input.focus();
-      input.select();
-    }
-
-    function saveShowName() {
-      const input   = document.getElementById('show-name-input');
-      const display = document.getElementById('show-name-display');
-      const val = input.value.trim().toUpperCase() || 'NEW SHOW';
-      setSuite({ showName: val });
-      input.style.display   = 'none';
-      display.style.display = 'flex';
-      loadUI();
+    function setBundle(id, bundle) {
+      localStorage.setItem(showBundleKey(id), JSON.stringify(bundle));
     }
 
-    function cancelEditShowName() {
-      const input   = document.getElementById('show-name-input');
-      const display = document.getElementById('show-name-display');
-      input.style.display   = 'none';
-      display.style.display = 'flex';
+    function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+
+    // ═══════════════════════════════════════════════════════
+    // TOOL DATA SYNC
+    // ═══════════════════════════════════════════════════════
+
+    // Snapshot current tool localStorage keys into the active show's bundle
+    function snapshotToolsToActive() {
+      const id = getActiveId();
+      if (!id) return;
+      const bundle = getBundle(id);
+      bundle.data = bundle.data || {};
+      bundle.data.rack       = localStorage.getItem(TOOL_KEYS.rack);
+      bundle.data.truss      = localStorage.getItem(TOOL_KEYS.truss);
+      bundle.data.loom       = localStorage.getItem(TOOL_KEYS.loom);
+      bundle.data.loomActive = localStorage.getItem(TOOL_KEYS.loomActive);
+      bundle.modified = new Date().toISOString();
+      setBundle(id, bundle);
+      // Also update modified in shows index
+      const shows = getShows();
+      const s = shows.find(x => x.id === id);
+      if (s) { s.modified = bundle.modified; setShows(shows); }
     }
 
-    let metaTimer;
-    function saveMeta() {
-      clearTimeout(metaTimer);
-      metaTimer = setTimeout(() => {
-        setSuite({
-          client: document.getElementById('meta-client').value.trim(),
-          venue:  document.getElementById('meta-venue').value.trim(),
-          year:   document.getElementById('meta-year').value.trim(),
+    // Load a show's bundle into the tool localStorage keys
+    function loadShowIntoTools(id) {
+      const bundle = getBundle(id);
+      const data = bundle.data || {};
+      // Write each tool key (null clears it, which tools handle gracefully)
+      if (data.rack  !== undefined) localStorage.setItem(TOOL_KEYS.rack, data.rack || '');
+      else localStorage.removeItem(TOOL_KEYS.rack);
+      if (data.truss !== undefined) localStorage.setItem(TOOL_KEYS.truss, data.truss || '');
+      else localStorage.removeItem(TOOL_KEYS.truss);
+      if (data.loom  !== undefined) localStorage.setItem(TOOL_KEYS.loom, data.loom || '');
+      else localStorage.removeItem(TOOL_KEYS.loom);
+      if (data.loomActive !== undefined) localStorage.setItem(TOOL_KEYS.loomActive, data.loomActive || '');
+      else localStorage.removeItem(TOOL_KEYS.loomActive);
+      // Sync pps_suite for show name display in tools
+      const shows = getShows();
+      const s = shows.find(x => x.id === id);
+      if (s) {
+        localStorage.setItem(PPS_KEY, JSON.stringify({
+          showName: s.name, client: s.client, venue: s.venue, year: s.year
+        }));
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // SHOW MANAGEMENT
+    // ═══════════════════════════════════════════════════════
+
+    function enterShow(id) {
+      snapshotToolsToActive();   // save current tools → current active
+      loadShowIntoTools(id);     // load selected show → tools
+      setActiveId(id);
+      render();
+      showToast('Show loaded — tools ready');
+    }
+
+    function createShow() {
+      const name = document.getElementById('ns-name').value.trim().toUpperCase();
+      if (!name) { document.getElementById('ns-name').focus(); return; }
+      const id = uid();
+      const now = new Date().toISOString();
+      const meta = {
+        id, name,
+        client: document.getElementById('ns-client').value.trim(),
+        venue:  document.getElementById('ns-venue').value.trim(),
+        year:   document.getElementById('ns-year').value.trim() || new Date().getFullYear().toString(),
+        created: now, modified: now,
+      };
+      const shows = getShows();
+      shows.unshift(meta);
+      setShows(shows);
+      setBundle(id, { id, meta, data: {}, created: now, modified: now });
+      closeNewShowModal();
+      enterShow(id);
+    }
+
+    function deleteShow(id) {
+      const shows = getShows();
+      const s = shows.find(x => x.id === id);
+      if (!s) return;
+      if (!confirm(`Delete "${s.name}"? This cannot be undone.`)) return;
+      setShows(shows.filter(x => x.id !== id));
+      localStorage.removeItem(showBundleKey(id));
+      if (getActiveId() === id) {
+        setActiveId(null);
+        // Clear tool keys so tools start fresh
+        Object.values(TOOL_KEYS).forEach(k => localStorage.removeItem(k));
+        localStorage.removeItem(PPS_KEY);
+      }
+      render();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // GITHUB SYNC
+    // ═══════════════════════════════════════════════════════
+    function getPAT() { return localStorage.getItem(PAT_KEY) || ''; }
+
+    function updatePatUI() {
+      const has = !!getPAT();
+      document.getElementById('pat-dot').className = 'pat-dot ' + (has ? 'ok' : 'none');
+      document.getElementById('pat-label').textContent = has ? 'GitHub connected' : 'GitHub not configured';
+    }
+
+    function buildShowPayload(id) {
+      snapshotToolsToActive();
+      const shows = getShows();
+      const meta = shows.find(x => x.id === id);
+      const bundle = getBundle(id);
+      return { id, meta, data: bundle.data || {}, exported: new Date().toISOString() };
+    }
+
+    async function getFileSHA(path) {
+      const pat = getPAT();
+      const headers = pat ? { 'Authorization': `token ${pat}` } : {};
+      const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, { headers });
+      if (r.status === 404) return null;
+      const j = await r.json();
+      return j.sha || null;
+    }
+
+    async function pushShow(id) {
+      const pat = getPAT();
+      if (!pat) { openPatModal(); return; }
+      const shows = getShows();
+      const s = shows.find(x => x.id === id);
+      showToast('Pushing to GitHub…');
+      try {
+        const payload = buildShowPayload(id);
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+        const path = `shows/${id}.json`;
+        const sha = await getFileSHA(path);
+        const body = { message: `Update show: ${s?.name || id}`, content };
+        if (sha) body.sha = sha;
+        const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `token ${pat}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
         });
-        loadUI();
-      }, 600);
+        if (!r.ok) throw new Error((await r.json()).message || r.status);
+        showToast('✓ Pushed to GitHub');
+        render();
+      } catch(e) {
+        showToast('Push failed: ' + e.message);
+      }
     }
 
-    // Pick up changes from other tabs
-    window.addEventListener('storage', e => {
-      if (e.key === PPS_KEY || e.key === 'loom_builder_shows') loadUI();
+    async function pullShow(id) {
+      showToast('Pulling from GitHub…');
+      try {
+        const r = await fetch(`https://raw.githubusercontent.com/${REPO}/main/shows/${id}.json?t=${Date.now()}`);
+        if (!r.ok) throw new Error('Not found on GitHub');
+        const payload = await r.json();
+        applyImportedPayload(payload, id === getActiveId());
+        showToast('✓ Pulled from GitHub');
+        render();
+      } catch(e) {
+        showToast('Pull failed: ' + e.message);
+      }
+    }
+
+    function applyImportedPayload(payload, makeActive) {
+      const { id, meta, data } = payload;
+      const now = new Date().toISOString();
+      const shows = getShows();
+      const existing = shows.findIndex(x => x.id === id);
+      const entry = { ...(meta || {}), id, modified: now };
+      if (existing >= 0) shows[existing] = entry;
+      else shows.unshift(entry);
+      setShows(shows);
+      setBundle(id, { id, meta: entry, data: data || {}, modified: now });
+      if (makeActive) loadShowIntoTools(id);
+    }
+
+    function getShareLink(id) {
+      return `${location.origin}${location.pathname}?show=${id}`;
+    }
+
+    function copyShareLink(id) {
+      const link = getShareLink(id);
+      navigator.clipboard.writeText(link).then(() => showToast('Link copied to clipboard'));
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // MIGRATION — import existing tool data as "Default Show"
+    // ═══════════════════════════════════════════════════════
+    function migrateExistingData() {
+      if (getShows().length > 0) return; // already migrated
+      const rack  = localStorage.getItem(TOOL_KEYS.rack);
+      const truss = localStorage.getItem(TOOL_KEYS.truss);
+      const loom  = localStorage.getItem(TOOL_KEYS.loom);
+      if (!rack && !truss && !loom) return; // nothing to migrate
+      const suite = JSON.parse(localStorage.getItem(PPS_KEY) || '{}');
+      const id = uid();
+      const now = new Date().toISOString();
+      const meta = {
+        id, name: (suite.showName || 'DEFAULT SHOW').toUpperCase(),
+        client: suite.client || '', venue: suite.venue || '',
+        year: suite.year || new Date().getFullYear().toString(),
+        created: now, modified: now,
+      };
+      setShows([meta]);
+      setBundle(id, {
+        id, meta, modified: now,
+        data: {
+          rack:       rack,
+          truss:      truss,
+          loom:       loom,
+          loomActive: localStorage.getItem(TOOL_KEYS.loomActive),
+        }
+      });
+      setActiveId(id);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════
+    function fmtDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function render() {
+      const shows = getShows();
+      const activeId = getActiveId();
+      const list = document.getElementById('show-list');
+
+      if (shows.length === 0) {
+        list.innerHTML = `<div class="show-empty">No shows yet.<br>Click <strong>+ New Show</strong> to create one.</div>`;
+      } else {
+        list.innerHTML = shows.map(s => {
+          const isActive = s.id === activeId;
+          const meta = [s.client, s.venue, s.year].filter(Boolean).join(' · ');
+          const modified = s.modified ? 'Saved ' + fmtDate(s.modified) : '';
+          return `
+          <div class="show-row ${isActive ? 'active-row' : ''}">
+            <div class="show-active-star">${isActive ? '★' : ''}</div>
+            <div class="show-info">
+              <div class="show-info-name">${esc(s.name)}</div>
+              <div class="show-info-meta">${esc(meta)}${meta && modified ? ' · ' : ''}${esc(modified)}</div>
+            </div>
+            <div class="show-row-actions">
+              ${isActive
+                ? `<span class="sra-btn sync-ok" style="cursor:default;font-size:9px">● ACTIVE</span>`
+                : `<button class="sra-btn enter" onclick="enterShow('${s.id}')">Enter →</button>`
+              }
+              <button class="sra-btn" onclick="pushShow('${s.id}')" title="Push to GitHub">↑ Push</button>
+              <button class="sra-btn" onclick="pullShow('${s.id}')" title="Pull from GitHub">↓ Pull</button>
+              <button class="sra-btn" onclick="copyShareLink('${s.id}')" title="Copy shareable link">🔗</button>
+              <button class="sra-btn danger" onclick="deleteShow('${s.id}')" title="Delete show">✕</button>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      // Active strip
+      const strip = document.getElementById('active-strip');
+      if (activeId) {
+        const s = shows.find(x => x.id === activeId);
+        if (s) {
+          document.getElementById('active-strip-name').textContent = s.name;
+          const meta = [s.client, s.venue, s.year].filter(Boolean).join(' · ');
+          document.getElementById('active-strip-meta').textContent = meta;
+          strip.style.display = 'flex';
+        }
+      } else {
+        strip.style.display = 'none';
+      }
+    }
+
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // MODALS
+    // ═══════════════════════════════════════════════════════
+    function openNewShowModal() {
+      ['ns-name','ns-client','ns-venue','ns-year'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('ns-year').value = new Date().getFullYear().toString();
+      document.getElementById('new-show-modal').classList.add('open');
+      setTimeout(() => document.getElementById('ns-name').focus(), 50);
+    }
+    function closeNewShowModal() {
+      document.getElementById('new-show-modal').classList.remove('open');
+    }
+
+    function openPatModal() {
+      document.getElementById('pat-input').value = getPAT();
+      document.getElementById('pat-modal').classList.add('open');
+      setTimeout(() => document.getElementById('pat-input').focus(), 50);
+    }
+    function closePatModal() { document.getElementById('pat-modal').classList.remove('open'); }
+    function savePAT() {
+      const val = document.getElementById('pat-input').value.trim();
+      if (val) localStorage.setItem(PAT_KEY, val);
+      closePatModal();
+      updatePatUI();
+      showToast('GitHub token saved');
+    }
+    function clearPAT() {
+      localStorage.removeItem(PAT_KEY);
+      document.getElementById('pat-input').value = '';
+      closePatModal();
+      updatePatUI();
+      showToast('GitHub token cleared');
+    }
+
+    let _pendingImportId = null;
+    function openImportModal(showId, showName) {
+      _pendingImportId = showId;
+      document.getElementById('import-subtitle').textContent =
+        `Load "${showName || showId}" from GitHub and make it the active show?`;
+      document.getElementById('import-modal').classList.add('open');
+    }
+    function closeImportModal() {
+      document.getElementById('import-modal').classList.remove('open');
+      _pendingImportId = null;
+      // Clean URL
+      history.replaceState({}, '', location.pathname);
+    }
+    async function importFromGitHub() {
+      if (!_pendingImportId) return;
+      const id = _pendingImportId;
+      closeImportModal();
+      await pullShow(id);
+      enterShow(id);
+    }
+
+    // Close modals on backdrop click
+    document.querySelectorAll('.modal-backdrop').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target === el) el.classList.remove('open');
+      });
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-backdrop.open').forEach(el => el.classList.remove('open'));
+      }
     });
 
-    loadUI();
+    // ═══════════════════════════════════════════════════════
+    // TOAST
+    // ═══════════════════════════════════════════════════════
+    let _toastTimer;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // URL PARAM — ?show=ID for shareable links
+    // ═══════════════════════════════════════════════════════
+    function checkURLParam() {
+      const params = new URLSearchParams(location.search);
+      const showId = params.get('show');
+      if (!showId) return;
+      history.replaceState({}, '', location.pathname); // clean URL immediately
+      // Check if we already have this show locally
+      const shows = getShows();
+      const existing = shows.find(x => x.id === showId);
+      if (existing) {
+        // Already have it — just enter it
+        enterShow(showId);
+        showToast(`Switched to ${existing.name}`);
+      } else {
+        // Need to load from GitHub
+        openImportModal(showId, showId);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════
+    migrateExistingData();
+    snapshotToolsToActive();   // capture any changes made in tools since last visit
+    updatePatUI();
+    render();
+    checkURLParam();
   </script>
 </body>
 </html>
