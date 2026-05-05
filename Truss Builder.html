@@ -1396,11 +1396,11 @@ function renderLabelPreview() {
   const marginTpx = MARGIN_TOP  * mm2px;
   const marginLpx = MARGIN_LEFT * mm2px;
 
-  const maxFontPx = labelHpx * 0.6;
+  const maxFontPx = labelHpx * 0.78;
   let fontSize    = maxFontPx;
   if (labels[0]) {
     const textLen = labels.reduce((a,l) => Math.max(a, l.length), 0);
-    const maxChars = (labelWpx - 20) / (maxFontPx * 0.55);
+    const maxChars = (labelWpx - 12) / (maxFontPx * 0.55);
     if (textLen > maxChars) fontSize = fontSize * maxChars / textLen;
     fontSize = Math.min(fontSize, maxFontPx);
     fontSize = Math.max(fontSize, 10);
@@ -1470,8 +1470,8 @@ function _buildPDFBlob(truss) {
       if (i >= labels.length) break;
       const text = labels[i];
       const x = MARGIN_LEFT, y = MARGIN_TOP + pos * LABEL_H_MM;
-      const maxW = LABEL_W_MM - 10, maxH = LABEL_H_MM - 6;
-      let fs = 80;
+      const maxW = LABEL_W_MM - 6, maxH = LABEL_H_MM - 4;
+      let fs = 120;
       doc.setFontSize(fs);
       while (fs > 14) {
         const dims = doc.getTextDimensions(text);
