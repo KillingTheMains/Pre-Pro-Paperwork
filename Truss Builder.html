@@ -411,6 +411,47 @@
     .cswatch-custom input { width: 32px; height: 32px; margin: -5px; cursor: pointer; border: none; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 
+    /* ── Batch Save Modal ── */
+    .batch-folder-row { display: flex; flex-direction: column; gap: 5px; }
+    .batch-folder-display {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 5px; padding: 7px 10px; font-size: 11px;
+    }
+    .batch-folder-display .dir-name {
+      flex: 1; color: var(--muted);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .batch-list-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .batch-truss-list {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 5px; max-height: 300px; overflow-y: auto;
+      padding: 4px 0;
+    }
+    .batch-group-hdr {
+      padding: 8px 12px 3px;
+      font-size: 9px; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--dim);
+    }
+    .batch-item label {
+      display: flex; align-items: center; gap: 9px;
+      padding: 6px 12px; cursor: pointer; font-size: 11px;
+      transition: background .1s;
+    }
+    .batch-item label:hover { background: rgba(255,255,255,.03); }
+    .batch-item input[type=checkbox] { accent-color: var(--orange); width: 14px; height: 14px; flex-shrink: 0; }
+    .batch-item .bi-name { font-weight: 700; color: var(--text); }
+    .batch-item .bi-meta { color: var(--dim); font-size: 10px; }
+    .batch-progress {
+      font-size: 11px; color: var(--muted); text-align: center;
+      padding: 8px; background: var(--surface2); border-radius: 5px;
+      display: none;
+    }
+    .batch-progress.visible { display: block; }
+
     /* Toast */
     #toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -429,6 +470,8 @@
     <div id="show-name"></div>
     <div class="hspacer"></div>
     <a class="hbtn" href="../index.html">← Suite</a>
+    <button class="hbtn" onclick="chooseSaveDir()" id="folder-btn" title="Set save folder for PDFs">📁 <span class="save-dir-label">Set Folder</span></button>
+    <button class="hbtn hbtn-primary" onclick="openBatchModal()">⬇ Batch Save</button>
     <button class="hbtn" onclick="exportData()">Export JSON</button>
     <button class="hbtn" onclick="trigImport()">Import JSON</button>
     <input type="file" id="file-imp" accept=".json" style="display:none" onchange="importData(event)">
@@ -587,6 +630,42 @@
       <div class="modal-actions">
         <button class="btn" onclick="closeModal()">Cancel</button>
         <button class="btn btn-primary" onclick="saveTruss()">Add Truss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Modal: Batch Export ─── -->
+  <div class="modal-overlay hidden" id="batch-modal">
+    <div class="modal" style="width:580px">
+      <div class="modal-title">Batch Export Labels</div>
+
+      <!-- Save folder row -->
+      <div class="batch-folder-row">
+        <div class="flabel">Save Folder</div>
+        <div class="batch-folder-display">
+          <span class="dir-name save-dir-label">No folder set — files will download via browser</span>
+          <button class="btn btn-sm" onclick="chooseSaveDir()">Change…</button>
+        </div>
+      </div>
+
+      <!-- Truss list -->
+      <div class="fg">
+        <div class="batch-list-head">
+          <div class="flabel">Select Trusses</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="batchSelectAll(true)">All</button>
+            <button class="btn btn-sm" onclick="batchSelectAll(false)">None</button>
+          </div>
+        </div>
+        <div class="batch-truss-list" id="batch-truss-list"></div>
+      </div>
+
+      <!-- Progress indicator -->
+      <div class="batch-progress" id="batch-progress"></div>
+
+      <div class="modal-actions">
+        <button class="btn" onclick="closeBatchModal()">Cancel</button>
+        <button class="btn btn-primary" id="batch-export-btn" onclick="runBatchExport()">Export Selected</button>
       </div>
     </div>
   </div>
@@ -1238,59 +1317,263 @@ function getLabelTextColor(hex) {
 // ═══════════════════════════════════════════════════════════
 // PDF GENERATION
 // ═══════════════════════════════════════════════════════════
-function generatePDF() {
-  const truss = project.trusses.find(t => t.id === activeTrussId);
-  if (!truss) return;
 
+// Core builder — returns a Blob so it can be saved to disk or downloaded
+function _buildPDFBlob(truss) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: [PAGE_W_MM, PAGE_H_MM] });
-  const labels = generateLabels(truss);
+  const labels  = generateLabels(truss);
   const bgColor = truss.color || '#444444';
   const r = parseInt(bgColor.slice(1,3),16);
   const g = parseInt(bgColor.slice(3,5),16);
   const b = parseInt(bgColor.slice(5,7),16);
-  const luminance = (0.299*r + 0.587*g + 0.114*b)/255;
-  const isDark = luminance < 0.2; // only use white text on near-black backgrounds
+  const isDark  = (0.299*r + 0.587*g + 0.114*b)/255 < 0.2;
 
   doc.setFont('helvetica', 'bold');
-
   const pageCount = Math.ceil(labels.length / LABELS_PER_PAGE);
 
   for (let page = 0; page < pageCount; page++) {
     if (page > 0) doc.addPage([PAGE_W_MM, PAGE_H_MM]);
-
-    // Fill the entire page with the truss color so any misalignment
-    // on the label sheet still shows the correct color underneath.
+    // Full-page color background (covers any label misalignment)
     doc.setFillColor(r, g, b);
     doc.rect(0, 0, PAGE_W_MM, PAGE_H_MM, 'F');
 
     for (let pos = 0; pos < LABELS_PER_PAGE; pos++) {
       const i = page * LABELS_PER_PAGE + pos;
       if (i >= labels.length) break;
-
       const text = labels[i];
-      const x = MARGIN_LEFT;
-      const y = MARGIN_TOP + pos * LABEL_H_MM;
-
-      const maxW = LABEL_W_MM - 10;
-      const maxH = LABEL_H_MM - 6;
+      const x = MARGIN_LEFT, y = MARGIN_TOP + pos * LABEL_H_MM;
+      const maxW = LABEL_W_MM - 10, maxH = LABEL_H_MM - 6;
       let fs = 80;
       doc.setFontSize(fs);
       while (fs > 14) {
         const dims = doc.getTextDimensions(text);
         if (dims.w <= maxW && dims.h <= maxH) break;
-        fs -= 2;
-        doc.setFontSize(fs);
+        fs -= 2; doc.setFontSize(fs);
       }
-
       doc.setTextColor(isDark ? 255 : 0);
       doc.text(text, x + LABEL_W_MM / 2, y + LABEL_H_MM / 2, { align: 'center', baseline: 'middle' });
     }
   }
+  return doc.output('blob');
+}
 
-  const filename = `${truss.name}-labels.pdf`;
-  doc.save(filename);
-  showToast(`Saved ${filename}`);
+function _pdfFilename(truss) {
+  const t = sanitizeFilename(truss.name);
+  const s = sanitizeFilename(project.name || 'SHOW');
+  return `${t}_TRUSS END LABELS_${s}.pdf`;
+}
+
+function sanitizeFilename(str) {
+  return String(str).replace(/[/\\:*?"<>|]/g, '_').trim();
+}
+
+async function generatePDF() {
+  const truss = project.trusses.find(t => t.id === activeTrussId);
+  if (!truss) return;
+
+  const blob     = _buildPDFBlob(truss);
+  const filename = _pdfFilename(truss);
+
+  if (_saveDir) {
+    const ok = await _writeToDir(filename, blob);
+    if (ok) { showToast(`Saved → ${_saveDir.name} / ${filename}`); return; }
+  }
+  _downloadBlob(filename, blob);
+  showToast(`Downloaded: ${filename}`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILE SYSTEM API — PERSISTENT SAVE DIRECTORY
+// ═══════════════════════════════════════════════════════════
+let _saveDir = null;
+
+const _IDB_NAME  = 'tb_fs';
+const _IDB_STORE = 'handles';
+
+function _openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(_IDB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(_IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function _loadSaveDir() {
+  try {
+    const db     = await _openIDB();
+    const stored = await new Promise((res, rej) => {
+      const tx  = db.transaction(_IDB_STORE, 'readonly');
+      const req = tx.objectStore(_IDB_STORE).get('saveDir');
+      req.onsuccess = () => res(req.result);
+      req.onerror   = () => rej(req.error);
+    });
+    if (stored) { _saveDir = stored; _updateSaveDirDisplay(); }
+  } catch(e) {}
+}
+
+async function _persistSaveDir(handle) {
+  try {
+    const db = await _openIDB();
+    await new Promise((res, rej) => {
+      const tx  = db.transaction(_IDB_STORE, 'readwrite');
+      const req = tx.objectStore(_IDB_STORE).put(handle, 'saveDir');
+      req.onsuccess = res;
+      req.onerror   = () => rej(req.error);
+    });
+  } catch(e) {}
+}
+
+async function chooseSaveDir() {
+  if (!window.showDirectoryPicker) {
+    showToast('Directory picker not supported in this browser');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    _saveDir = handle;
+    await _persistSaveDir(handle);
+    _updateSaveDirDisplay();
+    showToast(`Save folder set: ${handle.name}`);
+  } catch(e) {
+    if (e.name !== 'AbortError') showToast('Could not access folder');
+  }
+}
+
+function _updateSaveDirDisplay() {
+  const label = _saveDir ? `📁  ${_saveDir.name}` : 'No folder set — files will download via browser';
+  document.querySelectorAll('.save-dir-label').forEach(el => el.textContent = label);
+}
+
+async function _ensureDirPermission() {
+  if (!_saveDir) return false;
+  try {
+    let p = await _saveDir.queryPermission({ mode: 'readwrite' });
+    if (p !== 'granted') p = await _saveDir.requestPermission({ mode: 'readwrite' });
+    return p === 'granted';
+  } catch(e) { return false; }
+}
+
+async function _writeToDir(filename, blob) {
+  const ok = await _ensureDirPermission();
+  if (!ok) return false;
+  try {
+    const fh = await _saveDir.getFileHandle(filename, { create: true });
+    const w  = await fh.createWritable();
+    await w.write(blob);
+    await w.close();
+    return true;
+  } catch(e) { return false; }
+}
+
+function _downloadBlob(filename, blob) {
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob), download: filename
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════════════════════════════════════
+// BATCH EXPORT
+// ═══════════════════════════════════════════════════════════
+function openBatchModal() {
+  _buildBatchList();
+  _updateSaveDirDisplay();
+  document.getElementById('batch-modal').classList.remove('hidden');
+}
+
+function closeBatchModal() {
+  document.getElementById('batch-modal').classList.add('hidden');
+  document.getElementById('batch-progress').classList.remove('visible');
+}
+
+function _buildBatchList() {
+  const list = document.getElementById('batch-truss-list');
+  if (!project.trusses.length) {
+    list.innerHTML = '<div style="padding:14px;color:var(--dim);font-size:11px;text-align:center">No trusses in project</div>';
+    _updateBatchCount(); return;
+  }
+  let lastGroup = null, html = '';
+  project.trusses.forEach(t => {
+    const group = t.name.replace(/[0-9]/g,'') || 'OTHER';
+    if (group !== lastGroup) {
+      lastGroup = group;
+      html += `<div class="batch-group-hdr">${esc(group)}</div>`;
+    }
+    const labels = generateLabels(t);
+    const sheets = sheetCount(labels);
+    html += `<div class="batch-item">
+      <label>
+        <input type="checkbox" class="batch-cb" data-id="${t.id}" checked>
+        <span class="color-dot" style="background:${t.color||'#444'};width:11px;height:11px;flex-shrink:0"></span>
+        <span class="bi-name">${esc(t.name)}</span>
+        <span class="bi-meta">${esc(t.type)} · ${labels.length} labels · ${sheets} sh</span>
+        <span class="bi-meta" style="margin-left:auto;color:var(--dim);font-size:9px">${esc(_pdfFilename(t))}</span>
+      </label>
+    </div>`;
+  });
+  list.innerHTML = html;
+  list.querySelectorAll('.batch-cb').forEach(cb => cb.addEventListener('change', _updateBatchCount));
+  _updateBatchCount();
+}
+
+function _updateBatchCount() {
+  const n   = document.querySelectorAll('.batch-cb:checked').length;
+  const btn = document.getElementById('batch-export-btn');
+  if (!btn) return;
+  btn.textContent = n > 0 ? `Export ${n} Truss${n !== 1 ? 'es' : ''}` : 'Nothing Selected';
+  btn.disabled    = n === 0;
+}
+
+function batchSelectAll(state) {
+  document.querySelectorAll('.batch-cb').forEach(cb => { cb.checked = state; });
+  _updateBatchCount();
+}
+
+async function runBatchExport() {
+  const ids = Array.from(document.querySelectorAll('.batch-cb:checked')).map(cb => cb.dataset.id);
+  if (!ids.length) return;
+
+  const btn  = document.getElementById('batch-export-btn');
+  const prog = document.getElementById('batch-progress');
+  btn.disabled = true;
+  prog.classList.add('visible');
+
+  const hasDir = _saveDir && await _ensureDirPermission();
+  let saved = 0, failed = 0;
+
+  for (let i = 0; i < ids.length; i++) {
+    const truss = project.trusses.find(x => x.id === ids[i]);
+    if (!truss) continue;
+    prog.textContent = `Exporting ${i + 1} of ${ids.length}: ${truss.name}…`;
+
+    try {
+      const blob     = _buildPDFBlob(truss);
+      const filename = _pdfFilename(truss);
+      if (hasDir) {
+        const ok = await _writeToDir(filename, blob);
+        if (!ok) _downloadBlob(filename, blob); // fallback
+      } else {
+        _downloadBlob(filename, blob);
+      }
+      saved++;
+    } catch(e) {
+      console.error('Export error:', truss.name, e);
+      failed++;
+    }
+    // Yield to keep UI responsive
+    await new Promise(r => setTimeout(r, 60));
+  }
+
+  prog.classList.remove('visible');
+  btn.disabled = false;
+  closeBatchModal();
+
+  const dest   = hasDir ? ` → ${_saveDir.name}` : ' (downloaded)';
+  const result = failed ? `Exported ${saved}, ${failed} failed` : `${saved} PDF${saved !== 1 ? 's' : ''} exported${dest}`;
+  showToast(result);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1534,6 +1817,7 @@ window.addEventListener('storage', e => {
 // INIT
 // ═══════════════════════════════════════════════════════════
 load();
+_loadSaveDir();
 renderAll();
   </script>
 </body>
