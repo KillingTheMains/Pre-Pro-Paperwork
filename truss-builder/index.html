@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Truss Builder</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:       #05050c;
+      --surface:  #0f0f18;
+      --surface2: #13131f;
+      --border:   #1e1e2e;
+      --border2:  #2a2a3e;
+      --text:     #e8e8f0;
+      --muted:    #9090a8;
+      --dim:      #555568;
+      --blue:     #4a9eff;
+      --green:    #3dd68c;
+      --orange:   #f97316;
+      --red:      #ef4444;
+      --purple:   #a855f7;
+      --cyan:     #22d3ee;
+      --yellow:   #facc15;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100vh;
+      font-family: 'SF Mono', ui-monospace, 'Fira Code', monospace;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      height: 50px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    #logo { font-size: 13px; font-weight: 900; letter-spacing: .08em; color: var(--orange); }
+    #show-name { font-size: 11px; color: var(--muted); }
+    .hspacer { flex: 1; }
+    .hbtn {
+      font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+      padding: 5px 12px; border-radius: 4px; cursor: pointer; border: 1px solid var(--border2);
+      background: var(--surface2); color: var(--muted); transition: .15s;
+    }
+    .hbtn:hover { color: var(--text); border-color: var(--border2); }
+    .hbtn-primary { background: var(--orange); color: #000; border-color: var(--orange); }
+    .hbtn-primary:hover { filter: brightness(1.1); }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+    .tab {
+      font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      padding: 10px 16px; cursor: pointer; color: var(--muted);
+      border-bottom: 2px solid transparent; transition: .15s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+    /* ── Content areas ── */
+    .content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    .content.active { display: flex; }
+    .scroll-area { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+    /* ── Trusses tab ── */
+    .section-head {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 10px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .btn {
+      font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+      padding: 5px 12px; border-radius: 4px; cursor: pointer;
+      border: 1px solid var(--border2); background: var(--surface2);
+      color: var(--muted); transition: .15s;
+    }
+    .btn:hover { color: var(--text); }
+    .btn-primary { background: var(--orange); color: #000; border-color: var(--orange); }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-sm { padding: 3px 8px; font-size: 10px; }
+    .btn-danger { color: var(--red); }
+    .btn-danger:hover { background: rgba(239,68,68,.15); border-color: var(--red); }
+
+    .truss-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .truss-table th {
+      text-align: left; padding: 6px 12px;
+      font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--dim); border-bottom: 1px solid var(--border);
+    }
+    .truss-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+      color: var(--text); vertical-align: middle;
+    }
+    .truss-table tr:hover td { background: var(--surface2); }
+    .color-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      display: inline-block; flex-shrink: 0; border: 1px solid rgba(255,255,255,.1);
+    }
+    .truss-name-cell { display: flex; align-items: center; gap: 8px; }
+    .pieces-cell { color: var(--muted); font-size: 10px; }
+    .conn-badge {
+      font-size: 9px; font-weight: 700; padding: 2px 6px;
+      border-radius: 3px; background: rgba(255,255,255,.07); color: var(--muted);
+    }
+    .end-badge {
+      font-size: 9px; color: var(--muted);
+    }
+    .group-divider td {
+      padding: 12px 12px 4px;
+      font-size: 9px; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--dim);
+      border-bottom: none; background: none;
+    }
+
+    /* ── Labels tab ── */
+    .labels-layout {
+      display: flex; flex: 1; overflow: hidden;
+    }
+    .truss-picker {
+      width: 200px; flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 12px 0;
+    }
+    .picker-head {
+      font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--dim); padding: 4px 14px 8px;
+    }
+    .picker-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; cursor: pointer; font-size: 11px;
+      color: var(--muted); transition: .1s;
+    }
+    .picker-item:hover { background: var(--surface2); color: var(--text); }
+    .picker-item.active { background: var(--surface2); color: var(--text); border-left: 2px solid var(--orange); padding-left: 12px; }
+    .picker-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,.1); }
+
+    .label-preview-area {
+      flex: 1; overflow-y: auto; padding: 24px;
+      display: flex; flex-direction: column; gap: 20px; align-items: center;
+    }
+    .no-truss-msg {
+      margin: auto; color: var(--dim); font-size: 12px; text-align: center; line-height: 1.8;
+    }
+
+    .preview-actions {
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 24px 0;
+      width: 100%; max-width: 720px;
+    }
+    .preview-title {
+      font-size: 13px; font-weight: 700; letter-spacing: .06em; flex: 1;
+    }
+    .label-count-info { font-size: 10px; color: var(--muted); }
+
+    /* Label sheet preview */
+    .sheet-preview {
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.6);
+      /* 8.5 × 11 in, scaled to fit display */
+      width: 612px; /* 8.5" at 72dpi */
+      height: 792px; /* 11" at 72dpi */
+      position: relative;
+      flex-shrink: 0;
+    }
+    .sheet-label {
+      position: absolute;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .sheet-label-text {
+      font-family: Arial, Helvetica, sans-serif;
+      font-weight: 900;
+      text-align: center;
+      line-height: 1;
+      padding: 4px;
+      word-break: break-all;
+    }
+    .sheet-label-empty {
+      background: #f5f5f5;
+      border: 1px dashed #ddd;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 24px; width: 520px; max-height: 90vh;
+      overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
+    }
+    .modal-title { font-size: 13px; font-weight: 800; letter-spacing: .06em; }
+    .modal-row { display: flex; gap: 12px; }
+    .fg { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+    .flabel {
+      font-size: 9px; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .finput, .fselect {
+      background: var(--surface2); border: 1px solid var(--border2);
+      color: var(--text); font-family: inherit; font-size: 11px;
+      padding: 7px 10px; border-radius: 5px; outline: none; width: 100%;
+      transition: border-color .15s;
+    }
+    .finput:focus, .fselect:focus { border-color: var(--orange); }
+    .finput::placeholder { color: var(--dim); }
+    .pieces-row { display: flex; gap: 8px; }
+    .pieces-row .fg { min-width: 0; }
+    .pieces-label { font-size: 9px; color: var(--dim); text-align: center; margin-top: 2px; }
+
+    /* End orientation radios */
+    .end-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+    .end-opt {
+      display: flex; align-items: center; gap: 5px; cursor: pointer;
+      padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border2);
+      font-size: 10px; font-weight: 700; color: var(--muted); transition: .15s;
+    }
+    .end-opt.selected { border-color: var(--orange); color: var(--orange); background: rgba(249,115,22,.08); }
+    .end-opt input { display: none; }
+    .custom-ends { display: flex; gap: 8px; margin-top: 8px; }
+    .custom-ends .fg { flex: 1; }
+
+    /* Color swatches */
+    .color-swatches { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+    .cswatch {
+      width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: .15s; flex-shrink: 0;
+    }
+    .cswatch.selected { border-color: #fff; transform: scale(1.15); }
+    .cswatch-custom {
+      width: 22px; height: 22px; border-radius: 50%; cursor: pointer; overflow: hidden;
+      border: 2px solid transparent; flex-shrink: 0;
+    }
+    .cswatch-custom input { width: 32px; height: 32px; margin: -5px; cursor: pointer; border: none; }
+
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--surface2); border: 1px solid var(--border2);
+      color: var(--text); font-size: 11px; padding: 8px 16px; border-radius: 6px;
+      pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 200;
+    }
+    #toast.show { opacity: 1; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--dim); font-size: 12px; line-height: 2;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div id="logo">📐 Truss Builder</div>
+    <div id="show-name"></div>
+    <div class="hspacer"></div>
+    <button class="hbtn" onclick="exportData()">Export JSON</button>
+    <button class="hbtn" onclick="trigImport()">Import JSON</button>
+    <input type="file" id="file-imp" accept=".json" style="display:none" onchange="importData(event)">
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="trusses" onclick="switchTab(this)">Trusses</div>
+    <div class="tab" data-tab="labels" onclick="switchTab(this)">Labels</div>
+  </div>
+
+  <!-- Tab: Trusses -->
+  <div class="content active" id="tab-trusses">
+    <div class="scroll-area">
+      <div class="section-head">
+        <div class="section-title">Truss Inventory</div>
+        <button class="btn btn-primary" onclick="openAddTruss()">+ Add Truss</button>
+      </div>
+      <table class="truss-table" id="truss-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Length</th>
+            <th>Pieces</th>
+            <th>Connections</th>
+            <th>End Labels</th>
+            <th>Labels</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="truss-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="empty-state" style="display:none">
+        No trusses yet.<br>Click <strong>+ Add Truss</strong> to get started.
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Labels -->
+  <div class="content" id="tab-labels">
+    <div class="labels-layout">
+      <!-- Truss picker -->
+      <div class="truss-picker" id="truss-picker">
+        <div class="picker-head">Select Truss</div>
+        <!-- populated by JS -->
+      </div>
+      <!-- Preview -->
+      <div class="label-preview-area" id="label-preview-area">
+        <div class="no-truss-msg">Select a truss to preview labels</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit Truss -->
+  <div class="modal-overlay hidden" id="truss-modal">
+    <div class="modal">
+      <div class="modal-title" id="modal-title">Add Truss</div>
+
+      <div class="modal-row">
+        <div class="fg">
+          <div class="flabel">Name</div>
+          <input class="finput" id="f-name" placeholder="B1, C3, M4…">
+        </div>
+        <div class="fg">
+          <div class="flabel">Type</div>
+          <select class="fselect" id="f-type">
+            <option value="TYLER GT">Tyler GT</option>
+            <option value="12 BOX">12" Box</option>
+            <option value="20.5 BOX">20.5" Box</option>
+            <option value="CB">Corner Block</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-row">
+        <div class="fg">
+          <div class="flabel">Length (ft)</div>
+          <input class="finput" id="f-length" type="number" min="0" step="1" placeholder="90"
+            oninput="autoCalcPieces()">
+        </div>
+        <div class="fg" style="flex:2">
+          <div class="flabel">Color</div>
+          <div class="color-swatches" id="color-swatches"></div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <div class="flabel">Piece Breakdown <span style="font-weight:400;letter-spacing:0;text-transform:none;color:var(--dim)">(auto-calculated from length, override if needed)</span></div>
+        <div class="pieces-row">
+          <div class="fg">
+            <input class="finput" id="f-p10" type="number" min="0" value="0">
+            <div class="pieces-label">10ft</div>
+          </div>
+          <div class="fg">
+            <input class="finput" id="f-p8" type="number" min="0" value="0">
+            <div class="pieces-label">8ft</div>
+          </div>
+          <div class="fg">
+            <input class="finput" id="f-p5" type="number" min="0" value="0">
+            <div class="pieces-label">5ft</div>
+          </div>
+          <div class="fg">
+            <input class="finput" id="f-p2" type="number" min="0" value="0">
+            <div class="pieces-label">2ft/CB</div>
+          </div>
+          <div class="fg">
+            <input class="finput" id="f-ptotal" type="number" min="0" value="0" readonly
+              style="background:var(--bg);color:var(--orange)">
+            <div class="pieces-label" style="color:var(--orange)">Total</div>
+          </div>
+        </div>
+        <div id="conn-preview" style="font-size:10px;color:var(--muted);margin-top:4px"></div>
+      </div>
+
+      <div class="fg">
+        <div class="flabel">End Labels</div>
+        <div class="end-opts">
+          <label class="end-opt selected" id="end-opt-usds" onclick="selectEndOpt('usds')">
+            <input type="radio" name="end-type" value="usds" checked> US / DS
+          </label>
+          <label class="end-opt" id="end-opt-srsl" onclick="selectEndOpt('srsl')">
+            <input type="radio" name="end-type" value="srsl"> SR / SL
+          </label>
+          <label class="end-opt" id="end-opt-custom" onclick="selectEndOpt('custom')">
+            <input type="radio" name="end-type" value="custom"> Custom
+          </label>
+        </div>
+        <div class="custom-ends" id="custom-ends" style="display:none">
+          <div class="fg">
+            <div class="flabel">End 1</div>
+            <input class="finput" id="f-end1" placeholder="US END" oninput="updateConnPreview()">
+          </div>
+          <div class="fg">
+            <div class="flabel">End 2</div>
+            <input class="finput" id="f-end2" placeholder="DS END" oninput="updateConnPreview()">
+          </div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <div class="flabel">Notes</div>
+        <input class="finput" id="f-notes" placeholder="Optional notes">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="delete-btn" style="display:none;margin-right:auto" onclick="confirmDelete()">Delete</button>
+        <button class="btn btn-primary" onclick="saveTruss()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const STORE_KEY  = 'tb_project';
+const PPS_KEY    = 'pps_suite';
+
+// OL1159LP label dimensions in mm
+const LABEL_W_MM   = 203.2;
+const LABEL_H_MM   = 50.8;
+const MARGIN_TOP   = 12.7;
+const MARGIN_LEFT  = 6.35;
+const LABELS_PER_PAGE = 5;
+// Page in mm (letter)
+const PAGE_W_MM = 215.9;
+const PAGE_H_MM = 279.4;
+
+// Color palette (same as rest of suite)
+const COLORS = ['#4a9eff','#3dd68c','#a855f7','#f97316','#ec4899','#22d3ee','#facc15','#ef4444','#f0f0f0','#9ca3af','#14b8a6'];
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let project = null;   // { name, trusses: [] }
+let activeTrussId = null;
+let editingId = null;
+let selectedColor = COLORS[0];
+
+// ═══════════════════════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════════════════════
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) project = JSON.parse(raw);
+  } catch(e) {}
+  if (!project) project = defaultProject();
+  // Adopt show name from suite
+  const suite = getSuite();
+  if (suite.showName && (!project.name || project.name === 'New Show'))
+    project.name = suite.showName;
+}
+
+function save() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(project));
+}
+
+function getSuite() {
+  try { return JSON.parse(localStorage.getItem(PPS_KEY)) || {}; } catch(e) { return {}; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEFAULT PROJECT (BMW 2026 data)
+// ═══════════════════════════════════════════════════════════
+function uid() { return Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4); }
+
+function makeTruss(name, type, lengthFt, p10, p8, p5, p2, color, endType, notes) {
+  return {
+    id: uid(), name, type,
+    lengthFt: lengthFt || 0,
+    pieces: { ten: p10||0, eight: p8||0, five: p5||0, two: p2||0 },
+    color: color || '',
+    endType: endType || 'usds',
+    customEnds: ['', ''],
+    notes: notes || ''
+  };
+}
+
+function defaultProject() {
+  const suite = getSuite();
+  return {
+    name: suite.showName || 'New Show',
+    trusses: [
+      // B Trusses
+      makeTruss('B1','TYLER GT',90,9,0,0,0,'#ef4444','usds',''),
+      makeTruss('B2','TYLER GT',90,9,0,0,0,'#ef4444','usds',''),
+      makeTruss('B3','TYLER GT',90,9,0,0,0,'#ef4444','usds',''),
+      makeTruss('B4','TYLER GT',90,9,0,0,0,'#ef4444','usds',''),
+      // M Trusses
+      makeTruss('M1','TYLER GT',25,2,0,1,0,'#f97316','usds',''),
+      makeTruss('M2','TYLER GT',25,2,0,1,0,'#f97316','usds',''),
+      makeTruss('M3','TYLER GT',25,2,0,1,0,'#f97316','usds',''),
+      makeTruss('M4','TYLER GT',25,2,0,1,0,'#f97316','usds',''),
+      makeTruss('M5','TYLER GT',25,2,0,1,0,'#f97316','usds',''),
+      makeTruss('M6','TYLER GT',25,2,0,1,0,'#f97316','usds',''),
+      makeTruss('M7','TYLER GT',25,2,0,1,0,'#f97316','usds',''),
+      makeTruss('M8','TYLER GT',25,2,0,1,0,'#f97316','usds',''),
+      // W Trusses
+      makeTruss('W1','TYLER GT',10,1,0,0,0,'#22d3ee','usds',''),
+      makeTruss('W2','TYLER GT',10,1,0,0,0,'#22d3ee','usds',''),
+      makeTruss('W3','TYLER GT',10,1,0,0,0,'#22d3ee','usds',''),
+      makeTruss('W4','TYLER GT',10,1,0,0,0,'#22d3ee','usds',''),
+      makeTruss('W5','TYLER GT',10,1,0,0,0,'#22d3ee','usds',''),
+      makeTruss('W6','TYLER GT',10,1,0,0,0,'#22d3ee','usds',''),
+      makeTruss('W7','TYLER GT',10,1,0,0,0,'#22d3ee','usds',''),
+      makeTruss('W8','TYLER GT',10,1,0,0,0,'#22d3ee','usds',''),
+      // O Trusses
+      makeTruss('O1','TYLER GT',10,1,0,0,0,'#a855f7','srsl',''),
+      makeTruss('O2','TYLER GT',40,4,0,0,0,'#a855f7','srsl',''),
+      makeTruss('O3','TYLER GT',10,1,0,0,0,'#a855f7','srsl',''),
+      // C Trusses (Car Salon)
+      makeTruss('C1','TYLER GT',70,7,0,0,0,'#facc15','srsl',''),
+      makeTruss('C2','TYLER GT',70,7,0,0,0,'#facc15','srsl',''),
+      makeTruss('C3','TYLER GT',70,7,0,0,0,'#facc15','srsl',''),
+      makeTruss('C4','TYLER GT',70,7,0,0,0,'#facc15','srsl',''),
+      makeTruss('C5','TYLER GT',70,7,0,0,0,'#facc15','srsl',''),
+      makeTruss('C6','TYLER GT',70,7,0,0,0,'#facc15','srsl',''),
+      makeTruss('C7','TYLER GT',70,7,0,0,0,'#facc15','srsl',''),
+      makeTruss('C8','TYLER GT',70,7,0,0,0,'#facc15','srsl',''),
+      makeTruss('C9','TYLER GT',70,7,0,0,0,'#facc15','srsl',''),
+      makeTruss('C0','TYLER GT',50,5,0,0,0,'#facc15','srsl',''),
+    ]
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// LABEL LOGIC
+// ═══════════════════════════════════════════════════════════
+function totalPieces(t) {
+  return (t.pieces.ten||0) + (t.pieces.eight||0) + (t.pieces.five||0) + (t.pieces.two||0);
+}
+function connectionCount(t) {
+  return Math.max(0, totalPieces(t) - 1);
+}
+function getEndLabels(t) {
+  if (t.endType === 'srsl') return ['SR', 'SL'];
+  if (t.endType === 'custom') return [t.customEnds[0]||'END 1', t.customEnds[1]||'END 2'];
+  return ['US', 'DS'];
+}
+function generateLabels(t) {
+  const conns = connectionCount(t);
+  const [e1, e2] = getEndLabels(t);
+  const labels = [];
+  for (let i = 1; i <= conns; i++) {
+    labels.push(`${t.name}-${i}`);
+    labels.push(`${t.name}-${i}`);
+  }
+  labels.push(`${t.name} ${e1}`);
+  labels.push(`${t.name} ${e2}`);
+  return labels;
+}
+function sheetCount(labels) {
+  return Math.ceil(labels.length / LABELS_PER_PAGE);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER — TRUSSES TAB
+// ═══════════════════════════════════════════════════════════
+function renderTrussTable() {
+  const tbody = document.getElementById('truss-tbody');
+  const empty = document.getElementById('empty-state');
+  if (!project.trusses.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Group by leading letter(s) for divider rows
+  let lastGroup = null;
+  let html = '';
+  project.trusses.forEach(t => {
+    const group = t.name.replace(/[0-9]/g, '');
+    if (group !== lastGroup) {
+      lastGroup = group;
+      html += `<tr class="group-divider"><td colspan="8">${group || 'OTHER'}</td></tr>`;
+    }
+    const conns = connectionCount(t);
+    const labels = generateLabels(t);
+    const sheets = sheetCount(labels);
+    const [e1, e2] = getEndLabels(t);
+    const p = t.pieces;
+    const pStr = [p.ten&&`${p.ten}×10'`, p.eight&&`${p.eight}×8'`, p.five&&`${p.five}×5'`, p.two&&`${p.two}×2'`].filter(Boolean).join(' ');
+    const colorDot = t.color
+      ? `<span class="color-dot" style="background:${t.color}"></span>`
+      : `<span class="color-dot" style="background:var(--border2)"></span>`;
+    html += `<tr>
+      <td><div class="truss-name-cell">${colorDot}<strong>${esc(t.name)}</strong></div></td>
+      <td>${esc(t.type)}</td>
+      <td>${t.lengthFt ? t.lengthFt + "'" : '—'}</td>
+      <td class="pieces-cell">${pStr || '—'} <span class="conn-badge">${totalPieces(t)} pcs</span></td>
+      <td><span class="conn-badge">${conns}</span></td>
+      <td class="end-badge">${esc(t.name)} ${e1} / ${esc(t.name)} ${e2}</td>
+      <td><span class="conn-badge">${labels.length} labels / ${sheets} sheet${sheets!==1?'s':''}</span></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="openEditTruss('${t.id}')">✎ Edit</button>
+        <button class="btn btn-sm" onclick="goToLabels('${t.id}')" style="margin-left:4px">🖨 Labels</button>
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER — LABELS TAB
+// ═══════════════════════════════════════════════════════════
+function renderLabelsPicker() {
+  const picker = document.getElementById('truss-picker');
+  let html = '<div class="picker-head">Select Truss</div>';
+  project.trusses.forEach(t => {
+    const dot = t.color
+      ? `<span class="picker-dot" style="background:${t.color}"></span>`
+      : `<span class="picker-dot" style="background:var(--border2)"></span>`;
+    html += `<div class="picker-item ${activeTrussId===t.id?'active':''}" onclick="selectTruss('${t.id}')">
+      ${dot} ${esc(t.name)}
+    </div>`;
+  });
+  if (!project.trusses.length) {
+    html += '<div style="padding:12px 14px;font-size:10px;color:var(--dim)">No trusses yet</div>';
+  }
+  picker.innerHTML = html;
+}
+
+function selectTruss(id) {
+  activeTrussId = id;
+  renderLabelsPicker();
+  renderLabelPreview();
+}
+
+function goToLabels(id) {
+  activeTrussId = id;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.querySelector('[data-tab="labels"]').classList.add('active');
+  document.getElementById('tab-labels').classList.add('active');
+  renderLabelsPicker();
+  renderLabelPreview();
+}
+
+function renderLabelPreview() {
+  const area = document.getElementById('label-preview-area');
+  const truss = project.trusses.find(t => t.id === activeTrussId);
+  if (!truss) {
+    area.innerHTML = '<div class="no-truss-msg">Select a truss to preview labels</div>';
+    return;
+  }
+
+  const labels = generateLabels(truss);
+  const sheets = sheetCount(labels);
+  const bgColor = truss.color || '#444444';
+  const textColor = getLabelTextColor(bgColor);
+
+  // Scale factor: display at 612×792 (8.5×11 at 72dpi)
+  // OL1159LP margins in px at 72dpi: 1pt = 1px at 72dpi
+  // 1mm = 72/25.4 = 2.8346 px
+  const mm2px = 612 / PAGE_W_MM; // scale to our display width
+  const labelWpx = LABEL_W_MM * mm2px;
+  const labelHpx = LABEL_H_MM * mm2px;
+  const marginTopPx = MARGIN_TOP * mm2px;
+  const marginLeftPx = MARGIN_LEFT * mm2px;
+
+  // Font size: fit text in label — roughly scale 128pt/216mm * labelWpx
+  const maxFontPx = labelHpx * 0.6;
+  const estimatedCharW = maxFontPx * 0.55;
+  let fontSize = maxFontPx;
+  if (labels[0]) {
+    const textLen = labels.reduce((a,l) => Math.max(a, l.length), 0);
+    const maxCharsAtSize = (labelWpx - 20) / estimatedCharW;
+    if (textLen > maxCharsAtSize) {
+      fontSize = fontSize * maxCharsAtSize / textLen;
+    }
+    fontSize = Math.min(fontSize, maxFontPx);
+    fontSize = Math.max(fontSize, 10);
+  }
+
+  let html = `
+    <div class="preview-actions">
+      <div>
+        <div class="preview-title">${esc(truss.name)} — Label Preview</div>
+        <div class="label-count-info">${labels.length} labels · ${sheets} sheet${sheets!==1?'s':''} · OL1159LP (8" × 2" · 5/sheet)</div>
+      </div>
+      <button class="btn btn-primary" onclick="generatePDF()">🖨 Print to PDF</button>
+    </div>`;
+
+  for (let s = 0; s < sheets; s++) {
+    html += `<div style="position:relative">
+      <div style="font-size:9px;color:var(--dim);margin-bottom:6px;text-align:center">Sheet ${s+1} of ${sheets}</div>
+      <div class="sheet-preview">`;
+
+    for (let pos = 0; pos < LABELS_PER_PAGE; pos++) {
+      const idx = s * LABELS_PER_PAGE + pos;
+      const labelText = labels[idx];
+      const x = marginLeftPx;
+      const y = marginTopPx + pos * labelHpx;
+      if (labelText) {
+        html += `<div class="sheet-label" style="
+          left:${x}px; top:${y}px;
+          width:${labelWpx}px; height:${labelHpx}px;
+          background:${bgColor};">
+          <div class="sheet-label-text" style="
+            font-size:${fontSize.toFixed(1)}px;
+            color:${textColor};">
+            ${esc(labelText)}
+          </div>
+        </div>`;
+      } else {
+        html += `<div class="sheet-label sheet-label-empty" style="
+          left:${x}px; top:${y}px;
+          width:${labelWpx}px; height:${labelHpx}px;"></div>`;
+      }
+    }
+    html += '</div></div>';
+  }
+
+  area.innerHTML = html;
+}
+
+function getLabelTextColor(hex) {
+  const r = parseInt(hex.slice(1,3),16)||0;
+  const g = parseInt(hex.slice(3,5),16)||0;
+  const b = parseInt(hex.slice(5,7),16)||0;
+  return (0.299*r + 0.587*g + 0.114*b) / 255 > 0.5 ? '#000000' : '#ffffff';
+}
+
+// ═══════════════════════════════════════════════════════════
+// PDF GENERATION
+// ═══════════════════════════════════════════════════════════
+function generatePDF() {
+  const truss = project.trusses.find(t => t.id === activeTrussId);
+  if (!truss) return;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: [PAGE_W_MM, PAGE_H_MM] });
+
+  const labels = generateLabels(truss);
+  const bgColor = truss.color || '#444444';
+  const r = parseInt(bgColor.slice(1,3),16);
+  const g = parseInt(bgColor.slice(3,5),16);
+  const b = parseInt(bgColor.slice(5,7),16);
+  const isLight = (0.299*r + 0.587*g + 0.114*b)/255 > 0.5;
+
+  doc.setFont('helvetica', 'bold');
+
+  labels.forEach((text, i) => {
+    if (i > 0 && i % LABELS_PER_PAGE === 0) doc.addPage([PAGE_W_MM, PAGE_H_MM]);
+    const pos = i % LABELS_PER_PAGE;
+    const x = MARGIN_LEFT;
+    const y = MARGIN_TOP + pos * LABEL_H_MM;
+
+    // Background
+    doc.setFillColor(r, g, b);
+    doc.rect(x, y, LABEL_W_MM, LABEL_H_MM, 'F');
+
+    // Auto-size text to fit
+    const maxW = LABEL_W_MM - 10;
+    const maxH = LABEL_H_MM - 6;
+    let fs = 80;
+    doc.setFontSize(fs);
+    while (fs > 14) {
+      const dims = doc.getTextDimensions(text);
+      if (dims.w <= maxW && dims.h <= maxH) break;
+      fs -= 2;
+      doc.setFontSize(fs);
+    }
+
+    // Text color
+    doc.setTextColor(isLight ? 0 : 255);
+
+    // Centered in label
+    doc.text(text, x + LABEL_W_MM / 2, y + LABEL_H_MM / 2, {
+      align: 'center',
+      baseline: 'middle'
+    });
+  });
+
+  const filename = `${truss.name}-labels.pdf`;
+  doc.save(filename);
+  showToast(`Saved ${filename}`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL — ADD / EDIT TRUSS
+// ═══════════════════════════════════════════════════════════
+let _endType = 'usds';
+
+function openAddTruss() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Add Truss';
+  document.getElementById('delete-btn').style.display = 'none';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-type').value = 'TYLER GT';
+  document.getElementById('f-length').value = '';
+  document.getElementById('f-p10').value = '0';
+  document.getElementById('f-p8').value = '0';
+  document.getElementById('f-p5').value = '0';
+  document.getElementById('f-p2').value = '0';
+  document.getElementById('f-ptotal').value = '0';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('f-end1').value = '';
+  document.getElementById('f-end2').value = '';
+  selectedColor = COLORS[0];
+  selectEndOpt('usds');
+  renderColorSwatches();
+  updateConnPreview();
+  document.getElementById('truss-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('f-name').focus(), 50);
+}
+
+function openEditTruss(id) {
+  editingId = id;
+  const t = project.trusses.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('modal-title').textContent = 'Edit Truss';
+  document.getElementById('delete-btn').style.display = 'inline-block';
+  document.getElementById('f-name').value = t.name;
+  document.getElementById('f-type').value = t.type;
+  document.getElementById('f-length').value = t.lengthFt || '';
+  document.getElementById('f-p10').value = t.pieces.ten || 0;
+  document.getElementById('f-p8').value = t.pieces.eight || 0;
+  document.getElementById('f-p5').value = t.pieces.five || 0;
+  document.getElementById('f-p2').value = t.pieces.two || 0;
+  document.getElementById('f-notes').value = t.notes || '';
+  document.getElementById('f-end1').value = t.customEnds?.[0] || '';
+  document.getElementById('f-end2').value = t.customEnds?.[1] || '';
+  selectedColor = t.color || COLORS[0];
+  selectEndOpt(t.endType || 'usds');
+  renderColorSwatches();
+  updateConnPreview();
+  document.getElementById('truss-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('truss-modal').classList.add('hidden');
+}
+
+function selectEndOpt(type) {
+  _endType = type;
+  document.querySelectorAll('.end-opt').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`end-opt-${type}`)?.classList.add('selected');
+  document.getElementById('custom-ends').style.display = type === 'custom' ? 'flex' : 'none';
+  updateConnPreview();
+}
+
+function renderColorSwatches() {
+  const container = document.getElementById('color-swatches');
+  let html = COLORS.map(c =>
+    `<div class="cswatch ${selectedColor===c?'selected':''}" style="background:${c}"
+      title="${c}" onclick="pickColor('${c}')"></div>`
+  ).join('');
+  html += `<div class="cswatch-custom" title="Custom color">
+    <input type="color" value="${selectedColor}" onchange="pickColor(this.value)" title="Custom">
+  </div>`;
+  container.innerHTML = html;
+}
+
+function pickColor(hex) {
+  selectedColor = hex;
+  renderColorSwatches();
+}
+
+function autoCalcPieces() {
+  const len = parseFloat(document.getElementById('f-length').value) || 0;
+  const ten = Math.floor(len / 10);
+  const remainder = len % 10;
+  const five = (remainder >= 5) ? 1 : 0;
+  const two = (remainder > 0 && remainder < 5) ? Math.floor(remainder/2) : 0;
+  document.getElementById('f-p10').value = ten;
+  document.getElementById('f-p5').value = five;
+  document.getElementById('f-p2').value = two;
+  // Keep 8ft as-is
+  updateTotal();
+}
+
+function updateTotal() {
+  const vals = ['f-p10','f-p8','f-p5','f-p2'].map(id => parseInt(document.getElementById(id).value)||0);
+  document.getElementById('f-ptotal').value = vals.reduce((a,v)=>a+v,0);
+  updateConnPreview();
+}
+// Wire piece inputs to updateTotal
+['f-p10','f-p8','f-p5','f-p2'].forEach(id => {
+  // will be wired after DOM ready
+});
+
+function updateConnPreview() {
+  const total = parseInt(document.getElementById('f-ptotal').value)||0;
+  const conns = Math.max(0, total - 1);
+  const name = document.getElementById('f-name').value.trim() || 'NAME';
+  let [e1, e2] = _endType === 'srsl' ? ['SR','SL'] : _endType === 'custom'
+    ? [document.getElementById('f-end1').value||'END 1', document.getElementById('f-end2').value||'END 2']
+    : ['US','DS'];
+  const totalLabels = conns * 2 + 2;
+  const sheets = Math.ceil(totalLabels / LABELS_PER_PAGE);
+  let preview = '';
+  if (conns > 0) {
+    preview = `${conns} connections → ${name}-1 … ${name}-${conns} (×2 each) + ${name} ${e1} + ${name} ${e2} = ${totalLabels} labels / ${sheets} sheet${sheets!==1?'s':''}`;
+  } else if (total === 1) {
+    preview = `Single piece → ${name} ${e1} + ${name} ${e2} = 2 labels / 1 sheet`;
+  } else {
+    preview = total > 0 ? `${total} pieces → ${conns} connections + 2 ends = ${totalLabels} labels / ${sheets} sheet${sheets!==1?'s':''}` : '';
+  }
+  document.getElementById('conn-preview').textContent = preview;
+}
+
+function saveTruss() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { showToast('Name is required'); return; }
+
+  const t = editingId
+    ? project.trusses.find(x => x.id === editingId)
+    : makeTruss('', '', 0,0,0,0,0,'','','');
+
+  t.name   = name;
+  t.type   = document.getElementById('f-type').value;
+  t.lengthFt = parseFloat(document.getElementById('f-length').value) || 0;
+  t.pieces = {
+    ten:   parseInt(document.getElementById('f-p10').value)||0,
+    eight: parseInt(document.getElementById('f-p8').value)||0,
+    five:  parseInt(document.getElementById('f-p5').value)||0,
+    two:   parseInt(document.getElementById('f-p2').value)||0,
+  };
+  t.color    = selectedColor;
+  t.endType  = _endType;
+  t.customEnds = [
+    document.getElementById('f-end1').value.trim(),
+    document.getElementById('f-end2').value.trim()
+  ];
+  t.notes = document.getElementById('f-notes').value.trim();
+
+  if (!editingId) project.trusses.push(t);
+
+  save();
+  closeModal();
+  renderTrussTable();
+  renderLabelsPicker();
+  showToast(editingId ? 'Truss updated' : 'Truss added');
+}
+
+function confirmDelete() {
+  if (!editingId) return;
+  const t = project.trusses.find(x => x.id === editingId);
+  if (!confirm(`Delete truss "${t?.name}"? This cannot be undone.`)) return;
+  project.trusses = project.trusses.filter(x => x.id !== editingId);
+  if (activeTrussId === editingId) activeTrussId = null;
+  save();
+  closeModal();
+  renderTrussTable();
+  renderLabelsPicker();
+  renderLabelPreview();
+  showToast('Truss deleted');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function switchTab(el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + el.dataset.tab).classList.add('active');
+  if (el.dataset.tab === 'labels') {
+    renderLabelsPicker();
+    renderLabelPreview();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMPORT / EXPORT
+// ═══════════════════════════════════════════════════════════
+function exportData() {
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([JSON.stringify(project, null, 2)], {type:'application/json'})),
+    download: (project.name||'truss-builder') + '.json'
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function trigImport() { document.getElementById('file-imp').click(); }
+function importData(e) {
+  const file = e.target.files?.[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      project = JSON.parse(ev.target.result);
+      save();
+      renderAll();
+      showToast('Imported successfully');
+    } catch { showToast('Invalid file'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function showToast(msg) {
+  clearTimeout(toastTimer);
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function renderAll() {
+  renderTrussTable();
+  renderLabelsPicker();
+  renderLabelPreview();
+  document.getElementById('show-name').textContent = project.name || '';
+  document.title = (project.name || 'Truss Builder') + ' · Truss Builder';
+}
+
+// ═══════════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// Piece input wiring
+document.addEventListener('DOMContentLoaded', () => {
+  ['f-p10','f-p8','f-p5','f-p2'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateTotal);
+  });
+});
+
+// Cross-tab suite sync
+window.addEventListener('storage', e => {
+  if (e.key === PPS_KEY) {
+    const suite = getSuite();
+    if (suite.showName) {
+      project.name = suite.showName;
+      document.getElementById('show-name').textContent = suite.showName;
+    }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+load();
+renderAll();
+  </script>
+</body>
+</html>
