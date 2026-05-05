@@ -1210,7 +1210,7 @@ function renderLabelPreview() {
 
   for (let s = 0; s < sheets; s++) {
     html += `<div><div style="font-size:9px;color:var(--dim);margin-bottom:6px;text-align:center">Sheet ${s+1} of ${sheets}</div>
-    <div class="sheet-preview">`;
+    <div class="sheet-preview" style="background:${bgColor}">`;
     for (let pos = 0; pos < LABELS_PER_PAGE; pos++) {
       const idx = s * LABELS_PER_PAGE + pos;
       const x = marginLpx, y = marginTpx + pos * labelHpx;
@@ -1218,9 +1218,8 @@ function renderLabelPreview() {
         html += `<div class="sheet-label" style="left:${x}px;top:${y}px;width:${labelWpx}px;height:${labelHpx}px;background:${bgColor}">
           <div class="sheet-label-text" style="font-size:${fontSize.toFixed(1)}px;color:${textColor}">${esc(labels[idx])}</div>
         </div>`;
-      } else {
-        html += `<div class="sheet-label sheet-label-empty" style="left:${x}px;top:${y}px;width:${labelWpx}px;height:${labelHpx}px"></div>`;
       }
+      // empty slots: no element needed — page background shows through
     }
     html += '</div></div>';
   }
@@ -1255,29 +1254,39 @@ function generatePDF() {
 
   doc.setFont('helvetica', 'bold');
 
-  labels.forEach((text, i) => {
-    if (i > 0 && i % LABELS_PER_PAGE === 0) doc.addPage([PAGE_W_MM, PAGE_H_MM]);
-    const pos = i % LABELS_PER_PAGE;
-    const x = MARGIN_LEFT;
-    const y = MARGIN_TOP + pos * LABEL_H_MM;
+  const pageCount = Math.ceil(labels.length / LABELS_PER_PAGE);
 
+  for (let page = 0; page < pageCount; page++) {
+    if (page > 0) doc.addPage([PAGE_W_MM, PAGE_H_MM]);
+
+    // Fill the entire page with the truss color so any misalignment
+    // on the label sheet still shows the correct color underneath.
     doc.setFillColor(r, g, b);
-    doc.rect(x, y, LABEL_W_MM, LABEL_H_MM, 'F');
+    doc.rect(0, 0, PAGE_W_MM, PAGE_H_MM, 'F');
 
-    const maxW = LABEL_W_MM - 10;
-    const maxH = LABEL_H_MM - 6;
-    let fs = 80;
-    doc.setFontSize(fs);
-    while (fs > 14) {
-      const dims = doc.getTextDimensions(text);
-      if (dims.w <= maxW && dims.h <= maxH) break;
-      fs -= 2;
+    for (let pos = 0; pos < LABELS_PER_PAGE; pos++) {
+      const i = page * LABELS_PER_PAGE + pos;
+      if (i >= labels.length) break;
+
+      const text = labels[i];
+      const x = MARGIN_LEFT;
+      const y = MARGIN_TOP + pos * LABEL_H_MM;
+
+      const maxW = LABEL_W_MM - 10;
+      const maxH = LABEL_H_MM - 6;
+      let fs = 80;
       doc.setFontSize(fs);
-    }
+      while (fs > 14) {
+        const dims = doc.getTextDimensions(text);
+        if (dims.w <= maxW && dims.h <= maxH) break;
+        fs -= 2;
+        doc.setFontSize(fs);
+      }
 
-    doc.setTextColor(isDark ? 255 : 0);
-    doc.text(text, x + LABEL_W_MM / 2, y + LABEL_H_MM / 2, { align: 'center', baseline: 'middle' });
-  });
+      doc.setTextColor(isDark ? 255 : 0);
+      doc.text(text, x + LABEL_W_MM / 2, y + LABEL_H_MM / 2, { align: 'center', baseline: 'middle' });
+    }
+  }
 
   const filename = `${truss.name}-labels.pdf`;
   doc.save(filename);
