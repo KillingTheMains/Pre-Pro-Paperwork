@@ -349,6 +349,93 @@ window.addEventListener('resize', applyViewportHeight);
 
 **Rack Builder uses Option B. Loom Builder uses Option A.**
 
+---
+
+## Tool 3 — Truss Builder
+
+**File:** `Truss Builder.html` (also `truss-builder/index.html` in repo)
+**~600 lines** — vanilla JS, dark theme matching suite palette. Uses jsPDF from cdnjs.
+
+### What it does
+Truss inventory manager and end-label generator. Tracks truss sections (name, type, length, piece breakdown, color, end labeling), generates print-ready PDF label sheets in OL1159LP format (8"×2" labels, 5 per sheet, letter page).
+
+### App state model
+Persisted to `localStorage` key `'truss_builder_trusses'`.
+```js
+trusses = [ Truss ]
+```
+
+### Truss object
+```js
+{
+  id, name,        // e.g. "B1", "M3"
+  type,            // freeform string, e.g. "GLOBAL GT"
+  lengthFt,        // total length in feet (number)
+  pieces: {
+    ten,   // count of 10ft sections
+    eight, // count of 8ft sections
+    five,  // count of 5ft sections
+    two    // count of 2ft sections
+  },
+  color,           // hex from COLORS array
+  endType,         // 'uds' | 'srsl' | 'custom'
+  customEnds: [e1, e2],  // used when endType === 'custom'
+  notes
+}
+```
+
+### Label spec — OL1159LP
+- Label size: 203.2mm × 50.8mm (8" × 2")
+- 5 labels per sheet, letter page (215.9mm × 279.4mm)
+- Top/bottom margins: 12.7mm; Left/right margins: 6.35mm
+- No gap between labels vertically
+
+### Label content per truss section
+- **Internal connections**: one label per internal join — format `"NAME-N / NAME-(N+1)"` (e.g., `"B1-1 / B1-2"`) — count = (pieces total − 1)
+- **End labels**: 2 labels per truss — one for each end
+  - US/DS: ends labeled with `"US"` / `"DS"` suffix
+  - SR/SL: ends labeled with `"SR"` / `"SL"` suffix
+  - Custom: user-entered text for each end
+- Label text = `"TRUSS NAME + END"` on one line, truss color as background
+- Text color auto-selected (black/white) based on background luminance:
+  ```js
+  function getLabelTextColor(hex) {
+    const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+    return luminance > 0.5 ? '#000000' : '#ffffff';
+  }
+  ```
+- Auto font sizing: starts at 80pt, reduces until text fits within label bounds (maxW = LABEL_W_MM − 10mm, maxH = LABEL_H_MM − 6mm)
+
+### Tabs
+- **Trusses**: CRUD table of all truss sections with Add/Edit/Delete and "🏷 Labels" button per row
+- **Labels**: select a truss from dropdown, preview all labels as scaled HTML, generate PDF button
+
+### Key functions
+- `autoCalcPieces(truss)` — fills piece counts from lengthFt: `floor(len/10)` for 10ft, remainder distributed to 5ft/2ft
+- `generateLabels(t)` — returns array of `{ text, color, textColor }` label objects for a truss
+- `generatePDF(trussId)` — uses jsPDF (letter page, 5 labels/page) to produce downloadable PDF
+- `goToLabels(id)` — switches to Labels tab with that truss pre-selected
+- `render()` / `renderLabels()` — full DOM rebuilds for each tab
+- `pps_suite` read on init + storage event listener for show name display in header
+
+### BMW 2026 pre-loaded truss data
+| Group | Names | Color |
+|---|---|---|
+| B trusses | B1–B4 | RED `#ef4444` |
+| M trusses | M1–M8 | ORANGE `#f97316` |
+| W trusses | W1–W8 | CYAN `#22d3ee` |
+| O trusses | O1–O3 | PURPLE `#a855f7` |
+| C trusses | C0, C1–C9 | YELLOW `#facc15` |
+
+### Viewport pattern
+Uses **Option A** (`body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }`)
+
+### Roadmap (future tabs)
+- Truck space estimator (piece counts → cube calculation)
+- Quantity/weight summary by truss type
+
+---
+
 ## Reference docs (in `reference-docs/`)
 - GigaCore 10 user manual
 - ProPlex IQ 1616 user manual  
@@ -358,6 +445,8 @@ window.addEventListener('resize', applyViewportHeight);
 
 ## Roadmap
 - Shared project data / cross-tool linking (snake connections visible in Loom Builder)
+- Truss Builder: truck space estimator tab (piece counts → cube calculation)
+- Truss Builder: quantity/weight summary by truss type
 - Network layout planner
 - Patch sheet / universe map generator
 - Full pre-pro workflow dashboard
