@@ -2438,25 +2438,51 @@ function _schSVG(data) {
   </pattern></defs>`;
   s+=`<rect width="${data.totalW}" height="${data.totalH}" fill="url(#g)"/>`;
 
-  // Snake connector lines (faint, behind everything)
+  // ── Orthogonal path helper (horizontal→vertical→horizontal, rounded corners)
+  // Builds an SVG path string between two ports using right-angle routing.
+  // r = corner radius in px. Handles same-Y (flat) and opposite-side cases.
+  function _ortho(x1,y1,side1,x2,y2,side2,r){
+    r = Math.min(r, Math.abs(y2-y1)/2 - 0.5, 20);
+    if (r < 1) return `M${x1},${y1} H${x2}`;   // nearly same Y — flat line
+    const midX = (x1+x2)/2;
+    const sy = y2>y1?1:-1;                        // vertical sign
+    // Exit horizontally from both ports, meet at midX, turn 90° each side
+    return [
+      `M${x1},${y1}`,
+      `H${midX-r}`,
+      `Q${midX},${y1} ${midX},${y1+sy*r}`,
+      `V${y2-sy*r}`,
+      `Q${midX},${y2} ${midX+r},${y2}`,
+      `H${x2}`
+    ].join(' ');
+  }
+
+  // Snake connector lines — orthogonal, faint, behind everything
   snakeConnLines.forEach(l=>{
-    s+=`<line x1="${l.x1}" y1="${l.y1}" x2="${l.x2}" y2="${l.y2}" stroke="${l.color}28" stroke-width="1.2" stroke-dasharray="3,5"/>`;
+    // Port exits horizontally then drops vertically to snake-section centre
+    const r=Math.min(10, Math.abs(l.y2-l.y1)/2-1);
+    const sy=l.y2>l.y1?1:-1;
+    let d;
+    if (r<1) {
+      d=`M${l.x1},${l.y1} L${l.x2},${l.y2}`;
+    } else {
+      d=[`M${l.x1},${l.y1}`,
+         `H${l.x2-r}`,
+         `Q${l.x2},${l.y1} ${l.x2},${l.y1+sy*r}`,
+         `V${l.y2}`].join(' ');
+    }
+    s+=`<path d="${d}" fill="none" stroke="${l.color}28" stroke-width="1.2" stroke-dasharray="3,5"/>`;
   });
 
-  // Rack-to-rack connections
+  // Rack-to-rack connections — orthogonal with rounded corners + arrowhead
   connections.forEach(c=>{
     const f=c.fp, t=c.tp;
-    const dx=Math.abs(t.x-f.x)*0.5;
-    const cx1=f.side==='right'?f.x+dx:f.x-dx;
-    const cx2=t.side==='right'?t.x+dx:t.x-dx;
-    s+=`<path d="M${f.x},${f.y} C${cx1},${f.y} ${cx2},${t.y} ${t.x},${t.y}"
-      fill="none" stroke="${c.color}cc" stroke-width="2" stroke-dasharray="7,3"/>`;
-    // Arrow
-    const ang=Math.atan2(t.y-f.y,t.x-f.x);
-    const al=8,aw=4;
-    const ax=t.x-al*Math.cos(ang), ay=t.y-al*Math.sin(ang);
-    s+=`<polygon points="${t.x},${t.y} ${ax-aw*Math.sin(ang)},${ay+aw*Math.cos(ang)} ${ax+aw*Math.sin(ang)},${ay-aw*Math.cos(ang)}"
-      fill="${c.color}cc"/>`;
+    const d=_ortho(f.x,f.y,f.side,t.x,t.y,t.side,10);
+    s+=`<path d="${d}" fill="none" stroke="${c.color}cc" stroke-width="2" stroke-dasharray="8,3"/>`;
+    // Arrowhead always points horizontally toward destination port
+    const ax=t.side==='left'?t.x+10:t.x-10;
+    const aw=4;
+    s+=`<polygon points="${t.x},${t.y} ${ax},${t.y-aw} ${ax},${t.y+aw}" fill="${c.color}cc"/>`;
   });
 
   // ── Draw racks ────────────────────────────────────────
