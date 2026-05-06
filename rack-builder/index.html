@@ -603,10 +603,32 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
 
+
+/* ============================================================
+   SCHEMATIC VIEW
+   ============================================================ */
+#sch-wrap { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+#sch-bar {
+  height:42px; flex-shrink:0;
+  background:var(--bg-surface); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 12px; gap:5px;
+}
+.sch-label { font-size:9px; color:var(--text-muted); letter-spacing:.08em; text-transform:uppercase; white-space:nowrap; }
+#sch-viewport {
+  flex:1; overflow:hidden; position:relative; background:var(--bg-deep);
+  cursor:grab; user-select:none;
+}
+#sch-viewport.grabbing { cursor:grabbing!important; }
+#sch-svg-wrap { position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; }
+#sch-hint { position:absolute; bottom:10px; right:12px; font-size:9px; color:var(--text-muted); pointer-events:none; }
+#sch-zoom-badge { position:absolute; bottom:10px; left:12px; font-size:9px; color:var(--text-muted); pointer-events:none; }
+.hbtn-sch-active { background:var(--blue)!important; color:#000!important; font-weight:800!important; }
+
 /* ============================================================
    PRINT STYLES (for PDF export window)
    ============================================================ */
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://apis.google.com/js/api.js" onload="_driveOnGapiLoad()"></script>
 <script src="https://accounts.google.com/gsi/client" onload="_driveOnGisLoad()" async defer></script>
 </head>
@@ -1448,6 +1470,7 @@ function render() {
   const mainScroll  = document.getElementById('main-scroll')?.scrollTop    || 0;
   document.getElementById('root').innerHTML = buildApp();
   applyViewportHeight();
+  if (S.view === 'schematic') requestAnimationFrame(schRenderSVG);
   if (rackScroll)  { const el = document.getElementById('sb-racks-list');  if (el) el.scrollTop  = rackScroll; }
   if (snakeScroll) { const el = document.getElementById('sb-snakes-list'); if (el) el.scrollTop = snakeScroll; }
   if (mainScroll)  { const el = document.getElementById('main-scroll');    if (el) el.scrollTop  = mainScroll; }
@@ -1468,6 +1491,7 @@ function rHeader() {
     <button class="hbtn hbtn-ghost" onclick="trigImport()">Import JSON</button>
     <input type="file" id="file-imp" accept=".json" style="display:none" onchange="importJSON(event)">
     <button id="drive-btn" class="hbtn hbtn-ghost" onclick="driveConnect()" title="Connect Google Drive backup" style="color:var(--text-muted)">☁ Drive</button>
+    <button class="hbtn hbtn-ghost${S.view==='schematic'?' hbtn-sch-active':''}" onclick="selectSchematic()" title="Network schematic view">⬡ Schematic</button>
     <button class="hbtn hbtn-primary" onclick="exportPDF()">🖨 Export PDF</button>
   </header>`;
 }
@@ -1520,6 +1544,7 @@ function rSidebar() {
 
 // ── Main ──────────────────────────────────────────────────
 function rMain() {
+  if (S.view === 'schematic') return `<div id="main" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">${rSchematic()}</div>`;
   return `<div id="main">${rToolbar()}
     <div id="main-scroll">${S.view==='library' ? rLibrary() : S.view==='snake' ? rSnake() : rRack()}</div>
   </div>`;
@@ -2196,6 +2221,450 @@ function overlayClick(e) { if (e.target===e.currentTarget) closeModal(); }
 function closeModal() { S.modal=null; render(); }
 
 function focusDelay(id) { setTimeout(()=>{ const el=document.getElementById(id); if(el){el.focus();try{el.select();}catch(e){}} }, 60); }
+
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  SCHEMATIC VIEW                                          ║
+// ╚══════════════════════════════════════════════════════════╝
+
+let _schPan = {x:0, y:0};
+let _schZoom = 1.0;
+let _schDrag = null;
+
+function selectSchematic() { S.view='schematic'; render(); }
+
+// ── Shell HTML ────────────────────────────────────────────
+function rSchematic() {
+  return `<div id="sch-wrap">
+    <div id="sch-bar">
+      <span class="sch-label">Network Schematic</span>
+      <div class="hspacer"></div>
+      <button class="hbtn hbtn-ghost" onclick="schFitView()" title="Fit all racks to view">⊙ Fit View</button>
+      <span class="sch-label" style="margin-left:4px">Export PDF:</span>
+      <button class="hbtn hbtn-ghost" onclick="exportSchematicPDF('letter')" title="8.5×11 landscape">Letter</button>
+      <button class="hbtn hbtn-ghost" onclick="exportSchematicPDF('legal')" title="8.5×14 landscape">Legal</button>
+      <button class="hbtn hbtn-ghost" onclick="exportSchematicPDF('archd')" title="24×36 landscape">ARCH D</button>
+      <button class="hbtn hbtn-ghost" onclick="exportSchematicPDF('arche')" title="36×48 landscape">ARCH E</button>
+    </div>
+    <div id="sch-viewport"
+      onmousedown="schDragStart(event)"
+      onmousemove="schDragMove(event)"
+      onmouseup="schDragEnd(event)"
+      onmouseleave="schDragEnd(event)"
+      onwheel="schWheel(event)">
+      <div id="sch-svg-wrap"></div>
+      <div id="sch-hint">Drag to pan · Scroll to zoom</div>
+      <div id="sch-zoom-badge">100%</div>
+    </div>
+  </div>`;
+}
+
+// Called by render() via requestAnimationFrame after DOM is ready
+function schRenderSVG() {
+  const wrap = document.getElementById('sch-svg-wrap');
+  if (!wrap) return;
+  const data = _schLayout();
+  const svgBody = _schSVG(data);
+  wrap.innerHTML = `<svg id="sch-svg" xmlns="http://www.w3.org/2000/svg"
+    width="${data.totalW}" height="${data.totalH}"
+    viewBox="0 0 ${data.totalW} ${data.totalH}">${svgBody}</svg>`;
+  schFitView();
+}
+
+function schFitView() {
+  const vp = document.getElementById('sch-viewport');
+  const svg = document.getElementById('sch-svg');
+  if (!vp || !svg) return;
+  const margin = 30;
+  const vpW = vp.clientWidth, vpH = vp.clientHeight;
+  const sw = +svg.getAttribute('width'), sh = +svg.getAttribute('height');
+  _schZoom = Math.min((vpW-margin*2)/sw, (vpH-margin*2)/sh, 2);
+  _schPan = { x:(vpW - sw*_schZoom)/2, y:(vpH - sh*_schZoom)/2 };
+  _schApplyXf();
+}
+
+function _schApplyXf() {
+  const wrap = document.getElementById('sch-svg-wrap');
+  const badge = document.getElementById('sch-zoom-badge');
+  if (wrap) wrap.style.transform = `translate(${_schPan.x.toFixed(1)}px,${_schPan.y.toFixed(1)}px) scale(${_schZoom.toFixed(3)})`;
+  if (badge) badge.textContent = Math.round(_schZoom*100)+'%';
+}
+
+function schDragStart(e) {
+  if (e.button!==0) return;
+  document.getElementById('sch-viewport')?.classList.add('grabbing');
+  _schDrag = {mx:e.clientX, my:e.clientY, px:_schPan.x, py:_schPan.y};
+  e.preventDefault();
+}
+function schDragMove(e) {
+  if (!_schDrag) return;
+  _schPan = {x:_schDrag.px+(e.clientX-_schDrag.mx), y:_schDrag.py+(e.clientY-_schDrag.my)};
+  _schApplyXf();
+}
+function schDragEnd() {
+  _schDrag=null;
+  document.getElementById('sch-viewport')?.classList.remove('grabbing');
+}
+function schWheel(e) {
+  e.preventDefault();
+  const vp = document.getElementById('sch-viewport');
+  if (!vp) return;
+  const r = vp.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  const factor = e.deltaY<0 ? 1.12 : 0.89;
+  const nz = Math.max(0.08, Math.min(5, _schZoom*factor));
+  _schPan.x = mx - (mx-_schPan.x)*(nz/_schZoom);
+  _schPan.y = my - (my-_schPan.y)*(nz/_schZoom);
+  _schZoom = nz;
+  _schApplyXf();
+}
+
+// ── Layout engine ─────────────────────────────────────────
+function _schLayout() {
+  const racks  = S.project?.racks  || [];
+  const snakes = (S.project?.snakes || []).filter(sn=>!sn.orphaned);
+
+  // Geometry constants
+  const RW=290, RGAP=110, HP=50, VP=50;
+  const HDR=36, EQH=28, PRH=20, EQGP=5, IPAD=10;
+
+  const portPos = new Map();
+  const rackLayouts = [];
+
+  racks.forEach((rack,ri) => {
+    const rx = HP + ri*(RW+RGAP);
+    const ry = VP;
+    let cy = ry + HDR + IPAD;
+    const eqLayouts = [];
+
+    rack.equipment.forEach(eq => {
+      const type = getType(eq.typeId);
+      if (!type) return;
+      // Only show ports that have any data assigned
+      const activePorts = type.ports.filter(pt => {
+        const pl = eq.portLabels?.[pt.id]||{};
+        return pl.label||pl.universe||pl.connRackId||pl.snakeId||pl.notes;
+      });
+      const ey = cy;
+      const eh = EQH + activePorts.length*PRH + 8;
+      activePorts.forEach((pt,pi) => {
+        const py = ey + EQH + pi*PRH + PRH/2;
+        const k = `${rack.id}/${eq.id}/${pt.id}`;
+        const isIn = (pt.type==='input'||pt.type==='network');
+        portPos.set(k, {x: isIn ? rx : rx+RW, y:py, side: isIn?'left':'right'});
+      });
+      eqLayouts.push({eq,type,activePorts,y:ey,h:eh});
+      cy += eh + EQGP;
+    });
+
+    const rh = cy - ry + IPAD;
+    rackLayouts.push({rack,x:rx,y:ry,w:RW,h:rh,eqLayouts});
+  });
+
+  // Cross-rack connection lines
+  const connections=[], seen=new Set();
+  racks.forEach(rack => {
+    rack.equipment.forEach(eq => {
+      const type=getType(eq.typeId); if (!type) return;
+      type.ports.forEach(pt => {
+        const pl=eq.portLabels?.[pt.id]||{};
+        if (!pl.connRackId||!pl.connItemId||!pl.connPortId) return;
+        const fk=`${rack.id}/${eq.id}/${pt.id}`;
+        const tk=`${pl.connRackId}/${pl.connItemId}/${pl.connPortId}`;
+        const pk=[fk,tk].sort().join('||');
+        if (seen.has(pk)) return; seen.add(pk);
+        const fp=portPos.get(fk), tp=portPos.get(tk);
+        if (fp&&tp) connections.push({fp,tp,color:rack.color});
+      });
+    });
+  });
+
+  // Snake section (connected snakes grouped below their rack)
+  const SNH=18, SNGP=2;
+  const maxRackBot = rackLayouts.reduce((m,rl)=>Math.max(m,rl.y+rl.h),0);
+  const snakeTopY = maxRackBot + 70;
+
+  const byRack={};
+  snakes.forEach(snake => {
+    snake.lines.forEach(line => {
+      if (!line.connRackId) return;
+      if (!byRack[line.connRackId]) byRack[line.connRackId]=[];
+      byRack[line.connRackId].push({snake,line});
+    });
+  });
+
+  // Sort: by snake name, then lineNum
+  Object.values(byRack).forEach(arr=>arr.sort((a,b)=>{
+    const nc=a.snake.name.localeCompare(b.snake.name,'en',{numeric:true});
+    return nc||((a.line.lineNum||0)-(b.line.lineNum||0));
+  }));
+
+  const snakeSections=[], snakeConnLines=[];
+  rackLayouts.forEach(rl => {
+    const entries=byRack[rl.rack.id]||[];
+    if (!entries.length) return;
+    let sy=snakeTopY;
+    const rows=entries.map(({snake,line})=>{
+      const y=sy; sy+=SNH+SNGP;
+      // Connection line from port to snake row
+      const pk=`${line.connRackId}/${line.connItemId}/${line.connPortId}`;
+      const pp=portPos.get(pk);
+      if (pp) snakeConnLines.push({x1:pp.x,y1:pp.y,x2:rl.x+rl.w/2,y2:y+SNH/2,color:snake.color||'#4a9eff'});
+      return {snake,line,y};
+    });
+    snakeSections.push({rack:rl.rack,x:rl.x,y:snakeTopY,w:RW,rows,sh:sy-snakeTopY});
+  });
+
+  const maxSnakeBot=snakeSections.reduce((m,ss)=>Math.max(m,ss.y+ss.sh),snakeTopY);
+  const totalW=HP+racks.length*(RW+RGAP)-RGAP+HP;
+  const totalH=(snakeSections.length?maxSnakeBot:maxRackBot)+VP;
+
+  return {rackLayouts,connections,snakeSections,snakeConnLines,portPos,totalW,totalH};
+}
+
+// ── SVG renderer ──────────────────────────────────────────
+function _schSVG(data) {
+  const {rackLayouts,connections,snakeSections,snakeConnLines} = data;
+  const F = `'SF Mono','Fira Code',ui-monospace,monospace`;
+  const X = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  let s = '';
+
+  // Background
+  s+=`<rect width="${data.totalW}" height="${data.totalH}" fill="#07080e"/>`;
+
+  // Dot grid
+  s+=`<defs><pattern id="g" width="36" height="36" patternUnits="userSpaceOnUse">
+    <circle cx="18" cy="18" r="0.9" fill="#ffffff09"/>
+  </pattern></defs>`;
+  s+=`<rect width="${data.totalW}" height="${data.totalH}" fill="url(#g)"/>`;
+
+  // Snake connector lines (faint, behind everything)
+  snakeConnLines.forEach(l=>{
+    s+=`<line x1="${l.x1}" y1="${l.y1}" x2="${l.x2}" y2="${l.y2}" stroke="${l.color}28" stroke-width="1.2" stroke-dasharray="3,5"/>`;
+  });
+
+  // Rack-to-rack connections
+  connections.forEach(c=>{
+    const f=c.fp, t=c.tp;
+    const dx=Math.abs(t.x-f.x)*0.5;
+    const cx1=f.side==='right'?f.x+dx:f.x-dx;
+    const cx2=t.side==='right'?t.x+dx:t.x-dx;
+    s+=`<path d="M${f.x},${f.y} C${cx1},${f.y} ${cx2},${t.y} ${t.x},${t.y}"
+      fill="none" stroke="${c.color}cc" stroke-width="2" stroke-dasharray="7,3"/>`;
+    // Arrow
+    const ang=Math.atan2(t.y-f.y,t.x-f.x);
+    const al=8,aw=4;
+    const ax=t.x-al*Math.cos(ang), ay=t.y-al*Math.sin(ang);
+    s+=`<polygon points="${t.x},${t.y} ${ax-aw*Math.sin(ang)},${ay+aw*Math.cos(ang)} ${ax+aw*Math.sin(ang)},${ay-aw*Math.cos(ang)}"
+      fill="${c.color}cc"/>`;
+  });
+
+  // ── Draw racks ────────────────────────────────────────
+  rackLayouts.forEach(rl=>{
+    const {rack,x,y,w,h,eqLayouts}=rl;
+    // Shadow
+    s+=`<rect x="${x+5}" y="${y+5}" width="${w}" height="${h}" rx="6" fill="#00000060"/>`;
+    // Box
+    s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="#0d0f1c" stroke="${rack.color}55" stroke-width="1.5"/>`;
+    // Left accent bar
+    s+=`<rect x="${x}" y="${y+10}" width="5" height="${h-20}" rx="2.5" fill="${rack.color}"/>`;
+    // Header band
+    s+=`<rect x="${x+5}" y="${y}" width="${w-5}" height="${36}" rx="4" fill="${rack.color}18"/>`;
+    // Rack name
+    s+=`<text x="${x+18}" y="${y+23}" font-family=${F} font-size="12" font-weight="700" fill="${rack.color}">${X(rack.name)}</text>`;
+    s+=`<text x="${x+w-10}" y="${y+23}" font-family=${F} font-size="8" fill="${rack.color}66" text-anchor="end">${eqLayouts.length} ITEMS</text>`;
+
+    // ── Equipment ────────────────────────────────────
+    eqLayouts.forEach(({eq,type,activePorts,y:ey,h:eh})=>{
+      // Eq bg
+      s+=`<rect x="${x+8}" y="${ey+2}" width="${w-16}" height="${eh-4}" rx="3" fill="#13162a"/>`;
+      // Type badge
+      s+=`<text x="${x+15}" y="${ey+13}" font-family=${F} font-size="7" fill="#44446a" letter-spacing=".06em">${X(type.name.toUpperCase())}</text>`;
+      // Eq label
+      s+=`<text x="${x+15}" y="${ey+25}" font-family=${F} font-size="10" font-weight="700" fill="#d0d0e8">${X(eq.label)}</text>`;
+
+      // ── Port rows ──────────────────────────────────
+      activePorts.forEach((pt,pi)=>{
+        const py=ey+28+pi*20;
+        const pl=eq.portLabels?.[pt.id]||{};
+        const ci=connInfo(rack.id,pl);
+        const isIn=(pt.type==='input'||pt.type==='network');
+
+        // Row separator
+        s+=`<line x1="${x+12}" y1="${py}" x2="${x+w-12}" y2="${py}" stroke="#1e2038" stroke-width="0.5"/>`;
+
+        // Port dot
+        const dotX=isIn?x+19:x+w-19, dotY=py+10;
+        const dc=pl.connRackId?'#3dd68c':pl.snakeId?'#4a9eff':'#282840';
+        s+=`<circle cx="${dotX}" cy="${dotY}" r="3.5" fill="${dc}"/>`;
+        if (pl.connRackId||pl.snakeId) s+=`<circle cx="${dotX}" cy="${dotY}" r="5.5" fill="none" stroke="${dc}44" stroke-width="1"/>`;
+
+        // Port name
+        s+=`<text x="${isIn?dotX+9:dotX-9}" y="${dotY+1}" font-family=${F} font-size="7" fill="#404060"
+          dominant-baseline="middle" text-anchor="${isIn?'start':'end'}">${X(pt.name)}</text>`;
+
+        // Universe (DMX ports)
+        if (pl.universe) {
+          const sp=pl.universe.toUpperCase().includes('SP');
+          s+=`<text x="${x+w*0.54}" y="${dotY+1}" font-family=${F} font-size="8.5" font-weight="700"
+            fill="${sp?'#ec4899':'#facc15'}" dominant-baseline="middle" text-anchor="middle">${X(pl.universe)}</text>`;
+        }
+
+        // Destination label (freetext label)
+        if (pl.label) {
+          const lbl=pl.label.length>18?pl.label.slice(0,17)+'…':pl.label;
+          const lx=isIn?x+w-14:x+14;
+          s+=`<text x="${lx}" y="${dotY+1}" font-family=${F} font-size="8" fill="#a0a0c0"
+            dominant-baseline="middle" text-anchor="${isIn?'end':'start'}">${X(lbl)}</text>`;
+        }
+
+        // Cross-rack badge
+        if (ci&&ci.crossRack) {
+          const destRack=S.project.racks.find(r=>r.id===pl.connRackId);
+          const bx=isIn?x+w-14:x+14;
+          s+=`<text x="${bx}" y="${dotY+1}" font-family=${F} font-size="7.5"
+            fill="${destRack?.color||'#4a9eff'}99" dominant-baseline="middle"
+            text-anchor="${isIn?'end':'start'}">→ ${X(ci.short)}</text>`;
+        }
+
+        // Snake label
+        if (pl.snakeId) {
+          const snk=S.project.snakes.find(sn=>sn.id===pl.snakeId);
+          if (snk) {
+            const snl=snk.lines.find(l=>l.id===pl.snakeLineId);
+            const bx=isIn?x+w-14:x+14;
+            s+=`<text x="${bx}" y="${dotY+1}" font-family=${F} font-size="7.5"
+              fill="${snk.color||'#4a9eff'}bb" dominant-baseline="middle"
+              text-anchor="${isIn?'end':'start'}">⬡ ${X(snk.name+(snl?' L'+snl.lineNum:''))}</text>`;
+          }
+        }
+      });
+    });
+  });
+
+  // ── Snake sections ────────────────────────────────────
+  snakeSections.forEach(ss=>{
+    const {rack,x,y,w,rows}=ss;
+    const rl=rackLayouts.find(r=>r.rack.id===rack.id);
+
+    // Vertical connector from rack bottom to section header
+    if (rl) {
+      s+=`<line x1="${x+w/2}" y1="${rl.y+rl.h}" x2="${x+w/2}" y2="${y-20}"
+        stroke="${rack.color}30" stroke-width="1" stroke-dasharray="4,4"/>`;
+    }
+    // Section label
+    s+=`<text x="${x+w/2}" y="${y-8}" font-family=${F} font-size="8" fill="${rack.color}77"
+      text-anchor="middle" letter-spacing=".1em">SNAKE / LOOM CONNECTIONS</text>`;
+
+    rows.forEach(({snake,line,y:sy})=>{
+      const sp=(line.universe||'').toUpperCase().includes('SP');
+      const bg=sp?'#16091a':'#0f1221';
+      const bc=sp?'#ec489955':`${snake.color||'#4a9eff'}44`;
+      // Row bg
+      s+=`<rect x="${x}" y="${sy}" width="${w}" height="17" rx="2" fill="${bg}" stroke="${bc}" stroke-width="0.75"/>`;
+
+      // Line number circle
+      s+=`<circle cx="${x+12}" cy="${sy+8.5}" r="7" fill="${sp?'#ec489918':(snake.color||'#4a9eff')+'18'}"/>`;
+      s+=`<text x="${x+12}" y="${sy+9}" font-family=${F} font-size="7.5"
+        fill="${sp?'#ec4899':(snake.color||'#4a9eff')}" text-anchor="middle" dominant-baseline="middle">${line.lineNum||''}</text>`;
+
+      // Snake name
+      s+=`<text x="${x+24}" y="${sy+9}" font-family=${F} font-size="8" font-weight="600"
+        fill="${sp?'#ec4899bb':'#b0b0cc'}" dominant-baseline="middle">${X(snake.name)}</text>`;
+
+      // Universe
+      if (line.universe) {
+        s+=`<text x="${x+w*0.56}" y="${sy+9}" font-family=${F} font-size="8" font-weight="700"
+          fill="${sp?'#ec4899':'#facc15'}" text-anchor="middle" dominant-baseline="middle">${X(line.universe)}</text>`;
+      }
+
+      // Position / location
+      const pos=line.position||'';
+      if (pos) {
+        const p2=pos.length>20?pos.slice(0,19)+'…':pos;
+        s+=`<text x="${x+w-8}" y="${sy+9}" font-family=${F} font-size="7" fill="#404058"
+          text-anchor="end" dominant-baseline="middle">${X(p2)}</text>`;
+      }
+    });
+  });
+
+  // Watermark
+  const ts=new Date().toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+  s+=`<text x="${data.totalW-10}" y="${data.totalH-6}" font-family=${F} font-size="8"
+    fill="#1e2030" text-anchor="end">${X(S.project?.name||'')} · Rack Builder · ${X(ts)}</text>`;
+
+  return s;
+}
+
+// ── PDF export ────────────────────────────────────────────
+const _SCH_SIZES = {
+  letter:{w:792,  h:612,  label:'Letter 11×8.5"'},
+  legal: {w:1008, h:612,  label:'Legal 14×8.5"'},
+  archd: {w:2592, h:1728, label:'ARCH D 36×24"'},
+  arche: {w:3456, h:2592, label:'ARCH E 48×36"'},
+};
+
+async function exportSchematicPDF(size) {
+  const cfg=_SCH_SIZES[size]; if (!cfg) return;
+  const btn=event?.target;
+  const origLabel={letter:'Letter',legal:'Legal',archd:'ARCH D',arche:'ARCH E'}[size]||size;
+  if (btn){btn.disabled=true; btn.textContent='Wait…';}
+  try {
+    const data=_schLayout();
+    const svgBody=_schSVG(data);
+    const svgStr=`<svg xmlns="http://www.w3.org/2000/svg" width="${data.totalW}" height="${data.totalH}" viewBox="0 0 ${data.totalW} ${data.totalH}">${svgBody}</svg>`;
+
+    // Fit SVG into usable page area
+    const margin=24;
+    const uw=cfg.w-margin*2, uh=cfg.h-margin*2;
+    const scale=Math.min(uw/data.totalW, uh/data.totalH);
+    const cw=Math.round(data.totalW*scale), ch=Math.round(data.totalH*scale);
+
+    // Render SVG → canvas (2× for crispness)
+    const dpr=2;
+    const canvas=document.createElement('canvas');
+    canvas.width=cw*dpr; canvas.height=ch*dpr;
+    const ctx=canvas.getContext('2d');
+    ctx.scale(dpr,dpr);
+
+    const blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const img=new Image();
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url;});
+    ctx.drawImage(img,0,0,cw,ch);
+    URL.revokeObjectURL(url);
+
+    const imgData=canvas.toDataURL('image/png');
+
+    // Build PDF
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'landscape',unit:'pt',format:[cfg.w,cfg.h]});
+
+    // Center image on page
+    const ox=margin+(uw-cw)/2, oy=margin+(uh-ch)/2;
+    doc.addImage(imgData,'PNG',ox,oy,cw,ch);
+
+    // Footer line
+    doc.setDrawColor(30,32,50);
+    doc.setLineWidth(0.5);
+    doc.line(margin,cfg.h-16,cfg.w-margin,cfg.h-16);
+
+    doc.setFont('courier','normal');
+    doc.setFontSize(7);
+    doc.setTextColor(80,80,110);
+    const ts=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+    const proj=S.project?.name||'Rack Builder';
+    doc.text(`${proj}  ·  Network Schematic  ·  ${cfg.label}  ·  ${ts}`, cfg.w/2, cfg.h-6, {align:'center'});
+
+    const fname=(S.project?.name||'schematic').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+    doc.save(`${fname}_schematic_${size}.pdf`);
+  } catch(e) {
+    alert('PDF export failed: '+e.message);
+    console.error(e);
+  } finally {
+    if (btn){btn.disabled=false; btn.textContent=origLabel;}
+  }
+}
 
 // Navigation
 function selectRack(id) { S.rackId=id; S.view='rack'; render(); }
