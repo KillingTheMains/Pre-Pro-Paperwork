@@ -845,6 +845,17 @@ function load() {
   const suite = getSuite();
   if (suite.showName && (!project.name || project.name === 'New Show'))
     project.name = suite.showName;
+  migrateBuildOrder();
+}
+
+function migrateBuildOrder() {
+  if (!project.buildOrder) project.buildOrder = [];
+  // Add any trusses not yet in buildOrder (new trusses added before this feature)
+  project.trusses.forEach(t => {
+    if (!project.buildOrder.includes(t.id)) project.buildOrder.push(t.id);
+  });
+  // Remove stale IDs that no longer have a matching truss
+  project.buildOrder = project.buildOrder.filter(id => project.trusses.some(t => t.id === id));
 }
 
 function save() {
@@ -997,9 +1008,7 @@ function makeTruss(name, type, lengthFt, p10, p8, p5, p2, color, endType, notes)
 function defaultProject() {
   const suite = getSuite();
   const TY = 'TYLER GT TRUSS';
-  return {
-    name: suite.showName || 'New Show',
-    trusses: [
+  const trusses = [
       makeTruss('B1',TY,90, 9,0,0,0,'#ef4444','usds',''),
       makeTruss('B2',TY,90, 9,0,0,0,'#ef4444','usds',''),
       makeTruss('B3',TY,90, 9,0,0,0,'#ef4444','usds',''),
@@ -1033,7 +1042,11 @@ function defaultProject() {
       makeTruss('C7',TY,70, 7,0,0,0,'#facc15','srsl',''),
       makeTruss('C8',TY,70, 7,0,0,0,'#facc15','srsl',''),
       makeTruss('C9',TY,70, 7,0,0,0,'#facc15','srsl',''),
-    ]
+  ];
+  return {
+    name: suite.showName || 'New Show',
+    trusses,
+    buildOrder: trusses.map(t => t.id)
   };
 }
 
@@ -1969,6 +1982,8 @@ function saveTruss() {
   t.notes = document.getElementById('f-notes').value.trim();
 
   project.trusses.push(t);
+  if (!project.buildOrder) project.buildOrder = [];
+  project.buildOrder.push(t.id);
   save();
   closeModal();
   renderTrussTable();
@@ -1980,12 +1995,53 @@ function deleteTruss(id) {
   const t = project.trusses.find(x => x.id === id);
   if (!confirm(`Delete truss "${t?.name}"? This cannot be undone.`)) return;
   project.trusses = project.trusses.filter(x => x.id !== id);
+  project.buildOrder = (project.buildOrder || []).filter(x => x !== id);
   if (activeTrussId === id) activeTrussId = null;
   save();
   renderTrussTable();
   renderLabelsPicker();
   if (!activeTrussId) renderLabelPreview();
   showToast('Truss deleted');
+}
+
+// ═══════════════════════════════════════════════════════════
+// BUILD ORDER DRAG TO REORDER (independent of Trusses tab)
+// ═══════════════════════════════════════════════════════════
+let _dragBOId = null;
+
+function boDragStart(e, id) {
+  _dragBOId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', id);
+  setTimeout(() => {
+    const row = document.querySelector(`#bo-tbody tr[data-id="${id}"]`);
+    if (row) row.classList.add('dragging');
+  }, 0);
+}
+function boDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const row = e.currentTarget;
+  if (row.dataset.id !== _dragBOId) row.classList.add('drag-over');
+}
+function boDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function boDrop(e, targetId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!_dragBOId || _dragBOId === targetId) { _dragBOId = null; return; }
+  const bo = project.buildOrder || [];
+  const fromIdx = bo.indexOf(_dragBOId);
+  const toIdx   = bo.indexOf(targetId);
+  if (fromIdx === -1 || toIdx === -1) { _dragBOId = null; return; }
+  bo.splice(toIdx, 0, bo.splice(fromIdx, 1)[0]);
+  _dragBOId = null;
+  save();
+  renderBuildOrder();
+}
+function boDragEnd(e) {
+  document.querySelectorAll('#bo-tbody tr.dragging').forEach(r => r.classList.remove('dragging'));
+  document.querySelectorAll('#bo-tbody tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+  _dragBOId = null;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2007,9 +2063,16 @@ function renderBuildOrder() {
     el.innerHTML = '<div class="empty-state">No trusses yet. Add trusses in the Trusses tab.</div>';
     return;
   }
+
+  // Use buildOrder sequence; fall back gracefully
+  const ordered = (project.buildOrder || [])
+    .map(id => project.trusses.find(t => t.id === id))
+    .filter(Boolean);
+
   let html = `<table class="bo-table">
     <thead>
       <tr>
+        <th class="col-drag"></th>
         <th class="center">#</th>
         <th class="center">Color</th>
         <th>Name</th>
@@ -2020,14 +2083,14 @@ function renderBuildOrder() {
         <th>End Labels</th>
         <th>Notes</th>
       </tr>
-    </thead><tbody>`;
+    </thead><tbody id="bo-tbody">`;
 
-  project.trusses.forEach((t, i) => {
-    const bg   = t.color || '#444';
-    const fg   = getLabelTextColor(bg);
+  ordered.forEach((t, i) => {
+    const bg    = t.color || '#444';
+    const fg    = getLabelTextColor(bg);
     const cName = colorLabel(bg);
-    const p    = t.pieces;
-    const pcs  = [];
+    const p     = t.pieces;
+    const pcs   = [];
     if (p.ten)   pcs.push(`${p.ten}×10'`);
     if (p.eight) pcs.push(`${p.eight}×8'`);
     if (p.five)  pcs.push(`${p.five}×5'`);
@@ -2035,7 +2098,13 @@ function renderBuildOrder() {
     const total = totalPieces(t);
     const [e1, e2] = getEndLabels(t);
 
-    html += `<tr>
+    html += `<tr data-id="${t.id}" draggable="true"
+      ondragstart="boDragStart(event,'${t.id}')"
+      ondragover="boDragOver(event)"
+      ondragleave="boDragLeave(event)"
+      ondrop="boDrop(event,'${t.id}')"
+      ondragend="boDragEnd(event)">
+      <td class="col-drag"><span class="drag-handle" title="Drag to reorder">⠿</span></td>
       <td class="bo-num">${i + 1}</td>
       <td class="bo-swatch-cell"><span class="bo-swatch" style="background:${bg}"></span></td>
       <td class="bo-name">${esc(t.name)}</td>
@@ -2113,8 +2182,10 @@ async function generateBuildOrderPDF() {
   });
   y += hdrH;
 
-  // ── Data rows ────────────────────────────────────────────
-  project.trusses.forEach((t, i) => {
+  // ── Data rows — use buildOrder sequence ──────────────────
+  const pdfOrdered = (project.buildOrder || [])
+    .map(id => project.trusses.find(t => t.id === id)).filter(Boolean);
+  pdfOrdered.forEach((t, i) => {
     if (y + rowH > PH - MB) {
       doc.addPage([PW, PH]);
       y = MT;
@@ -2176,7 +2247,7 @@ async function generateBuildOrderPDF() {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
-  doc.text(`${project.trusses.length} truss sections total`, ML, PH - 6);
+  doc.text(`${pdfOrdered.length} truss sections total`, ML, PH - 6);
   doc.text('PRE-PRO PAPERWORK · TRUSS BUILDER', PW - MR, PH - 6, { align: 'right' });
 
   // ── Save — always prompt with OS save dialogue ────────────
