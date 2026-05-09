@@ -1282,8 +1282,13 @@ function pickColorInline(hex) {
 // DRAG TO REORDER
 // ═══════════════════════════════════════════════════════════
 let _dragTrussId = null;
+let _dragAllowed = false;  // only true when mousedown came from a drag handle
+
+function handleDragMousedown() { _dragAllowed = true; }
+document.addEventListener('mouseup', () => { _dragAllowed = false; });
 
 function trDragStart(e, id) {
+  if (!_dragAllowed) { e.preventDefault(); return; }
   _dragTrussId = id;
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', id);
@@ -1366,7 +1371,7 @@ function renderTrussTable() {
       ondragleave="trDragLeave(event)"
       ondrop="trDrop(event,'${t.id}')"
       ondragend="trDragEnd(event)">
-      <td class="col-drag"><span class="drag-handle" title="Drag to reorder">⠿</span></td>
+      <td class="col-drag"><span class="drag-handle" title="Drag to reorder" onmousedown="handleDragMousedown()">⠿</span></td>
       <td class="col-color">
         <span class="color-dot" style="background:${bgColor}"
           onclick="openColorPicker('${t.id}',this)" title="Change color"></span>
@@ -2010,6 +2015,7 @@ function deleteTruss(id) {
 let _dragBOId = null;
 
 function boDragStart(e, id) {
+  if (!_dragAllowed) { e.preventDefault(); return; }
   _dragBOId = id;
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', id);
@@ -2104,7 +2110,7 @@ function renderBuildOrder() {
       ondragleave="boDragLeave(event)"
       ondrop="boDrop(event,'${t.id}')"
       ondragend="boDragEnd(event)">
-      <td class="col-drag"><span class="drag-handle" title="Drag to reorder">⠿</span></td>
+      <td class="col-drag"><span class="drag-handle" title="Drag to reorder" onmousedown="handleDragMousedown()">⠿</span></td>
       <td class="bo-num">${i + 1}</td>
       <td class="bo-swatch-cell"><span class="bo-swatch" style="background:${bg}"></span></td>
       <td class="bo-name">${esc(t.name)}</td>
