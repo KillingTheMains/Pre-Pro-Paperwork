@@ -3676,10 +3676,11 @@ function exportSnakesPDF() { _openPrint(buildSnakesPrintDoc(), 'Snake Lists'); }
 function buildSnakesPrintDoc() {
   const p       = S.project;
   const dt      = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  // Include ALL snakes — orphaned ones are dimmed but still printed
-  const allSnakes = (p.snakes||[]);
-  // Spare lines (universe contains "SP") are excluded from the export
-  const totalLines = allSnakes.reduce((s,sn)=>s+(sn.lines||[]).filter(l=>!(l.universe||'').toUpperCase().includes('SP')).length, 0);
+  // Exclude spare snakes (pink color #ec4899 = spare, per suite convention)
+  // Also exclude snakes whose name ends in " SP" as a secondary check
+  const isSpareSnake = sn => sn.color === '#ec4899' || / SP$/i.test((sn.name||'').trim());
+  const allSnakes = (p.snakes||[]).filter(sn => !isSpareSnake(sn));
+  const totalLines = allSnakes.reduce((s,sn)=>s+(sn.lines?.length||0),0);
 
   const snakeBlocks = allSnakes.map(snake => {
     const typeLbl = snake.type==='cpc8' ? 'CPC8 · 8-Channel'
@@ -3689,11 +3690,7 @@ function buildSnakesPrintDoc() {
     const loc     = snake.location || '';
     const orphan  = !!snake.orphaned;
 
-    // Pale version of color for header band
-    // Spare lines (universe contains "SP") are excluded from the export
-    const activeLines = (snake.lines||[]).filter(line => !(line.universe||'').toUpperCase().includes('SP'));
-
-    const rows = activeLines.map((line, li) => {
+    const rows = (snake.lines||[]).map((line, li) => {
       const ci        = snakeLineConnInfo(line);
       const univColor = '#003388';
 
@@ -3708,9 +3705,8 @@ function buildSnakesPrintDoc() {
       </tr>`;
     }).join('');
 
-    // Count assigned lines (have at least a universe, exclude spares)
-    const assigned = activeLines.filter(l=>l.universe).length;
-    const total    = activeLines.length;
+    const assigned = (snake.lines||[]).filter(l=>l.universe).length;
+    const total    = (snake.lines||[]).length;
 
     return `<div class="sblk${orphan?' sblk-orphan':''}">
       <div class="shdr" style="border-left:5px solid ${color}${orphan?';opacity:.55':''}">
