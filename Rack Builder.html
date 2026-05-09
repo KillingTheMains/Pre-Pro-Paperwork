@@ -3625,44 +3625,64 @@ function buildRacksPrintDoc() {
 function exportSnakesPDF() { _openPrint(buildSnakesPrintDoc(), 'Snake Lists'); }
 
 function buildSnakesPrintDoc() {
-  const p  = S.project;
-  const dt = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  const snakes = (p.snakes||[]).filter(s => !s.orphaned);
+  const p       = S.project;
+  const dt      = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  // Include ALL snakes — orphaned ones are dimmed but still printed
+  const allSnakes = (p.snakes||[]);
+  const totalLines = allSnakes.reduce((s,sn)=>s+(sn.lines?.length||0),0);
 
-  const snakeBlocks = snakes.map(snake => {
-    const typeLbl = snake.type==='cpc8' ? '8-Ch CPC8' : snake.type==='cpc4' ? '4-Ch CPC4' : 'Custom';
-    const color = snake.color || '#555';
-    const locStr = snake.location ? `&nbsp;·&nbsp; ${h(snake.location)}` : '';
+  const snakeBlocks = allSnakes.map(snake => {
+    const typeLbl = snake.type==='cpc8' ? 'CPC8 · 8-Channel'
+                  : snake.type==='cpc4' ? 'CPC4 · 4-Channel'
+                  : 'Custom';
+    const color   = snake.color || '#555555';
+    const loc     = snake.location || '';
+    const orphan  = !!snake.orphaned;
 
-    const rows = snake.lines.map(line => {
-      const ci = snakeLineConnInfo(line);
+    // Pale version of color for header band
+    const rows = (snake.lines||[]).map((line, li) => {
+      const ci    = snakeLineConnInfo(line);
       const spare = (line.universe||'').toUpperCase().includes('SP');
-      const univColor = spare ? '#cc0066' : '#003388';
-      return `<tr class="${spare?'spare-row':''}">
-        <td class="sc lnum">${line.lineNum}</td>
-        <td class="sc pos">${line.position ? h(line.position) : '<span class="nd">—</span>'}</td>
-        <td class="sc univ">${line.universe
-          ? `<span style="font-weight:700;color:${univColor}">${h(line.universe)}</span>`
-          : '<span class="nd">—</span>'}</td>
-        <td class="sc ffx">${line.firstFixture||''}</td>
-        <td class="sc conn">${ci ? `⟶&nbsp;${h(ci.full)}` : ''}</td>
+      const hasAnyData = line.universe || line.position || line.firstFixture || ci;
+      const univColor  = spare ? '#aa0055' : '#003388';
+
+      return `<tr class="${spare?'spare-row':li%2===1?'alt-row':''}">
+        <td class="c-ln">${line.lineNum}</td>
+        <td class="c-pos">${h(line.position||'')}</td>
+        <td class="c-univ">${line.universe
+          ? `<strong style="color:${univColor}">${h(line.universe)}</strong>`
+          : ''}</td>
+        <td class="c-ffx">${h(line.firstFixture||'')}</td>
+        <td class="c-conn">${ci ? `&#x279C;&nbsp;${h(ci.full)}` : ''}</td>
       </tr>`;
     }).join('');
 
-    return `<div class="snake-block">
-      <div class="snake-hdr" style="border-left:4px solid ${color}">
-        <span class="snake-name" style="color:${color}">${h(snake.name)}</span>
-        <span class="snake-type">${typeLbl}${locStr}</span>
-        <span class="snake-lines">${snake.lines.length} lines</span>
+    // Count assigned lines (have at least a universe)
+    const assigned = (snake.lines||[]).filter(l=>l.universe).length;
+    const total    = (snake.lines||[]).length;
+
+    return `<div class="sblk${orphan?' sblk-orphan':''}">
+      <div class="shdr" style="border-left:5px solid ${color}${orphan?';opacity:.55':''}">
+        <div class="shdr-left">
+          <span class="sname" style="color:${color}">${h(snake.name)}</span>
+          <span class="sbadge">${typeLbl}</span>
+          ${loc ? `<span class="sloc">&#x25CF; ${h(loc)}</span>` : ''}
+          ${orphan ? `<span class="sorphan">&#x26A0; not in loom list</span>` : ''}
+        </div>
+        <div class="shdr-right">
+          <span class="sstat">${assigned}/${total} universes assigned</span>
+        </div>
       </div>
       <table class="st">
-        <thead><tr>
-          <th class="sc lnum">#</th>
-          <th class="sc pos">Position / Breakout</th>
-          <th class="sc univ">Universe</th>
-          <th class="sc ffx">First FX</th>
-          <th class="sc conn">Break-in Connection</th>
-        </tr></thead>
+        <thead>
+          <tr>
+            <th class="c-ln">#</th>
+            <th class="c-pos">Position / Breakout</th>
+            <th class="c-univ">Universe</th>
+            <th class="c-ffx">First&nbsp;FX</th>
+            <th class="c-conn">Break-in Connection</th>
+          </tr>
+        </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
@@ -3670,55 +3690,89 @@ function buildSnakesPrintDoc() {
 
   return `<!DOCTYPE html><html><head>
 <meta charset="UTF-8">
-<title>${h(p.name)} — Snake Lists</title>
+<title>${h(p.name)} — Snake &amp; Loom Lists</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:10pt;color:#111;background:#fff;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact
+  }
 
-  /* ── page layout ── */
-  .page-body{padding:10mm 12mm;columns:1}
+  /* ── page wrapper ── */
+  .wrap{padding:12mm 13mm}
 
   /* ── document header ── */
-  .doc-hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #333;padding-bottom:6px;margin-bottom:10px}
-  .doc-title{font-size:14pt;font-weight:800}
-  .doc-sub{font-size:8pt;color:#666;margin-top:2px}
-  .doc-meta{text-align:right;font-size:8pt;color:#888}
+  .doc-hdr{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:2.5px solid #222;padding-bottom:7px;margin-bottom:14px
+  }
+  .doc-title{font-size:16pt;font-weight:800;letter-spacing:-.02em}
+  .doc-sub{font-size:9pt;color:#555;margin-top:3px}
+  .doc-meta{text-align:right;font-size:9pt;color:#777;line-height:1.5}
 
-  /* ── snake block (no-split) ── */
-  .snake-block{break-inside:avoid;page-break-inside:avoid;margin-bottom:10px;border:1px solid #ddd;border-radius:3px;overflow:hidden}
-  .snake-hdr{display:flex;align-items:baseline;gap:8px;padding:4px 8px;background:#f4f4f4;border-bottom:1px solid #ccc;flex-wrap:wrap}
-  .snake-name{font-size:11pt;font-weight:800;letter-spacing:-.01em}
-  .snake-type{font-size:7.5pt;color:#666;border:1px solid #bbb;border-radius:3px;padding:1px 5px}
-  .snake-lines{font-size:7.5pt;color:#888;margin-left:auto}
+  /* ── snake block — never split across pages ── */
+  .sblk{
+    break-inside:avoid;page-break-inside:avoid;
+    margin-bottom:12px;
+    border:1px solid #d0d0d0;border-radius:4px;overflow:hidden
+  }
+  .sblk-orphan{border-color:#ddd}
 
-  /* ── snake table ── */
-  .st{width:100%;border-collapse:collapse;font-size:8pt}
-  .st thead tr{background:#444;color:#fff}
-  .st thead th{padding:3px 6px;text-align:left;font-size:7pt;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
-  .st tbody tr:nth-child(even) td{background:#fafafa}
-  .spare-row td{background:#fff0f8!important;color:#990055}
-  .sc{padding:2px 6px;border-bottom:1px solid #ececec;vertical-align:middle}
-  .lnum{width:28px;text-align:center;color:#888;font-family:monospace;font-size:7.5pt}
-  .pos{min-width:130px}
-  .univ{min-width:90px;white-space:nowrap}
-  .ffx{width:70px;color:#444}
-  .conn{font-size:7.5pt;color:#0044aa}
-  .nd{color:#ccc}
+  /* ── snake header ── */
+  .shdr{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:6px 10px;background:#f2f2f2;border-bottom:1px solid #d0d0d0;
+    gap:8px;flex-wrap:wrap
+  }
+  .shdr-left{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .shdr-right{white-space:nowrap}
+  .sname{font-size:12pt;font-weight:800;letter-spacing:-.01em;white-space:nowrap}
+  .sbadge{
+    font-size:7.5pt;color:#555;
+    border:1px solid #bbb;border-radius:3px;
+    padding:1px 6px;white-space:nowrap;background:#fff
+  }
+  .sloc{font-size:8.5pt;color:#555;white-space:nowrap}
+  .sorphan{
+    font-size:7.5pt;color:#aa6600;background:#fff8e6;
+    border:1px solid #ddb;border-radius:3px;padding:1px 6px
+  }
+  .sstat{font-size:8pt;color:#777}
+
+  /* ── snake line table ── */
+  .st{width:100%;border-collapse:collapse;font-size:9.5pt}
+  .st thead tr{background:#2a2a2a;color:#fff}
+  .st thead th{
+    padding:4px 8px;text-align:left;
+    font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;font-weight:600
+  }
+  .st tbody tr td{padding:4px 8px;border-bottom:1px solid #e8e8e8;vertical-align:middle}
+  .alt-row td{background:#f8f8f8}
+  .spare-row td{background:#fdf0f7!important;color:#880044}
+  .spare-row .c-univ strong{color:#aa0055!important}
+
+  /* ── column widths ── */
+  .c-ln  {width:32px;text-align:center;font-family:monospace;color:#888;font-size:8.5pt}
+  .c-pos {min-width:140px}
+  .c-univ{min-width:100px;white-space:nowrap;font-family:monospace}
+  .c-ffx {width:72px;color:#444;font-family:monospace;font-size:8.5pt}
+  .c-conn{font-size:8pt;color:#004499}
 
   @media print{
     @page{size:letter portrait;margin:0}
-    .page-body{padding:10mm 12mm}
-    body{background:white}
+    .wrap{padding:12mm 13mm}
+    body{background:#fff}
   }
 </style>
 </head><body>
-<div class="page-body">
+<div class="wrap">
   <div class="doc-hdr">
     <div>
-      <div class="doc-title">${h(p.name)} &mdash; Snake / Loom Lists</div>
-      <div class="doc-sub">${snakes.length} snakes &nbsp;·&nbsp; v${h(p.version||'1')}</div>
+      <div class="doc-title">${h(p.name)} &mdash; Snake &amp; Loom Lists</div>
+      <div class="doc-sub">${allSnakes.length} snakes &nbsp;&middot;&nbsp; ${totalLines} total lines &nbsp;&middot;&nbsp; v${h(p.version||'1')}</div>
     </div>
-    <div class="doc-meta">${dt}</div>
+    <div class="doc-meta">${dt}<br>${h(p.name)}</div>
   </div>
   ${snakeBlocks}
 </div>
