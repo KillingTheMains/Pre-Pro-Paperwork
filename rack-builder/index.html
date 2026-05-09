@@ -1492,7 +1492,8 @@ function rHeader() {
     <input type="file" id="file-imp" accept=".json" style="display:none" onchange="importJSON(event)">
     <button id="drive-btn" class="hbtn hbtn-ghost" onclick="driveConnect()" title="Connect Google Drive backup" style="color:var(--text-muted)">☁ Drive</button>
     <button class="hbtn hbtn-ghost${S.view==='schematic'?' hbtn-sch-active':''}" onclick="selectSchematic()" title="Network schematic view">⬡ Schematic</button>
-    <button class="hbtn hbtn-primary" onclick="exportPDF()">🖨 Export PDF</button>
+    <button class="hbtn hbtn-ghost" onclick="exportRacksPDF()" title="Export rack layouts as PDF">🖨 Racks PDF</button>
+    <button class="hbtn hbtn-primary" onclick="exportSnakesPDF()" title="Export snake/loom lists as PDF">🖨 Snakes PDF</button>
   </header>`;
 }
 
@@ -3383,24 +3384,107 @@ function importJSON(e) {
   fr.readAsText(file);
 }
 
-// ── PDF Export ────────────────────────────────────────────
-function exportPDF() {
+// ── PDF Export ─────────────────────────────────────────────────────────────
+
+function _openPrint(html, title) {
   const win = window.open('','_blank');
-  win.document.write(buildPrintDoc());
+  if (!win) { alert('Pop-up blocked — please allow pop-ups for this page.'); return; }
+  win.document.write(html);
   win.document.close();
   win.focus();
-  setTimeout(() => win.print(), 600);
+  setTimeout(() => win.print(), 700);
 }
 
-function buildPrintDoc() {
-  const p = S.project;
-  let body = '';
+// ── Racks PDF ──────────────────────────────────────────────
+function exportRacksPDF() { _openPrint(buildRacksPrintDoc(), 'Rack Layouts'); }
 
-  p.racks.forEach(rack => {
-    const rows = rack.equipment.map((item, idx) => {
+// Build a compact side-view rack SVG graphic (inline, pre-computed)
+function buildRackMiniSVG(rack, color) {
+  const RU = 13;     // px per rack unit
+  const W  = 100;    // svg width
+  const RAIL = 8;    // rail column width
+  const IW = W - RAIL * 2;
+  const CAP = 9;     // cap bar height
+  const TOP_PAD_RU = 1;
+  const BOT_PAD_RU = 1;
+
+  // Gather equipment with RU heights
+  const items = rack.equipment.map(eq => {
+    const type = getType(eq.typeId);
+    const ru = type?.ruHeight || 1;
+    const label = eq.label || type?.name || '';
+    return { label, ru };
+  });
+
+  const totalRU = items.reduce((s,i) => s+i.ru, 0) + TOP_PAD_RU + BOT_PAD_RU;
+  const H = CAP + totalRU * RU + CAP;
+
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  let svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0">`;
+  // Chassis bg
+  svg += `<rect width="${W}" height="${H}" fill="#f0f0f0" rx="2"/>`;
+  // Rails
+  svg += `<rect x="0" y="0" width="${RAIL}" height="${H}" fill="#c8c8c8"/>`;
+  svg += `<rect x="${W-RAIL}" y="0" width="${RAIL}" height="${H}" fill="#c8c8c8"/>`;
+  // Rail holes (repeating circles on rails)
+  for (let ru = 0; ru < totalRU; ru++) {
+    const cy = CAP + ru * RU + RU/2;
+    svg += `<circle cx="${RAIL/2}" cy="${cy}" r="1.8" fill="#999"/>`;
+    svg += `<circle cx="${W-RAIL/2}" cy="${cy}" r="1.8" fill="#999"/>`;
+  }
+  // Cap bars
+  svg += `<rect x="0" y="0" width="${W}" height="${CAP}" fill="#888" rx="2"/>`;
+  svg += `<rect x="0" y="${H-CAP}" width="${W}" height="${CAP}" fill="#888" rx="2"/>`;
+  // Ear screws
+  const screwY = CAP/2;
+  svg += `<circle cx="4" cy="${screwY}" r="2.5" fill="#aaa" stroke="#777" stroke-width="0.5"/>`;
+  svg += `<circle cx="${W-4}" cy="${screwY}" r="2.5" fill="#aaa" stroke="#777" stroke-width="0.5"/>`;
+  svg += `<circle cx="4" cy="${H-screwY}" r="2.5" fill="#aaa" stroke="#777" stroke-width="0.5"/>`;
+  svg += `<circle cx="${W-4}" cy="${H-screwY}" r="2.5" fill="#aaa" stroke="#777" stroke-width="0.5"/>`;
+
+  // Equipment items
+  let y = CAP + TOP_PAD_RU * RU;
+  items.forEach(item => {
+    const ih = item.ru * RU - 1;
+    svg += `<rect x="${RAIL}" y="${y}" width="${IW}" height="${ih}" fill="${color}30" stroke="${color}99" stroke-width="0.75"/>`;
+    // Truncate label to fit
+    const maxChars = Math.floor(IW / 5.2);
+    const lbl = item.label.length > maxChars ? item.label.slice(0,maxChars-1)+'…' : item.label;
+    svg += `<text x="${RAIL + IW/2}" y="${y + ih/2 + 1}" font-family="Arial,sans-serif" font-size="5.5"
+      fill="${color}" text-anchor="middle" dominant-baseline="middle">${esc(lbl)}</text>`;
+    y += item.ru * RU;
+  });
+
+  svg += '</svg>';
+  return svg;
+}
+
+function buildRacksPrintDoc() {
+  const p   = S.project;
+  const dt  = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  let body  = '';
+
+  p.racks.forEach((rack, ri) => {
+    const color = rack.color || '#333';
+    const rackSVG = buildRackMiniSVG(rack, color);
+
+    // Count total ports assigned across all equipment
+    let assignedPorts = 0;
+    rack.equipment.forEach(eq => {
+      const type = getType(eq.typeId);
+      (type?.ports||[]).forEach(pt => {
+        const pl = eq.portLabels?.[pt.id]||{};
+        if (pl.label||pl.universe||pl.connRackId||pl.snakeId) assignedPorts++;
+      });
+    });
+
+    // ── Per-equipment blocks ─────────────────────────────
+    const eqBlocks = rack.equipment.map((item, idx) => {
       const type = getType(item.typeId);
       if (!type) return '';
 
+      // Group ports
       const groups = {};
       type.ports.forEach(pt => {
         const g = pt.group || 'Ports';
@@ -3408,112 +3492,237 @@ function buildPrintDoc() {
         groups[g].push(pt);
       });
 
-      const portCells = Object.entries(groups).map(([gn, pts]) => {
-        const pRows = pts.map(pt => {
+      const portRows = Object.entries(groups).map(([gn, pts]) => {
+        const groupHeader = `<tr class="port-group-hdr"><td colspan="5">${h(gn)}</td></tr>`;
+        const rows = pts.map(pt => {
           const pl = item.portLabels?.[pt.id] || {};
           const ci = connInfo(rack.id, pl);
-          const isDmxPt = (pt.type==='output'||pt.type==='input');
-          const univCell = isDmxPt
-            ? `<td style="font-size:8pt;font-weight:700;color:${pl.universe?'#006699':'#ccc'};padding:2px 6px;white-space:nowrap;font-family:monospace">${pl.universe||'—'}</td>`
-            : `<td style="color:#ccc;padding:2px 6px">—</td>`;
+          const isDmx = (pt.type==='output'||pt.type==='input');
+          const univStyle = pl.universe
+            ? `font-weight:700;color:#005588`
+            : `color:#ccc`;
+          const spare = (pl.universe||'').toUpperCase().includes('SP');
+          const univColor = spare ? '#cc0066' : '#005588';
+          const univVal = pl.universe
+            ? `<span style="font-family:monospace;font-weight:700;color:${univColor}">${h(pl.universe)}</span>`
+            : '<span style="color:#ccc">—</span>';
           return `<tr>
-            <td style="color:#888;font-size:7.5pt;padding:2px 6px 2px 18px;white-space:nowrap">${h(pt.name)}</td>
-            ${univCell}
-            <td style="font-size:9pt;padding:2px 6px;font-weight:${pl.label?'bold':'normal'};color:${pl.label?'#000':'#bbb'}">${pl.label ? h(pl.label) : '—'}</td>
-            ${pl.notes ? `<td style="font-size:8pt;color:#666;padding:2px 6px;font-style:italic">${h(pl.notes)}</td>` : '<td></td>'}
-            ${ci ? `<td style="font-size:7.5pt;color:#005588;padding:2px 6px;white-space:nowrap">⟶ ${h(ci.full)}</td>` : '<td></td>'}
+            <td class="pcell pname">${h(pt.name)}</td>
+            <td class="pcell puniv">${isDmx ? univVal : '<span style="color:#ddd">—</span>'}</td>
+            <td class="pcell plabel">${pl.label ? `<strong>${h(pl.label)}</strong>` : '<span style="color:#bbb">—</span>'}</td>
+            <td class="pcell pnotes">${pl.notes ? h(pl.notes) : ''}</td>
+            <td class="pcell pconn">${ci ? `⟶&nbsp;${h(ci.full)}` : ''}</td>
           </tr>`;
         }).join('');
-        return `<tr><td colspan="4" style="font-size:7pt;color:#aaa;letter-spacing:.1em;text-transform:uppercase;padding:4px 6px 1px">${h(gn)}</td></tr>${pRows}`;
+        return groupHeader + rows;
       }).join('');
 
-      return `
-        <tr style="background:#eee;border-top:2px solid #999">
-          <td style="width:28px;text-align:center;font-size:8pt;color:#666;vertical-align:top;padding-top:7px">${idx+1}</td>
-          <td style="font-size:11pt;font-weight:bold;padding:6px 8px;vertical-align:top;white-space:nowrap">${h(item.label)}</td>
-          <td style="font-size:8pt;color:#555;vertical-align:top;padding:8px 6px;white-space:nowrap">${h(type.name)}</td>
-          <td style="font-size:8.5pt;color:#006600;font-family:monospace;vertical-align:top;padding:8px 6px;white-space:nowrap">${h(item.ip||'—')}</td>
-          <td colspan="3" style="padding:0">
-            <table style="width:100%;border-collapse:collapse">${portCells}</table>
-          </td>
-        </tr>`;
-    }).join('');
+      const ipStr = item.ip ? `<span class="eq-ip">${h(item.ip)}</span>` : '';
+      const notesStr = item.notes ? `<div class="eq-notes">${h(item.notes)}</div>` : '';
 
-    body += `
-      <div class="page">
-        <div class="ph">
-          <div class="ph-title">${h(p.name)} <span style="font-weight:normal;font-size:12pt">v${h(p.version)}</span></div>
-          <div class="ph-sub">${h(rack.name)} &nbsp;·&nbsp; ${rack.equipment.length} items &nbsp;·&nbsp; ${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+      return `<div class="eq-block">
+        <div class="eq-hdr">
+          <span class="eq-num">${idx+1}</span>
+          <span class="eq-label">${h(item.label)}</span>
+          <span class="eq-type">${h(type.name)}</span>
+          ${ipStr}
         </div>
-        <table class="rt">
-          <thead>
-            <tr>
-              <th style="width:28px">#</th>
-              <th style="min-width:140px">Equipment</th>
-              <th style="width:130px">Type</th>
-              <th style="width:120px">IP Address</th>
-              <th>Port</th>
-              <th style="width:90px">Universe</th>
-              <th style="min-width:130px">Label</th>
-              <th>Notes</th>
-              <th>Connected To</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`;
-  });
-
-  // ── Snake pages ──────────────────────────────────────
-  (p.snakes||[]).forEach(snake => {
-    const lRows = snake.lines.map(line => {
-      const ci = snakeLineConnInfo(line);
-      return `<tr>
-        <td style="text-align:center;font-size:8pt;color:#666;padding:3px 6px">${line.lineNum}</td>
-        <td style="font-size:9pt;padding:3px 7px;font-weight:${line.position?'normal':'normal'};color:${line.position?'#000':'#bbb'}">${line.position||'—'}</td>
-        <td style="font-size:9pt;padding:3px 7px;font-weight:bold;color:${line.universe?'#003388':'#bbb'}">${line.universe||'—'}</td>
-        <td style="font-size:8.5pt;padding:3px 7px;color:#555">${line.firstFixture||''}</td>
-        <td style="font-size:7.5pt;padding:3px 7px;color:#005588">${ci ? '⟶ '+ci.full : ''}</td>
-      </tr>`;
-    }).join('');
-    body += `
-      <div class="page">
-        <div class="ph">
-          <div class="ph-title">${h(p.name)} <span style="font-weight:normal;font-size:12pt">v${h(p.version)}</span></div>
-          <div class="ph-sub">${h(snake.name)} &nbsp;·&nbsp; ${snake.type==='cpc8'?'8-Channel CPC8':snake.type==='cpc4'?'4-Channel CPC4':'Custom'} Snake &nbsp;·&nbsp; ${snake.lines.length} lines &nbsp;·&nbsp; ${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
-        </div>
-        <table class="rt">
+        ${notesStr}
+        <table class="pt">
           <thead><tr>
-            <th style="width:30px">#</th>
-            <th style="min-width:150px">Position / Breakout</th>
-            <th style="min-width:110px">Universe</th>
-            <th style="width:90px">First FX</th>
-            <th>Break-in Connection</th>
+            <th class="pcell pname">Port</th>
+            <th class="pcell puniv">Universe</th>
+            <th class="pcell plabel">Label / Destination</th>
+            <th class="pcell pnotes">Notes</th>
+            <th class="pcell pconn">Connected To</th>
           </tr></thead>
-          <tbody>${lRows}</tbody>
+          <tbody>${portRows}</tbody>
         </table>
       </div>`;
+    }).join('');
+
+    // ── Rack section ─────────────────────────────────────
+    body += `<div class="rack-section${ri>0?' break-before':''}">
+      <div class="rack-hdr" style="border-left:5px solid ${color}">
+        <div class="rack-hdr-main">
+          <span class="rack-name" style="color:${color}">${h(rack.name)}</span>
+          <span class="rack-meta">${rack.equipment.length} items &nbsp;·&nbsp; ${assignedPorts} port assignments</span>
+        </div>
+        <div class="rack-hdr-right">
+          <span class="project-name">${h(p.name)}</span>
+          <span class="print-date">${dt}</span>
+        </div>
+      </div>
+      <div class="rack-body">
+        <div class="rack-graphic-col">
+          ${rackSVG}
+          <div class="rack-graphic-label">${h(rack.name)}</div>
+        </div>
+        <div class="rack-eq-col">
+          ${eqBlocks}
+        </div>
+      </div>
+    </div>`;
   });
 
   return `<!DOCTYPE html><html><head>
-  <meta charset="UTF-8">
-  <title>${h(p.name)} — Rack Layouts</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000;background:white}
-    .page{padding:15mm;page-break-after:always}
-    .page:last-child{page-break-after:avoid}
-    .ph{margin-bottom:10px;border-bottom:2px solid #333;padding-bottom:8px}
-    .ph-title{font-size:15pt;font-weight:bold}
-    .ph-sub{font-size:10pt;color:#555;margin-top:2px}
-    .rt{width:100%;border-collapse:collapse;font-size:9pt}
-    .rt thead tr{background:#222;color:#fff}
-    .rt thead th{padding:5px 7px;text-align:left;font-size:8pt;letter-spacing:.04em;text-transform:uppercase}
-    .rt tbody tr:nth-child(even) td{background:#f8f8f8}
-    .rt td{border-bottom:1px solid #e0e0e0;vertical-align:middle}
-    @media print{@page{size:letter portrait;margin:12mm}.page{padding:0}}
-  </style>
+<meta charset="UTF-8">
+<title>${h(p.name)} — Rack Layouts</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  /* ── rack section ── */
+  .rack-section{padding:10mm 12mm 8mm 12mm}
+  .break-before{break-before:page;page-break-before:always}
+  .rack-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:6px 8px;background:#f4f4f4;border-bottom:1px solid #ccc;margin-bottom:8px;gap:10px}
+  .rack-hdr-main{display:flex;flex-direction:column;gap:2px}
+  .rack-name{font-size:14pt;font-weight:800;letter-spacing:-.02em}
+  .rack-meta{font-size:8pt;color:#666;margin-top:1px}
+  .rack-hdr-right{text-align:right;font-size:8pt;color:#888;display:flex;flex-direction:column;gap:2px;white-space:nowrap}
+  .project-name{font-weight:600;color:#444}
+  .print-date{color:#888}
+
+  /* ── two-column layout: graphic | equipment ── */
+  .rack-body{display:flex;gap:10px;align-items:flex-start}
+  .rack-graphic-col{flex-shrink:0;width:105px;display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
+  .rack-graphic-label{font-size:6.5pt;color:#888;text-align:center;letter-spacing:.04em}
+  .rack-eq-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+
+  /* ── equipment block (no-split) ── */
+  .eq-block{break-inside:avoid;page-break-inside:avoid;border:1px solid #ddd;border-radius:3px;overflow:hidden}
+  .eq-hdr{display:flex;align-items:baseline;gap:6px;background:#ececec;padding:4px 7px;border-bottom:1px solid #ccc;flex-wrap:wrap}
+  .eq-num{font-size:7.5pt;color:#888;min-width:14px;text-align:right}
+  .eq-label{font-size:10.5pt;font-weight:700;color:#111}
+  .eq-type{font-size:7.5pt;color:#666;border:1px solid #bbb;border-radius:3px;padding:1px 5px;white-space:nowrap}
+  .eq-ip{font-size:7.5pt;font-family:monospace;color:#006600;padding:1px 4px;background:#e8f5e8;border-radius:3px}
+  .eq-notes{font-size:7.5pt;color:#555;font-style:italic;padding:2px 7px;background:#fffbe6;border-bottom:1px solid #eedea0}
+
+  /* ── port table ── */
+  .pt{width:100%;border-collapse:collapse;font-size:7.5pt}
+  .pt thead tr{background:#444;color:#fff}
+  .pt thead th{padding:3px 5px;text-align:left;font-size:6.5pt;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+  .pt tbody tr:nth-child(even) td{background:#fafafa}
+  .pt tbody tr:hover td{background:#f0f4ff}
+  .port-group-hdr td{font-size:6pt;color:#999;letter-spacing:.1em;text-transform:uppercase;padding:3px 5px 1px;border-top:1px solid #e0e0e0;background:#f7f7f7}
+  .pcell{padding:2px 5px;border-bottom:1px solid #ececec;vertical-align:middle}
+  .pname{color:#555;white-space:nowrap;min-width:70px}
+  .puniv{min-width:70px;white-space:nowrap}
+  .plabel{min-width:120px}
+  .pnotes{font-style:italic;color:#777;font-size:7pt}
+  .pconn{font-size:7pt;color:#0055aa;white-space:nowrap}
+
+  @media print{
+    @page{size:letter portrait;margin:0}
+    .rack-section{padding:10mm 12mm 8mm 12mm}
+    body{background:white}
+  }
+</style>
 </head><body>${body}</body></html>`;
+}
+
+// ── Snakes PDF ─────────────────────────────────────────────
+function exportSnakesPDF() { _openPrint(buildSnakesPrintDoc(), 'Snake Lists'); }
+
+function buildSnakesPrintDoc() {
+  const p  = S.project;
+  const dt = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const snakes = (p.snakes||[]).filter(s => !s.orphaned);
+
+  const snakeBlocks = snakes.map(snake => {
+    const typeLbl = snake.type==='cpc8' ? '8-Ch CPC8' : snake.type==='cpc4' ? '4-Ch CPC4' : 'Custom';
+    const color = snake.color || '#555';
+    const locStr = snake.location ? `&nbsp;·&nbsp; ${h(snake.location)}` : '';
+
+    const rows = snake.lines.map(line => {
+      const ci = snakeLineConnInfo(line);
+      const spare = (line.universe||'').toUpperCase().includes('SP');
+      const univColor = spare ? '#cc0066' : '#003388';
+      return `<tr class="${spare?'spare-row':''}">
+        <td class="sc lnum">${line.lineNum}</td>
+        <td class="sc pos">${line.position ? h(line.position) : '<span class="nd">—</span>'}</td>
+        <td class="sc univ">${line.universe
+          ? `<span style="font-weight:700;color:${univColor}">${h(line.universe)}</span>`
+          : '<span class="nd">—</span>'}</td>
+        <td class="sc ffx">${line.firstFixture||''}</td>
+        <td class="sc conn">${ci ? `⟶&nbsp;${h(ci.full)}` : ''}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="snake-block">
+      <div class="snake-hdr" style="border-left:4px solid ${color}">
+        <span class="snake-name" style="color:${color}">${h(snake.name)}</span>
+        <span class="snake-type">${typeLbl}${locStr}</span>
+        <span class="snake-lines">${snake.lines.length} lines</span>
+      </div>
+      <table class="st">
+        <thead><tr>
+          <th class="sc lnum">#</th>
+          <th class="sc pos">Position / Breakout</th>
+          <th class="sc univ">Universe</th>
+          <th class="sc ffx">First FX</th>
+          <th class="sc conn">Break-in Connection</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  return `<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<title>${h(p.name)} — Snake Lists</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  /* ── page layout ── */
+  .page-body{padding:10mm 12mm;columns:1}
+
+  /* ── document header ── */
+  .doc-hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #333;padding-bottom:6px;margin-bottom:10px}
+  .doc-title{font-size:14pt;font-weight:800}
+  .doc-sub{font-size:8pt;color:#666;margin-top:2px}
+  .doc-meta{text-align:right;font-size:8pt;color:#888}
+
+  /* ── snake block (no-split) ── */
+  .snake-block{break-inside:avoid;page-break-inside:avoid;margin-bottom:10px;border:1px solid #ddd;border-radius:3px;overflow:hidden}
+  .snake-hdr{display:flex;align-items:baseline;gap:8px;padding:4px 8px;background:#f4f4f4;border-bottom:1px solid #ccc;flex-wrap:wrap}
+  .snake-name{font-size:11pt;font-weight:800;letter-spacing:-.01em}
+  .snake-type{font-size:7.5pt;color:#666;border:1px solid #bbb;border-radius:3px;padding:1px 5px}
+  .snake-lines{font-size:7.5pt;color:#888;margin-left:auto}
+
+  /* ── snake table ── */
+  .st{width:100%;border-collapse:collapse;font-size:8pt}
+  .st thead tr{background:#444;color:#fff}
+  .st thead th{padding:3px 6px;text-align:left;font-size:7pt;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+  .st tbody tr:nth-child(even) td{background:#fafafa}
+  .spare-row td{background:#fff0f8!important;color:#990055}
+  .sc{padding:2px 6px;border-bottom:1px solid #ececec;vertical-align:middle}
+  .lnum{width:28px;text-align:center;color:#888;font-family:monospace;font-size:7.5pt}
+  .pos{min-width:130px}
+  .univ{min-width:90px;white-space:nowrap}
+  .ffx{width:70px;color:#444}
+  .conn{font-size:7.5pt;color:#0044aa}
+  .nd{color:#ccc}
+
+  @media print{
+    @page{size:letter portrait;margin:0}
+    .page-body{padding:10mm 12mm}
+    body{background:white}
+  }
+</style>
+</head><body>
+<div class="page-body">
+  <div class="doc-hdr">
+    <div>
+      <div class="doc-title">${h(p.name)} &mdash; Snake / Loom Lists</div>
+      <div class="doc-sub">${snakes.length} snakes &nbsp;·&nbsp; v${h(p.version||'1')}</div>
+    </div>
+    <div class="doc-meta">${dt}</div>
+  </div>
+  ${snakeBlocks}
+</div>
+</body></html>`;
 }
 
 // ╔══════════════════════════════════════════════════════════╗
