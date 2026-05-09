@@ -392,7 +392,23 @@ body {
   padding: 1px 5px; background: #0e0e16;
   border-radius: 2px;
 }
-.lib-actions { display: flex; gap: 5px; margin-top: 10px; }
+.lib-actions { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+.lib-badge {
+  display: inline-block; font-size: 7px; font-weight: 800;
+  letter-spacing: .08em; padding: 1px 5px; border-radius: 2px;
+  vertical-align: middle; margin-left: 5px; text-transform: uppercase;
+}
+.lib-badge-builtin  { background: #1a1a2e; color: var(--text-muted); border: 1px solid var(--border-light); }
+.lib-badge-custom   { background: #0a2a1a; color: var(--green); border: 1px solid #1a4a2a; }
+.lib-badge-override { background: #2a1a0a; color: var(--orange); border: 1px solid #4a2a0a; }
+.lib-meta strong { color: var(--text-primary); }
+.btn-ghost {
+  background: transparent; color: var(--text-secondary);
+  border: 1px solid var(--border-light); border-radius: 3px;
+  padding: 3px 8px; font-size: 9px; font-family: inherit;
+  cursor: pointer; letter-spacing: .04em;
+}
+.btn-ghost:hover { color: var(--text-primary); border-color: var(--text-secondary); }
 
 /* ============================================================
    MODALS
@@ -1249,8 +1265,9 @@ const S = {
 };
 
 function getType(id) {
-  return BUILTIN_TYPES.find(t => t.id === id)
-      || S.project?.customTypes?.find(t => t.id === id);
+  // customTypes first — project overrides take priority over built-ins
+  return S.project?.customTypes?.find(t => t.id === id)
+      || BUILTIN_TYPES.find(t => t.id === id);
 }
 
 function allTypes() {
@@ -1692,17 +1709,38 @@ function rEquipBlock(rack, item, idx) {
 
 // ── Library View ──────────────────────────────────────────
 function rLibrary() {
+  // Show built-ins first, then custom-only types
+  const builtinIds = new Set(BUILTIN_TYPES.map(b => b.id));
+  const overriddenIds = new Set((S.project?.customTypes||[]).filter(t => builtinIds.has(t.id)).map(t => t.id));
+  const customOnlyTypes = (S.project?.customTypes||[]).filter(t => !builtinIds.has(t.id));
+
+  // Merge: for each built-in, use overridden version if present, else base
+  const displayTypes = [
+    ...BUILTIN_TYPES.map(b => ({ type: getType(b.id), isBuiltin: true, isOverridden: overriddenIds.has(b.id) })),
+    ...customOnlyTypes.map(t => ({ type: t, isBuiltin: false, isOverridden: false }))
+  ];
+
   return `<div class="lib-grid">
-    ${allTypes().map(t => {
-      const isCustom = !BUILTIN_TYPES.find(b => b.id === t.id);
+    ${displayTypes.map(({ type: t, isBuiltin, isOverridden }) => {
+      const portsByGroup = {};
+      (t.ports||[]).forEach(p => { (portsByGroup[p.group||'Ports'] = portsByGroup[p.group||'Ports']||[]).push(p); });
+      const groupChips = Object.entries(portsByGroup).map(([g, ps]) =>
+        `<span class="lib-port-chip" title="${ps.map(p=>p.name).join(', ')}">${h(g)} ×${ps.length}</span>`
+      ).join('');
+      const statusBadge = isOverridden
+        ? `<span class="lib-badge lib-badge-override">OVERRIDDEN</span>`
+        : isBuiltin
+          ? `<span class="lib-badge lib-badge-builtin">BUILT-IN</span>`
+          : `<span class="lib-badge lib-badge-custom">CUSTOM</span>`;
       return `<div class="lib-card" style="border-left-color:${t.color||'#4a9eff'}">
-        <div class="lib-name">${h(t.name)}</div>
-        <div class="lib-meta">${h(t.manufacturer)||'—'} · ${t.ruHeight}U · ${t.ports.length} ports${isCustom?' · Custom':' · Built-in'}</div>
-        <div class="lib-ports">${t.ports.map(p=>`<span class="lib-port-chip">${h(p.name)}</span>`).join('')}</div>
-        ${isCustom ? `<div class="lib-actions">
-          <button class="btn btn-secondary btn-sm" onclick="openEditType('${t.id}')">Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteType('${t.id}')">Delete</button>
-        </div>` : ''}
+        <div class="lib-name">${h(t.name)} ${statusBadge}</div>
+        <div class="lib-meta">${h(t.manufacturer||'') || (isBuiltin ? 'Built-in' : '—')}${t.model?' · '+h(t.model):''} · <strong>${t.ruHeight}U</strong> · ${(t.ports||[]).length} ports</div>
+        <div class="lib-ports">${groupChips || (t.ports||[]).map(p=>`<span class="lib-port-chip">${h(p.name)}</span>`).join('')}</div>
+        <div class="lib-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openEditType('${t.id}')">${isOverridden ? '✏ Edit Override' : isBuiltin ? '✏ Override' : '✏ Edit'}</button>
+          ${isOverridden ? `<button class="btn btn-ghost btn-sm" onclick="resetTypeOverride('${t.id}')">↩ Reset</button>` : ''}
+          ${!isBuiltin ? `<button class="btn btn-danger btn-sm" onclick="deleteType('${t.id}')">Delete</button>` : ''}
+        </div>
       </div>`;
     }).join('')}
   </div>`;
@@ -2097,9 +2135,11 @@ function rModal() {
   else if (type === 'addType' || type === 'editType') {
     const isEdit = type === 'editType';
     const existing = isEdit ? getType(data.tid) : null;
+    const isBuiltinEdit = isEdit && !!BUILTIN_TYPES.find(b => b.id === data.tid);
     const portsTxt = existing?.ports.map(p=>`${p.name}|${p.group||'Ports'}|${p.type}`).join('\n') || '';
     body = `
-      <div class="modal-title">${isEdit?'Edit':'Add'} Equipment Type</div>
+      <div class="modal-title">${isBuiltinEdit ? 'Override Built-in Equipment Type' : isEdit ? 'Edit Equipment Type' : 'Add Equipment Type'}</div>
+      ${isBuiltinEdit ? `<div class="modal-sub" style="color:var(--orange);margin-bottom:8px">Overrides are saved per-project. Use ↩ Reset in the library to restore defaults.</div>` : ''}
       <div class="fg">
         <label class="flabel">Name</label>
         <input class="finput" id="at-name" value="${h(existing?.name)}" placeholder="e.g. Network Switch" autofocus>
@@ -2130,7 +2170,7 @@ function rModal() {
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="confirmSaveType(${isEdit?`'${data.tid}'`:'null'})">${isEdit?'Save Changes':'Add Type'}</button>
+        <button class="btn btn-primary" onclick="confirmSaveType(${isEdit?`'${data.tid}'`:'null'})">${isBuiltinEdit ? 'Save Override' : isEdit ? 'Save Changes' : 'Add Type'}</button>
       </div>`;
   }
 
@@ -3110,6 +3150,15 @@ function confirmSaveType(existingId) {
 function deleteType(tid) {
   if (!confirm('Delete this equipment type?')) return;
   S.project.customTypes = S.project.customTypes.filter(t=>t.id!==tid);
+  save(); render();
+}
+
+function resetTypeOverride(tid) {
+  // Remove the customTypes override for a built-in type, restoring defaults
+  const builtinIds = new Set(BUILTIN_TYPES.map(b => b.id));
+  if (!builtinIds.has(tid)) return; // safety: only reset built-ins
+  if (!confirm('Reset this equipment type to its built-in defaults? Any customizations will be lost.')) return;
+  S.project.customTypes = S.project.customTypes.filter(t => t.id !== tid);
   save(); render();
 }
 
