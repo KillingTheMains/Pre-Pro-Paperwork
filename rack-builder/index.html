@@ -368,6 +368,56 @@ body {
 .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .3; }
 
 /* ============================================================
+   BULK EDIT VIEW
+   ============================================================ */
+.bulk-wrap { padding: 0 0 40px; overflow-x: auto; }
+.bulk-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 11px; font-family: inherit;
+}
+.bulk-table thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 9px; letter-spacing: .08em; text-transform: uppercase;
+  padding: 7px 10px; text-align: left;
+  border-bottom: 2px solid var(--border-light);
+  white-space: nowrap;
+}
+.bulk-rack-hdr td {
+  background: var(--bg-deep);
+  padding: 10px 12px 5px;
+  font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+}
+.bulk-rack-hdr td .sb-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+.bulk-row td { padding: 1px 4px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.bulk-row:hover td { background: var(--bg-hover); }
+.bulk-type {
+  color: var(--text-muted); font-size: 9.5px; white-space: nowrap;
+  width: 150px; padding-left: 12px !important;
+}
+.bulk-input {
+  width: 100%; background: transparent; border: 1px solid transparent;
+  outline: none; color: var(--text-primary);
+  font-family: inherit; font-size: 11px;
+  padding: 5px 8px; border-radius: 3px;
+  transition: background .1s, border-color .1s;
+}
+.bulk-input:hover { background: var(--bg-card); border-color: var(--border); }
+.bulk-input:focus { background: var(--bg-card); border-color: var(--blue) !important; outline: none; }
+.bulk-input.bulk-ip { color: var(--cyan); font-size: 10.5px; }
+.bulk-input.bulk-notes { color: var(--text-secondary); font-size: 10px; }
+.bulk-na { color: var(--text-muted); padding: 0 10px; font-size: 9px; }
+.bulk-col-rack  { width: 30px; }
+.bulk-col-type  { width: 150px; }
+.bulk-col-label { min-width: 180px; }
+.bulk-col-ip    { width: 160px; }
+.bulk-col-notes { min-width: 200px; }
+.hbtn-bulk-active { background: var(--orange) !important; color: #000 !important; font-weight: 800 !important; }
+
+/* ============================================================
    EQUIPMENT LIBRARY VIEW
    ============================================================ */
 .lib-grid {
@@ -1509,6 +1559,7 @@ function rHeader() {
     <input type="file" id="file-imp" accept=".json" style="display:none" onchange="importJSON(event)">
     <button id="drive-btn" class="hbtn hbtn-ghost" onclick="driveConnect()" title="Connect Google Drive backup" style="color:var(--text-muted)">☁ Drive</button>
     <button class="hbtn hbtn-ghost${S.view==='schematic'?' hbtn-sch-active':''}" onclick="selectSchematic()" title="Network schematic view">⬡ Schematic</button>
+    <button class="hbtn hbtn-ghost${S.view==='bulk'?' hbtn-bulk-active':''}" onclick="selectView('bulk')" title="Bulk edit equipment names and IPs">📋 Gear List</button>
     <button class="hbtn hbtn-ghost" onclick="exportRacksPDF()" title="Export rack layouts as PDF">🖨 Racks PDF</button>
     <button class="hbtn hbtn-primary" onclick="exportSnakesPDF()" title="Export snake/loom lists as PDF">🖨 Snakes PDF</button>
   </header>`;
@@ -1564,11 +1615,21 @@ function rSidebar() {
 function rMain() {
   if (S.view === 'schematic') return `<div id="main" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">${rSchematic()}</div>`;
   return `<div id="main">${rToolbar()}
-    <div id="main-scroll">${S.view==='library' ? rLibrary() : S.view==='snake' ? rSnake() : rRack()}</div>
+    <div id="main-scroll">${S.view==='library' ? rLibrary() : S.view==='snake' ? rSnake() : S.view==='bulk' ? rBulkEdit() : rRack()}</div>
   </div>`;
 }
 
 function rToolbar() {
+  if (S.view === 'bulk') {
+    const totalItems = (S.project?.racks||[]).reduce((n,r)=>n+(r.equipment?.length||0),0);
+    return `<div id="toolbar">
+      <div id="rack-title">Gear List</div>
+      <span style="font-size:9px;color:var(--text-muted)">${totalItems} items across ${(S.project?.racks||[]).length} racks</span>
+      <div class="hspacer"></div>
+      <span style="font-size:9px;color:var(--text-muted)">Click any cell to edit · Tab to advance · Enter to move down</span>
+    </div>`;
+  }
+
   if (S.view === 'library') return `<div id="toolbar">
     <div id="rack-title">Equipment Library</div>
     <div class="hspacer"></div>
@@ -1744,6 +1805,81 @@ function rLibrary() {
       </div>`;
     }).join('')}
   </div>`;
+}
+
+// ── Bulk Edit View ───────────────────────────────────────────
+function rBulkEdit() {
+  const racks = S.project?.racks || [];
+  let rowIdx = 0;
+  const groups = racks.map(rack => {
+    if (!rack.equipment?.length) return '';
+    const itemRows = rack.equipment.map(item => {
+      const t = getType(item.typeId);
+      const ri = rowIdx++;
+      return `<tr class="bulk-row" data-ri="${ri}">
+        <td class="bulk-type">${h(t?.name || item.typeId)}</td>
+        <td><input class="bulk-input" value="${h(item.label||'')}"
+          data-rid="${rack.id}" data-iid="${item.id}" data-field="label"
+          placeholder="Label"
+          onblur="saveBulkField(this)" onkeydown="bulkKeyNav(event,this)"></td>
+        <td>${t?.hasIp !== false
+          ? `<input class="bulk-input bulk-ip" value="${h(item.ip||'')}"
+              data-rid="${rack.id}" data-iid="${item.id}" data-field="ip"
+              placeholder="—"
+              onblur="saveBulkField(this)" onkeydown="bulkKeyNav(event,this)">`
+          : `<span class="bulk-na">—</span>`}
+        </td>
+        <td><input class="bulk-input bulk-notes" value="${h(item.notes||'')}"
+          data-rid="${rack.id}" data-iid="${item.id}" data-field="notes"
+          placeholder="—"
+          onblur="saveBulkField(this)" onkeydown="bulkKeyNav(event,this)"></td>
+      </tr>`;
+    }).join('');
+    return `<tr class="bulk-rack-hdr"><td colspan="4">
+      <span class="sb-dot" style="background:${rack.color}"></span>${h(rack.name)}
+    </td></tr>${itemRows}`;
+  }).join('');
+
+  return `<div class="bulk-wrap">
+    <table class="bulk-table">
+      <thead><tr>
+        <th class="bulk-col-type">Type</th>
+        <th class="bulk-col-label">Label</th>
+        <th class="bulk-col-ip">IP Address</th>
+        <th class="bulk-col-notes">Notes</th>
+      </tr></thead>
+      <tbody>${groups}</tbody>
+    </table>
+  </div>`;
+}
+
+function saveBulkField(el) {
+  const rid   = el.dataset.rid;
+  const iid   = el.dataset.iid;
+  const field = el.dataset.field;
+  const val   = el.value.trim();
+  const rack  = S.project?.racks?.find(r => r.id === rid);
+  const item  = rack?.equipment?.find(e => e.id === iid);
+  if (!item) return;
+  item[field] = val;
+  save();
+}
+
+function bulkKeyNav(event, el) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    // Move to same field in the next data row
+    const field = el.dataset.field;
+    let row = el.closest('tr').nextElementSibling;
+    while (row) {
+      if (row.classList.contains('bulk-row')) {
+        const inp = row.querySelector(`input[data-field="${field}"]`);
+        if (inp) { inp.focus(); try { inp.select(); } catch(e) {} return; }
+      }
+      row = row.nextElementSibling;
+    }
+  }
+  // Tab is handled natively — browser moves to next input in DOM order
 }
 
 // ── Snake View ───────────────────────────────────────────────
