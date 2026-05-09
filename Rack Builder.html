@@ -1834,9 +1834,12 @@ function rModal() {
     const psSnake    = (S.project.snakes||[]).find(s=>s.id===psSnakeId);
     const psLine     = psSnake?.lines.find(l=>l.id===psLineId);
     const hasSnake   = !!(psSnakeId && psLineId);
-    const allSnakes  = S.project.snakes || [];
+    // Spare snakes (pink/SP) have no heads — exclude from port assignment
+    const isSpareSnake = s => s.color === '#ec4899' || / SP$/i.test((s.name||'').trim());
+    const isSpareSnakeLine = l => (l.universe||'').toUpperCase().includes('SP');
+    const allSnakes  = (S.project.snakes || []).filter(s => !isSpareSnake(s));
     const psLineOpts = psSnake
-      ? psSnake.lines.map(l=>{
+      ? psSnake.lines.filter(l => !isSpareSnakeLine(l)).map(l=>{
           const d=[l.lineNum,l.position,l.universe].filter(Boolean).join(' · ');
           return `<option value="${l.id}" ${l.id===psLineId?'selected':''}>${d}</option>`;
         }).join('')
@@ -2892,11 +2895,13 @@ function onPortSnakeChange() {
   const lineSel = document.getElementById('ps-line');
   if (!lineSel) return;
   const snake = (S.project.snakes||[]).find(s=>s.id===snakeId);
+  // Filter out spare lines (universe contains "SP") — spares have no heads
+  const activeLines = snake ? snake.lines.filter(l => !(l.universe||'').toUpperCase().includes('SP')) : [];
   lineSel.innerHTML = '<option value="">— Line —</option>' +
-    (snake ? snake.lines.map(l => {
+    activeLines.map(l => {
       const d = [l.lineNum, l.position, l.universe].filter(Boolean).join(' · ');
       return `<option value="${l.id}">${d}</option>`;
-    }).join('') : '');
+    }).join('');
 }
 
 function onConnRackChange() {
