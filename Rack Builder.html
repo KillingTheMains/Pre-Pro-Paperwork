@@ -3678,7 +3678,8 @@ function buildSnakesPrintDoc() {
   const dt      = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
   // Include ALL snakes — orphaned ones are dimmed but still printed
   const allSnakes = (p.snakes||[]);
-  const totalLines = allSnakes.reduce((s,sn)=>s+(sn.lines?.length||0),0);
+  // Spare lines (universe contains "SP") are excluded from the export
+  const totalLines = allSnakes.reduce((s,sn)=>s+(sn.lines||[]).filter(l=>!(l.universe||'').toUpperCase().includes('SP')).length, 0);
 
   const snakeBlocks = allSnakes.map(snake => {
     const typeLbl = snake.type==='cpc8' ? 'CPC8 · 8-Channel'
@@ -3689,13 +3690,14 @@ function buildSnakesPrintDoc() {
     const orphan  = !!snake.orphaned;
 
     // Pale version of color for header band
-    const rows = (snake.lines||[]).map((line, li) => {
-      const ci    = snakeLineConnInfo(line);
-      const spare = (line.universe||'').toUpperCase().includes('SP');
-      const hasAnyData = line.universe || line.position || line.firstFixture || ci;
-      const univColor  = spare ? '#aa0055' : '#003388';
+    // Spare lines (universe contains "SP") are excluded from the export
+    const activeLines = (snake.lines||[]).filter(line => !(line.universe||'').toUpperCase().includes('SP'));
 
-      return `<tr class="${spare?'spare-row':li%2===1?'alt-row':''}">
+    const rows = activeLines.map((line, li) => {
+      const ci        = snakeLineConnInfo(line);
+      const univColor = '#003388';
+
+      return `<tr class="${li%2===1?'alt-row':''}">
         <td class="c-ln">${line.lineNum}</td>
         <td class="c-pos">${h(line.position||'')}</td>
         <td class="c-univ">${line.universe
@@ -3706,9 +3708,9 @@ function buildSnakesPrintDoc() {
       </tr>`;
     }).join('');
 
-    // Count assigned lines (have at least a universe)
-    const assigned = (snake.lines||[]).filter(l=>l.universe).length;
-    const total    = (snake.lines||[]).length;
+    // Count assigned lines (have at least a universe, exclude spares)
+    const assigned = activeLines.filter(l=>l.universe).length;
+    const total    = activeLines.length;
 
     return `<div class="sblk${orphan?' sblk-orphan':''}">
       <div class="shdr" style="border-left:5px solid ${color}${orphan?';opacity:.55':''}">
