@@ -112,6 +112,28 @@ tr:hover .td-actions{opacity:1;}
 .build-tbl tr:last-child td{border-bottom:none;}
 .build-subgroup-hdr td{background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.1em;padding:5px 14px;border-top:2px solid var(--border);border-bottom:1px solid var(--border);text-transform:uppercase;}
 .build-subgroup-hdr:first-child td{border-top:none;}
+
+/* ── ASSEMBLY VIEW ── */
+.asm-section{margin-bottom:28px;}
+.asm-section-header{display:flex;align-items:center;gap:12px;padding:10px 16px;border:1px solid var(--border);border-radius:8px 8px 0 0;background:var(--surface2);}
+.asm-section-header h3{font-size:14px;font-weight:700;}
+.asm-section-body{border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;}
+.asm-part-block{padding:12px 16px;border-bottom:1px solid var(--border);}
+.asm-part-block:last-child{border-bottom:none;}
+.asm-part-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.asm-bundle{background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:8px;}
+.asm-bundle:last-child{margin-bottom:0;}
+.asm-bundle-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.asm-bundle-length{font-size:13px;font-weight:700;font-family:ui-monospace,'SF Mono','Fira Code',monospace;color:var(--text);}
+.asm-bundle-count{font-size:11px;color:var(--muted);background:var(--surface2);padding:2px 8px;border-radius:10px;}
+.asm-bundle-solo{font-size:11px;color:var(--muted);font-style:italic;margin-left:auto;}
+.asm-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.asm-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:5px;font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,.08);}
+.asm-chip-type{font-size:9px;font-weight:700;letter-spacing:.05em;opacity:.75;}
+.asm-drops-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;}
+.asm-drop{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:5px;background:var(--surface3);border:1px solid var(--border);font-size:11px;}
+.asm-drop-len{font-family:ui-monospace,'SF Mono','Fira Code',monospace;font-weight:700;color:var(--accent);margin-left:auto;white-space:nowrap;}
+.asm-empty{padding:16px;text-align:center;color:var(--muted);font-size:12px;}
 .checkbox-col{width:28px;text-align:center;}
 input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
 
@@ -189,7 +211,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
   .scroll-area,.table-wrap{overflow:visible;}
   .build-section-header{background:#eee!important;border-color:#ccc!important;}
   .build-tbl td,.build-tbl th{border-color:#ccc!important;color:#000!important;}
-  #tab-overview,#tab-cables,#tab-inventory,#tab-settings{display:none!important;}
+  #tab-overview,#tab-cables,#tab-inventory,#tab-settings,#tab-assembly{display:none!important;}
   #tab-build{display:block!important;}
 }
 </style>
@@ -220,6 +242,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
   <div class="tab active" data-tab="overview" onclick="switchTab(this)">Overview</div>
   <div class="tab" data-tab="cables" onclick="switchTab(this)">Cables <span id="cable-tab-count" style="color:var(--muted);font-size:11px"></span></div>
   <div class="tab" data-tab="build" onclick="switchTab(this)">Build List</div>
+  <div class="tab" data-tab="assembly" onclick="switchTab(this)">Loom Assembly</div>
   <div class="tab" data-tab="inventory" onclick="switchTab(this)">Cable Inventory</div>
   <div class="tab" data-tab="settings" onclick="switchTab(this)">⚙ Settings</div>
 </div>
@@ -286,6 +309,16 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
     <span class="results-count" id="build-count-label"></span>
   </div>
   <div class="scroll-area" style="padding-top:0;" id="build-list"></div>
+</div>
+
+<!-- ── LOOM ASSEMBLY ── -->
+<div class="content" id="tab-assembly">
+  <div class="toolbar">
+    <button class="btn btn-sm" onclick="window.print()">🖨 Print</button>
+    <input class="search-box" type="text" id="asm-search" placeholder="Filter location…" oninput="renderAssembly()" style="max-width:260px;">
+    <span class="results-count" id="asm-count-label"></span>
+  </div>
+  <div class="scroll-area" style="padding-top:0;" id="assembly-list"></div>
 </div>
 
 <!-- ── INVENTORY ── -->
@@ -821,6 +854,7 @@ function renderAll() {
   if (activeTab==='overview')   renderOverview();
   if (activeTab==='cables')     renderCables();
   if (activeTab==='build')      renderBuild();
+  if (activeTab==='assembly')   renderAssembly();
   if (activeTab==='inventory')  renderInventory();
   if (activeTab==='settings')   renderSettings();
 }
@@ -1051,6 +1085,94 @@ function renderBuild() {
 
   el.innerHTML = html || '<div class="empty-state"><p style="color:var(--muted)">No cables match your filter.</p></div>';
   countEl.textContent = `${total} cables`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOOM ASSEMBLY VIEW
+// ═══════════════════════════════════════════════════════════
+function renderAssembly() {
+  const s = getShow();
+  const q = (document.getElementById('asm-search').value || '').toLowerCase();
+  const el = document.getElementById('assembly-list');
+  const countEl = document.getElementById('asm-count-label');
+
+  if (!s.cables.length) {
+    el.innerHTML = '<div class="empty-state"><h3>No cables yet</h3><p>Add cables to generate a loom assembly view.</p></div>';
+    countEl.textContent = '';
+    return;
+  }
+
+  const PART_NAMES = ['Part 1','Part 2','Part 3','Part 4','Part 5','Part 6'];
+  const trussColorMap = _getTrussColorMap();
+
+  let locCount = 0;
+  const html = s.locations.map(loc => {
+    let cables = s.cables.filter(c => c.locationId === loc.id);
+    if (q) cables = cables.filter(c => loc.name.toLowerCase().includes(q));
+    if (!cables.length) return '';
+    locCount++;
+
+    const tbColor = _trussColorFromName(loc.name, trussColorMap);
+    const color = tbColor || COLORS[loc.color] || '#444';
+
+    // For each part slot (0–5), collect cables that have a value
+    const partBlocks = PART_NAMES.map((partName, pi) => {
+      const withPart = cables.filter(c => c.parts && c.parts[pi] && String(c.parts[pi]).trim());
+      if (!withPart.length) return '';
+
+      // Group by length value
+      const byLen = {};
+      withPart.forEach(c => {
+        const len = String(c.parts[pi]).trim();
+        if (!byLen[len]) byLen[len] = [];
+        byLen[len].push(c);
+      });
+
+      const lenEntries = Object.entries(byLen).sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+
+      // Decide layout: if ALL cables share one length → one big bundle
+      // Otherwise: bundles for groups of 2+, drops grid for singles
+      const bundleHtml = lenEntries.map(([len, group]) => {
+        const isSolo = group.length === 1;
+        const chips = group.map(c => {
+          const ts = TYPE_STYLE[c.type] || { bg: '#333', fg: '#aaa' };
+          return `<span class="asm-chip" style="background:${ts.bg};color:${ts.fg}">
+            <span class="asm-chip-type">${esc(c.type)}</span>
+            ${esc(c.label)}
+          </span>`;
+        }).join('');
+
+        return `<div class="asm-bundle">
+          <div class="asm-bundle-header">
+            <span class="asm-bundle-length">${esc(len)}'</span>
+            <span class="asm-bundle-count">${group.length} cable${group.length !== 1 ? 's' : ''}</span>
+            ${isSolo ? '<span class="asm-bundle-solo">individual drop</span>' : ''}
+          </div>
+          <div class="asm-chips">${chips}</div>
+        </div>`;
+      }).join('');
+
+      return `<div class="asm-part-block">
+        <div class="asm-part-label">${partName}</div>
+        ${bundleHtml}
+      </div>`;
+    }).filter(Boolean).join('');
+
+    if (!partBlocks) return '';
+
+    return `<div class="asm-section">
+      <div class="asm-section-header" style="border-left:4px solid ${color};border-color:${color};">
+        <div style="width:14px;height:14px;border-radius:4px;background:${color};flex-shrink:0"></div>
+        <h3>${esc(loc.name)}</h3>
+        ${loc.color ? `<span style="font-size:11px;color:#000;background:${color};padding:2px 8px;border-radius:4px;font-weight:600">${loc.color}</span>` : ''}
+        <span class="build-count">${cables.length} cable${cables.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="asm-section-body">${partBlocks}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  el.innerHTML = html || '<div class="empty-state"><p style="color:var(--muted)">No locations match your filter.</p></div>';
+  countEl.textContent = locCount ? `${locCount} location${locCount !== 1 ? 's' : ''}` : '';
 }
 
 // ═══════════════════════════════════════════════════════════
