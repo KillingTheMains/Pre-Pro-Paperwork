@@ -110,6 +110,8 @@ tr:hover .td-actions{opacity:1;}
 .build-tbl th{background:var(--surface);padding:6px 14px;font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em;border-bottom:1px solid var(--border);position:static;}
 .build-tbl td{padding:8px 14px;border-bottom:1px solid var(--border);}
 .build-tbl tr:last-child td{border-bottom:none;}
+.build-subgroup-hdr td{background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.1em;padding:5px 14px;border-top:2px solid var(--border);border-bottom:1px solid var(--border);text-transform:uppercase;}
+.build-subgroup-hdr:first-child td{border-top:none;}
 .checkbox-col{width:28px;text-align:center;}
 input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
 
@@ -567,6 +569,15 @@ const TYPE_STYLE = {
   EDISON:         {bg:'#ff9f0a',fg:'#000000'},
 };
 
+// Cable sub-groups for Build View
+const CABLE_GROUPS = [
+  { label: 'MULTI CABLE', types: ['SOCAPEX','CPC8','CPC4'] },
+  { label: 'DMX',         types: ['2X DMX','DMX 2X','DMX','DMX 2x','DMX 3x','DMX 4x'] },
+  { label: 'DATA',        types: ['QM-8','FIBER','ETHERCON','ETHERCON 2x','ETHERCON 3x','ETHERCON 4x','CAT5','CAT6'] },
+  { label: 'POWER',       types: ['POWER','EDISON'] },
+  { label: 'OTHER',       types: ['OTHER'] },
+];
+
 const PARTS_HINTS = {
   SOCAPEX:  'Pt1=from distro, Pt2=trunk run, Pt3–6=on-truss/drops',
   DMX:      'Pt1=from node, Pt2=trunk, Pt3=last leg (if looped)',
@@ -992,7 +1003,9 @@ function renderBuild() {
     const tbColor = _trussColorFromName(loc.name, _getTrussColorMap());
     const color = tbColor || COLORS[loc.color] || '#444';
     const chkCol = checklist ? '<th class="checkbox-col"></th>' : '';
-    const rows = cables.map(c => {
+    const colSpan = checklist ? 7 : 6;
+
+    function cableRow(c) {
       const ts = TYPE_STYLE[c.type]||{bg:'#333',fg:'#aaa'};
       const partsStr = c.parts.filter(p=>p).map(p=>`${p}'`).join(' + ') || '—';
       const colorStr = c.color ? `<span class="color-chip" style="background:${COLORS[c.color]||'#444'}"></span>${c.color}` : '—';
@@ -1006,7 +1019,22 @@ function renderBuild() {
         <td style="color:var(--muted)">${esc(c.breakout)||'—'}</td>
         <td style="color:var(--muted)">${esc(c.loomId)||'—'}</td>
       </tr>`;
+    }
+
+    // Build rows grouped by cable category, with sub-headers
+    const assignedTypes = CABLE_GROUPS.flatMap(g => g.types);
+    const groupedRows = CABLE_GROUPS.map(grp => {
+      const grpCables = cables.filter(c => grp.types.includes(c.type));
+      if (!grpCables.length) return '';
+      return `<tr class="build-subgroup-hdr"><td colspan="${colSpan}">${grp.label}</td></tr>` +
+             grpCables.map(cableRow).join('');
     }).join('');
+    // Catch-all for any types not covered by a group
+    const uncategorized = cables.filter(c => !assignedTypes.includes(c.type));
+    const extraRows = uncategorized.length
+      ? `<tr class="build-subgroup-hdr"><td colspan="${colSpan}">UNCATEGORIZED</td></tr>` + uncategorized.map(cableRow).join('')
+      : '';
+    const rows = groupedRows + extraRows;
     return `<div class="build-section">
       <div class="build-section-header" style="background:var(--surface2);border-color:${color};border-left:4px solid ${color}">
         <div style="width:14px;height:14px;border-radius:4px;background:${color};flex-shrink:0"></div>
