@@ -1703,12 +1703,16 @@ function _buildPDFBlob(truss) {
         doc.rect(x, y, fmt.w, fmt.h, 'S');
       }
 
-      let fs = 120;
+      // Compute font size analytically (mirrors screen preview logic).
+      // Helvetica Bold avg char advance ≈ 0.62 em; 1 pt = 0.3528 mm.
+      const MM_PER_PT = 0.3528;
+      const CHAR_ADV  = 0.62;
+      const fsByH = (maxH * 0.80) / MM_PER_PT;          // cap height ≈ 80% of label
+      const fsByW = text.length > 0
+        ? maxW / (text.length * CHAR_ADV * MM_PER_PT)
+        : fsByH;
+      const fs = Math.max(Math.floor(Math.min(fsByH, fsByW, 120)), 10);
       doc.setFontSize(fs);
-      while (fs > 10) {
-        if (doc.getTextDimensions(text).w <= maxW) break;
-        fs -= 2; doc.setFontSize(fs);
-      }
       doc.setTextColor(labelColorEnabled ? (isDark ? 255 : 0) : 0);
       doc.text(text, x + fmt.w / 2, y + fmt.h / 2, { align: 'center', baseline: 'middle' });
     }
