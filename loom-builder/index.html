@@ -951,6 +951,24 @@ function filterToLoc(locId) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// TRUSS COLOR SYNC (reads tb_project from Truss Builder)
+// ═══════════════════════════════════════════════════════════
+function _getTrussColorMap() {
+  try {
+    const p = JSON.parse(localStorage.getItem('tb_project'));
+    const map = {};
+    (p?.trusses || []).forEach(t => { if (t.name && t.color) map[t.name.toUpperCase()] = t.color; });
+    return map;
+  } catch(e) { return {}; }
+}
+function _trussColorFromName(name, map) {
+  if (!name || !map) return null;
+  const tokens = name.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+  for (const tok of tokens) { if (map[tok]) return map[tok]; }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════
 // BUILD LIST
 // ═══════════════════════════════════════════════════════════
 function renderBuild() {
@@ -971,7 +989,8 @@ function renderBuild() {
     if (q) cables = cables.filter(c=>[c.label,c.type,c.loomId,c.notes].join(' ').toLowerCase().includes(q));
     if (!cables.length) return '';
     total += cables.length;
-    const color = COLORS[loc.color]||'#444';
+    const tbColor = _trussColorFromName(loc.name, _getTrussColorMap());
+    const color = tbColor || COLORS[loc.color] || '#444';
     const chkCol = checklist ? '<th class="checkbox-col"></th>' : '';
     const rows = cables.map(c => {
       const ts = TYPE_STYLE[c.type]||{bg:'#333',fg:'#aaa'};
@@ -1629,6 +1648,11 @@ _ppsApplyShowName();  // adopt suite show name if this is a fresh show
 
 // Cross-tab sync: if pps_suite show name changes in another tab, update header display
 window.addEventListener('storage', e => {
+  if (e.key === 'tb_project') {
+    const activeTab = document.querySelector('.tab.active')?.dataset?.tab;
+    if (activeTab === 'build') renderBuild();
+    return;
+  }
   if (e.key === PPS_KEY) {
     const suite = _ppsGet();
     if (suite.showName) {
