@@ -635,7 +635,7 @@ function persistSave() {
 }
 
 // ── Pre-Pro Suite shared state ────────────────────────────
-const BUILD   = '2026.05.11';
+const BUILD   = '2026.05.11 13:21';
 const PPS_KEY = 'pps_suite';
 function _ppsGet() { try { return JSON.parse(localStorage.getItem(PPS_KEY))||{}; } catch(e){return{};} }
 function _ppsSet(u) { const s=_ppsGet(); Object.assign(s,u); localStorage.setItem(PPS_KEY,JSON.stringify(s)); }

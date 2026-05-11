@@ -836,7 +836,7 @@ const TRUSS_LIBRARY = [
 // ═══════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════
-const BUILD     = '2026.05.11';
+const BUILD     = '2026.05.11 13:21';
 const STORE_KEY = 'tb_project';
 const PPS_KEY   = 'pps_suite';
 
@@ -1698,12 +1698,6 @@ function _buildPDFBlob(truss) {
       const text = labels[i];
       const maxW = fmt.w - 6, maxH = fmt.h - 4;
 
-      if (!labelColorEnabled) {
-        // Light dashed outline so the label boundaries are visible
-        doc.setDrawColor(180);
-        doc.setLineWidth(0.15);
-        doc.rect(x, y, fmt.w, fmt.h, 'S');
-      }
 
       // Compute font size analytically (mirrors screen preview logic).
       // Helvetica Bold avg char advance ≈ 0.62 em; 1 pt = 0.3528 mm.
