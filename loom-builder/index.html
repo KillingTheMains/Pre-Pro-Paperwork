@@ -119,6 +119,9 @@ tr:hover .td-actions{opacity:1;}
 .parts-bar-label{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding-top:10px;min-width:32px;flex-shrink:0;}
 .part-cell-inline{display:flex;flex-direction:column;gap:2px;min-width:64px;flex:1;}
 .part-num-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:center;}
+/* Location group header */
+.cable-loc-header tr:hover td{background:transparent!important;}
+.cable-loc-header td{border-bottom:none;}
 /* Add row */
 .cable-add-row td{border-bottom:none;padding:4px 6px;}
 .cable-add-btn{background:none;border:1px dashed var(--border);border-radius:4px;color:var(--muted);font-size:11px;font-family:inherit;cursor:pointer;padding:5px 14px;transition:all .15s;}
@@ -971,41 +974,37 @@ function _colorOptions(sel) {
   ).join('');
 }
 
+// 8 columns (no Location col — shown in group header instead)
+const CBL_COLS = 8;
+
 function _cableRowHtml(c) {
-  const locColor = (() => { const l=getShow().locations.find(x=>x.id===c.locationId); return l?(COLORS[l.color]||'#555'):'#555'; })();
-  const chipColor = COLORS[c.color] || 'transparent';
+  const chipColor    = COLORS[c.color]    || 'transparent';
   const secChipColor = COLORS[c.secColor] || 'transparent';
   const id = c.id;
 
-  // Row 1 — identity fields
   const r1 = `<tr class="cable-r1">
-    <td style="min-width:130px">
-      <span class="color-chip-inline" id="loc-chip-${id}" style="background:${locColor}"></span>
-      <select class="cbl-sel" style="width:calc(100% - 16px)" onchange="saveCableFieldInline(this,'${id}','locationId')" onkeydown="cblNav(event,this)">${_locOptions(c.locationId)}</select>
-    </td>
-    <td style="min-width:90px"><input class="cbl-inp" value="${esc(c.label||'')}" placeholder="Label" onblur="saveCableFieldInline(this,'${id}','label')" onkeydown="cblNav(event,this)"></td>
-    <td style="min-width:100px">
+    <td style="min-width:100px"><input class="cbl-inp" value="${esc(c.label||'')}" placeholder="Label" onblur="saveCableFieldInline(this,'${id}','label')" onkeydown="cblNav(event,this)"></td>
+    <td style="min-width:96px">
       <div class="col-color-wrap">
         <span class="color-chip-inline" id="clr-chip-${id}" style="background:${chipColor}"></span>
         <select class="cbl-sel" style="flex:1" onchange="saveCableFieldInline(this,'${id}','color')" onkeydown="cblNav(event,this)">${_colorOptions(c.color||'')}</select>
       </div>
     </td>
-    <td style="min-width:100px">
+    <td style="min-width:96px">
       <div class="col-color-wrap">
         <span class="color-chip-inline" id="sec-chip-${id}" style="background:${secChipColor}"></span>
         <select class="cbl-sel" style="flex:1" onchange="saveCableFieldInline(this,'${id}','secColor')" onkeydown="cblNav(event,this)">${_colorOptions(c.secColor||'')}</select>
       </div>
     </td>
-    <td style="min-width:100px"><select class="cbl-sel" onchange="saveCableFieldInline(this,'${id}','type')" onkeydown="cblNav(event,this)">${_typeOptions(c.type||'SOCAPEX')}</select></td>
-    <td style="min-width:80px"><input class="cbl-inp" value="${esc(c.breakout||'')}" placeholder="B/O" onblur="saveCableFieldInline(this,'${id}','breakout')" onkeydown="cblNav(event,this)"></td>
-    <td style="min-width:90px"><input class="cbl-inp" value="${esc(c.loomId||'')}" placeholder="Loom/Case" onblur="saveCableFieldInline(this,'${id}','loomId')" onkeydown="cblNav(event,this)"></td>
-    <td style="min-width:120px"><input class="cbl-inp" value="${esc(c.notes||'')}" placeholder="Notes" onblur="saveCableFieldInline(this,'${id}','notes')" onkeydown="cblNav(event,this)"></td>
+    <td style="min-width:96px"><select class="cbl-sel" onchange="saveCableFieldInline(this,'${id}','type')" onkeydown="cblNav(event,this)">${_typeOptions(c.type||'SOCAPEX')}</select></td>
+    <td style="min-width:72px"><input class="cbl-inp" value="${esc(c.breakout||'')}" placeholder="B/O" onblur="saveCableFieldInline(this,'${id}','breakout')" onkeydown="cblNav(event,this)"></td>
+    <td style="min-width:88px"><input class="cbl-inp" value="${esc(c.loomId||'')}" placeholder="Loom/Case" onblur="saveCableFieldInline(this,'${id}','loomId')" onkeydown="cblNav(event,this)"></td>
+    <td style="min-width:110px"><input class="cbl-inp" value="${esc(c.notes||'')}" placeholder="Notes" onblur="saveCableFieldInline(this,'${id}','notes')" onkeydown="cblNav(event,this)"></td>
     <td style="width:28px;text-align:center"><button class="cbl-del" onclick="confirmDeleteCable('${id}')" title="Delete">✕</button></td>
   </tr>`;
 
-  // Row 2 — parts bar
   const slots = [0,1,2,3,4,5].map(pi => {
-    const len = (c.parts && c.parts[pi]) ? c.parts[pi] : '';
+    const len = (c.parts         && c.parts[pi])         ? c.parts[pi]         : '';
     const pos = (c.partPositions && c.partPositions[pi]) ? c.partPositions[pi] : '';
     return `<div class="part-cell-inline">
       <span class="part-num-label">PT ${pi+1}</span>
@@ -1017,11 +1016,8 @@ function _cableRowHtml(c) {
   }).join('');
 
   const r2 = `<tr class="cable-r2">
-    <td colspan="9">
-      <div class="parts-bar">
-        <span class="parts-bar-label">PARTS</span>
-        ${slots}
-      </div>
+    <td colspan="${CBL_COLS}">
+      <div class="parts-bar"><span class="parts-bar-label">PARTS</span>${slots}</div>
     </td>
   </tr>`;
 
@@ -1030,57 +1026,112 @@ function _cableRowHtml(c) {
 
 function renderCables() {
   const s = getShow();
-  // Populate filters
-  const locSel = document.getElementById('filter-loc');
+
+  // ── rebuild filter dropdowns, saving & restoring selections ──
+  const locSel  = document.getElementById('filter-loc');
   const typeSel = document.getElementById('filter-type');
-  const curLoc = locSel.value, curType = typeSel.value;
+  const savedLoc  = locSel.value;
+  const savedType = typeSel.value;
   locSel.innerHTML = '<option value="">All Locations</option>' +
-    s.locations.map(l=>`<option value="${l.id}" ${l.id===curLoc?'selected':''}>${esc(l.name)}</option>`).join('');
-  const allTypes = [...new Set(s.cables.map(c=>c.type))].sort();
+    s.locations.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
+  locSel.value = savedLoc;   // restore — no selected attr needed
+  const allTypes = [...new Set(s.cables.map(c => c.type))].sort();
   typeSel.innerHTML = '<option value="">All Types</option>' +
-    allTypes.map(t=>`<option value="${t}" ${t===curType?'selected':''}>${t}</option>`).join('');
+    allTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+  typeSel.value = savedType;
 
-  const q = document.getElementById('cable-search').value.toLowerCase();
-  const locF = locSel.value;
-  const typeF = typeSel.value;
+  // ── use saved values for filtering (don't re-read DOM) ──
+  const q     = document.getElementById('cable-search').value.toLowerCase().trim();
+  const locF  = savedLoc;
+  const typeF = savedType;
 
-  let cables = s.cables.filter(c =>
-    (!locF  || c.locationId===locF) &&
-    (!typeF || c.type===typeF) &&
-    (!q     || [c.label,getLocName(c.locationId),c.type,c.loomId,c.notes].join(' ').toLowerCase().includes(q))
-  );
-
-  cables.sort((a,b) => {
-    let va = cableSort.col==='location' ? getLocName(a.locationId) : (a[cableSort.col]||'');
-    let vb = cableSort.col==='location' ? getLocName(b.locationId) : (b[cableSort.col]||'');
-    return cableSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
-  });
-
-  document.getElementById('cable-count-label').textContent = `${cables.length} of ${s.cables.length}`;
-  const wrap = document.getElementById('cables-table-wrap');
+  const wrap  = document.getElementById('cables-table-wrap');
   const empty = document.getElementById('cables-empty');
 
-  if (!s.cables.length) { wrap.innerHTML=''; wrap.appendChild(empty); empty.style.display='block'; return; }
-  empty.style.display='none';
+  if (!s.cables.length) {
+    wrap.innerHTML = '';
+    wrap.appendChild(empty);
+    empty.style.display = 'block';
+    document.getElementById('cable-count-label').textContent = '';
+    return;
+  }
+  empty.style.display = 'none';
 
-  const sortArrow = dir => dir ? ' ↑' : ' ↓';
+  // ── thead (8 cols, no Location col) ──
   const thead = `<thead><tr>
-    <th class="sortable" onclick="sortCables('location')" style="min-width:130px">Location${cableSort.col==='location'?sortArrow(cableSort.asc):''}</th>
-    <th class="sortable" onclick="sortCables('label')" style="min-width:90px">Label${cableSort.col==='label'?sortArrow(cableSort.asc):''}</th>
-    <th style="min-width:100px">Color</th>
-    <th style="min-width:100px">Sec Color</th>
-    <th class="sortable" onclick="sortCables('type')" style="min-width:100px">Type${cableSort.col==='type'?sortArrow(cableSort.asc):''}</th>
-    <th style="min-width:80px">B/O</th>
-    <th style="min-width:90px">Loom/Case</th>
-    <th style="min-width:120px">Notes</th>
+    <th class="sortable" onclick="sortCables('label')" style="min-width:100px">Label${cableSort.col==='label'?' ↑':''}</th>
+    <th style="min-width:96px">Color</th>
+    <th style="min-width:96px">Sec Color</th>
+    <th class="sortable" onclick="sortCables('type')" style="min-width:96px">Type${cableSort.col==='type'?' ↑':''}</th>
+    <th style="min-width:72px">B/O</th>
+    <th style="min-width:88px">Loom/Case</th>
+    <th style="min-width:110px">Notes</th>
     <th style="width:28px"></th>
   </tr></thead>`;
 
-  const addRow = `<tbody class="cable-add-row"><tr><td colspan="9">
+  // ── group by location (using s.locations order) ──
+  let totalShown = 0;
+  const trussColorMap = _getTrussColorMap();
+
+  const groupHtml = s.locations.map(loc => {
+    // get cables for this location, apply filters
+    let cables = s.cables.filter(c => c.locationId === loc.id);
+    if (locF  && loc.id !== locF)  return ''; // location filter hides whole group
+    if (typeF) cables = cables.filter(c => c.type === typeF);
+    if (q)     cables = cables.filter(c =>
+      [c.label, c.type, c.loomId, c.notes, c.breakout].join(' ').toLowerCase().includes(q)
+    );
+    if (!cables.length) return '';
+
+    // sort within group
+    cables.sort((a, b) => {
+      const va = a[cableSort.col] || '';
+      const vb = b[cableSort.col] || '';
+      return cableSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+    totalShown += cables.length;
+
+    const tbColor = _trussColorFromName(loc.name, trussColorMap);
+    const color   = tbColor || COLORS[loc.color] || '#555';
+
+    // group header row
+    const groupHeader = `<tbody class="cable-loc-header">
+      <tr>
+        <td colspan="${CBL_COLS}" style="padding:10px 10px 6px;border-bottom:2px solid ${color};background:var(--surface2);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="width:12px;height:12px;border-radius:3px;background:${color};display:inline-block;flex-shrink:0"></span>
+            <span style="font-weight:700;font-size:13px">${esc(loc.name)}</span>
+            <span style="font-size:11px;color:var(--muted)">${cables.length} cable${cables.length!==1?'s':''}</span>
+            <button class="cable-add-btn" style="margin-left:auto;padding:2px 10px;font-size:11px"
+              onclick="addCableToLoc('${loc.id}')">+ Add</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>`;
+
+    return groupHeader + cables.map(_cableRowHtml).join('');
+  }).filter(Boolean).join('');
+
+  // cables with no location (orphaned)
+  let orphans = s.cables.filter(c => !s.locations.find(l => l.id === c.locationId));
+  if (typeF) orphans = orphans.filter(c => c.type === typeF);
+  if (q)     orphans = orphans.filter(c =>
+    [c.label, c.type, c.loomId, c.notes].join(' ').toLowerCase().includes(q)
+  );
+  const orphanHtml = orphans.length ? `<tbody class="cable-loc-header">
+    <tr><td colspan="${CBL_COLS}" style="padding:8px 10px;background:var(--surface2);border-bottom:2px solid #555;color:var(--muted);font-size:11px;font-weight:700;">
+      NO LOCATION (${orphans.length})
+    </td></tr>
+  </tbody>` + orphans.map(_cableRowHtml).join('') : '';
+
+  const addRow = `<tbody class="cable-add-row"><tr><td colspan="${CBL_COLS}" style="padding:6px 10px;">
     <button class="cable-add-btn" onclick="addCableRow()">+ Add Cable</button>
   </td></tr></tbody>`;
 
-  wrap.innerHTML = `<table>${thead}${cables.map(_cableRowHtml).join('')}${addRow}</table>`;
+  document.getElementById('cable-count-label').textContent =
+    `${totalShown + orphans.length} of ${s.cables.length}`;
+
+  wrap.innerHTML = `<table>${thead}${groupHtml}${orphanHtml}${addRow}</table>`;
 }
 
 function sortCables(col) {
@@ -1131,11 +1182,15 @@ function cblNav(e, el) {
   }
 }
 
-function addCableRow() {
+function addCableToLoc(locId) {
+  addCableRow(locId);
+}
+
+function addCableRow(locId) {
   const s = getShow();
   const newCable = {
     id: 'c_' + Date.now(),
-    locationId: s.locations[0]?.id || '',
+    locationId: locId || s.locations[0]?.id || '',
     label: '',
     color: '',
     secColor: '',
