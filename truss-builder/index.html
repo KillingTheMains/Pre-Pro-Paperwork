@@ -552,6 +552,7 @@
   <header>
     <div id="logo">📐 Truss Builder</div>
     <div id="show-name"></div>
+    <span id="build-badge" style="font-size:9px;color:var(--dim);letter-spacing:.04em;white-space:nowrap"></span>
     <div class="hspacer"></div>
     <a class="hbtn" href="../index.html">← Suite</a>
     <button class="hbtn" onclick="chooseSaveDir()" id="folder-btn" title="Set save folder for PDFs">📁 <span class="save-dir-label">Set Folder</span></button>
@@ -835,6 +836,7 @@ const TRUSS_LIBRARY = [
 // ═══════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════
+const BUILD     = '2026.05.11';
 const STORE_KEY = 'tb_project';
 const PPS_KEY   = 'pps_suite';
 
@@ -2424,6 +2426,7 @@ function renderAll() {
   renderLabelsPicker();
   renderLabelPreview();
   document.getElementById('show-name').textContent = project.name || '';
+  document.getElementById('build-badge').textContent = 'build ' + BUILD;
   document.title = (project.name || 'Truss Builder') + ' · Truss Builder';
 }
 

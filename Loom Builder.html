@@ -203,6 +203,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
     <span class="show-meta" id="show-meta-display"></span>
   </div>
   <span class="save-status saved" id="save-status">● Saved</span>
+  <span id="build-badge" style="font-size:9px;color:var(--muted);opacity:.5;letter-spacing:.04em;white-space:nowrap"></span>
   <div class="header-btns">
     <button class="btn btn-sm" onclick="openShowPicker()" title="Switch or manage shows">Shows ▾</button>
     <button id="drive-btn" class="btn btn-sm" onclick="driveConnect()" title="Connect Google Drive backup" style="color:var(--muted)">☁ Drive</button>
@@ -634,6 +635,7 @@ function persistSave() {
 }
 
 // ── Pre-Pro Suite shared state ────────────────────────────
+const BUILD   = '2026.05.11';
 const PPS_KEY = 'pps_suite';
 function _ppsGet() { try { return JSON.parse(localStorage.getItem(PPS_KEY))||{}; } catch(e){return{};} }
 function _ppsSet(u) { const s=_ppsGet(); Object.assign(s,u); localStorage.setItem(PPS_KEY,JSON.stringify(s)); }
@@ -1622,6 +1624,7 @@ function getLocName(id) {
 // ═══════════════════════════════════════════════════════════
 buildColorPickers();
 renderAll();
+document.getElementById('build-badge').textContent = 'build ' + BUILD;
 _ppsApplyShowName();  // adopt suite show name if this is a fresh show
 
 // Cross-tab sync: if pps_suite show name changes in another tab, update header display

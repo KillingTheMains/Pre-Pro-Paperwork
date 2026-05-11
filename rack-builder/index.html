@@ -917,6 +917,7 @@ const BUILTIN_TYPES = [
 // ╔══════════════════════════════════════════════════════════╗
 // ║  PRE-PRO SUITE SHARED STATE                              ║
 // ╚══════════════════════════════════════════════════════════╝
+const BUILD    = '2026.05.11';
 const PPS_KEY  = 'pps_suite';
 const LOOM_KEY = 'loom_builder_shows';
 const LOOM_ACTIVE_KEY = 'loom_builder_active';
@@ -1553,6 +1554,7 @@ function rHeader() {
     <div id="logo">⚡ Rack Builder</div>
     <div id="project-name" onclick="openRenameProj()">${h(S.project?.name)}</div>
     <span style="font-size:9px;color:var(--text-muted)">v${h(S.project?.version||'1')}</span>
+    <span style="font-size:9px;color:var(--text-muted);opacity:.5;letter-spacing:.04em">build ${BUILD}</span>
     <div class="hspacer"></div>
     <button class="hbtn hbtn-ghost" onclick="exportJSON()">Export JSON</button>
     <button class="hbtn hbtn-ghost" onclick="trigImport()">Import JSON</button>
