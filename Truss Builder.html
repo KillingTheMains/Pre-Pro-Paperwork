@@ -2156,16 +2156,17 @@ async function generateBuildOrderPDF() {
   doc.line(ML, MT + 14, PW - MR, MT + 14);
 
   // ── Column definitions (portrait, contentW ≈ 191.9mm) ────
+  // Pieces + End Labels need the most room — trim #/swatch/Name/Type/Color/Length
   const cols = [
-    { label: '#',          w: 8,   align: 'center' },
-    { label: '',           w: 7,   align: 'center' },  // color swatch
-    { label: 'Name',       w: 12,  align: 'left'   },
-    { label: 'Type',       w: 32,  align: 'left'   },
-    { label: 'Color',      w: 15,  align: 'left'   },
-    { label: 'Length',     w: 13,  align: 'center' },
-    { label: 'Pieces',     w: 44,  align: 'left'   },
-    { label: 'End Labels', w: 36,  align: 'left'   },
-    { label: 'Notes',      w: 0,   align: 'left'   },  // fills remainder
+    { label: '#',          w: 7,   align: 'center' },
+    { label: '',           w: 6,   align: 'center' },  // color swatch
+    { label: 'Name',       w: 10,  align: 'left'   },
+    { label: 'Type',       w: 24,  align: 'left'   },
+    { label: 'Color',      w: 12,  align: 'left'   },
+    { label: 'Length',     w: 10,  align: 'center' },
+    { label: 'Pieces',     w: 52,  align: 'left'   },
+    { label: 'End Labels', w: 52,  align: 'left'   },
+    { label: 'Notes',      w: 0,   align: 'left'   },  // fills remainder (~18mm)
   ];
   const fixedW = cols.slice(0, -1).reduce((s, c) => s + c.w, 0);
   cols[cols.length - 1].w = Math.max(10, contentW - fixedW);
@@ -2178,7 +2179,7 @@ async function generateBuildOrderPDF() {
   doc.setFillColor(40, 40, 50);
   doc.rect(ML, y, contentW, hdrH, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setTextColor(200, 200, 210);
   let cx = ML;
   cols.forEach(c => {
@@ -2234,8 +2235,8 @@ async function generateBuildOrderPDF() {
       } else {
         const tx = col.align === 'center' ? cx + col.w / 2 : cx + 1.5;
         const maxW = col.w - 3;
-        if (ci === 0 || ci === 2) { doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); }
-        else { doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); }
+        if (ci === 0 || ci === 2) { doc.setFont('helvetica', 'bold'); doc.setFontSize(8); }
+        else { doc.setFont('helvetica', 'normal'); doc.setFontSize(7); }
         doc.setTextColor(50, 50, 50);
         const lines = doc.splitTextToSize(val, maxW);
         doc.text(lines[0], tx, y + rowH / 2 + 1.5, { align: col.align === 'center' ? 'center' : 'left' });
