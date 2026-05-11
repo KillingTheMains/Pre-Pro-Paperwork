@@ -91,7 +91,7 @@ table{width:100%;border-collapse:collapse;min-width:700px;}
 th{text-align:left;padding:8px 10px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;top:0;background:var(--bg);z-index:1;}
 th.sortable{cursor:pointer;}
 th.sortable:hover{color:var(--text);}
-td{padding:7px 10px;border-bottom:1px solid #1c2433;vertical-align:middle;white-space:nowrap;}
+td{padding:4px 6px;border-bottom:1px solid #1c2433;vertical-align:middle;white-space:nowrap;}
 tr:hover td{background:var(--surface2);}
 .td-actions{display:flex;gap:4px;opacity:0;transition:opacity .1s;}
 tr:hover .td-actions{opacity:1;}
@@ -100,6 +100,33 @@ tr:hover .td-actions{opacity:1;}
 .parts-str{color:var(--muted);font-size:11px;font-family:'SF Mono','Fira Code',monospace;}
 .empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
 .empty-state h3{font-size:18px;color:var(--text);margin-bottom:8px;}
+
+/* ── INLINE SPREADSHEET ── */
+.cable-group .cable-r1 td{border-bottom:none;padding:4px 6px;}
+.cable-group .cable-r2 td{background:var(--surface3);border-bottom:2px solid var(--border);padding:4px 8px 6px;}
+.cable-group:hover .cable-r1 td,.cable-group:hover .cable-r2 td{background:rgba(255,255,255,.02);}
+.cable-group .cable-r2 td:hover{background:transparent;}
+.cbl-inp,.cbl-sel{background:transparent;border:1px solid transparent;color:var(--text);padding:4px 6px;border-radius:4px;width:100%;font-family:inherit;font-size:13px;outline:none;min-width:0;}
+.cbl-inp:focus,.cbl-sel:focus,.cbl-inp:hover,.cbl-sel:hover{background:var(--surface);border-color:var(--border);}
+.cbl-inp:focus,.cbl-sel:focus{border-color:var(--accent);}
+.cbl-sel{cursor:pointer;-webkit-appearance:none;padding-right:18px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center;}
+.cbl-inp-len{font-family:ui-monospace,'SF Mono','Fira Code',monospace;text-align:center;}
+.cbl-inp-pos{font-size:11px;}
+.color-chip-inline{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:middle;margin-right:4px;flex-shrink:0;}
+.col-color-wrap{display:flex;align-items:center;gap:0;}
+/* Parts bar (row 2) */
+.parts-bar{display:flex;gap:10px;align-items:flex-start;flex-wrap:nowrap;}
+.parts-bar-label{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding-top:10px;min-width:32px;flex-shrink:0;}
+.part-cell-inline{display:flex;flex-direction:column;gap:2px;min-width:64px;flex:1;}
+.part-num-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:center;}
+/* Add row */
+.cable-add-row td{border-bottom:none;padding:4px 6px;}
+.cable-add-btn{background:none;border:1px dashed var(--border);border-radius:4px;color:var(--muted);font-size:11px;font-family:inherit;cursor:pointer;padding:5px 14px;transition:all .15s;}
+.cable-add-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* Compact delete btn */
+.cbl-del{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 5px;border-radius:3px;line-height:1;opacity:0;}
+.cable-group:hover .cbl-del{opacity:1;}
+.cbl-del:hover{color:var(--danger);background:rgba(248,81,73,.1);}
 
 /* ── BUILD LIST ── */
 .build-section{margin-bottom:24px;}
@@ -254,7 +281,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
     <button id="drive-btn" class="btn btn-sm" onclick="driveConnect()" title="Connect Google Drive backup" style="color:var(--muted)">☁ Drive</button>
     <button class="btn btn-sm" onclick="importShow()" title="Load show from JSON file">Import</button>
     <button class="btn btn-sm" onclick="exportShow()" title="Save show as JSON file">Export</button>
-    <button class="btn btn-primary btn-sm" onclick="openAddCable()">+ Add Cable</button>
+    <button class="btn btn-primary btn-sm" onclick="addCableRow()">+ Add Cable</button>
   </div>
 </div>
 
@@ -295,26 +322,11 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
     <button class="btn btn-sm" onclick="exportCSV()">↓ CSV</button>
     <button class="btn btn-sm" onclick="exportLightwright()">↓ Lightwright</button>
   </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th class="sortable" onclick="sortCables('location')">Location</th>
-          <th class="sortable" onclick="sortCables('label')">Label</th>
-          <th>Color</th>
-          <th class="sortable" onclick="sortCables('type')">Type</th>
-          <th>Parts (ft)</th>
-          <th>Breakout</th>
-          <th>Loom / Case</th>
-          <th style="width:80px"></th>
-        </tr>
-      </thead>
-      <tbody id="cable-tbody"></tbody>
-    </table>
+  <div class="table-wrap" id="cables-table-wrap">
     <div id="cables-empty" class="empty-state" style="display:none;">
       <h3>No cables yet</h3>
       <p style="margin-bottom:16px;">Add your first cable to get started.</p>
-      <button class="btn btn-primary" onclick="openAddCable()">+ Add Cable</button>
+      <button class="btn btn-primary" onclick="addCableRow()">+ Add Cable</button>
     </div>
   </div>
 </div>
@@ -941,6 +953,81 @@ function renderOverview() {
 // ═══════════════════════════════════════════════════════════
 // CABLES TABLE
 // ═══════════════════════════════════════════════════════════
+// ── helpers for inline cable editing ──────────────────────
+const CABLE_TYPES = ['SOCAPEX','CPC8','CPC4','2X DMX','DMX 2X','QM-8','FIBER','ETHERCON','CAT5','CAT6','POWER','OTHER'];
+const COLOR_NAMES_LIST = ['','RED','ORANGE','YELLOW','GREEN','BLUE','PURPLE','GREY','TEAL','WHITE','PINK','CYAN','LIME','BROWN','BLACK'];
+
+function _locOptions(selectedId) {
+  return getShow().locations.map(l =>
+    `<option value="${l.id}" ${l.id===selectedId?'selected':''}>${esc(l.name)}</option>`
+  ).join('');
+}
+function _typeOptions(sel) {
+  return CABLE_TYPES.map(t => `<option value="${t}" ${t===sel?'selected':''}>${t}</option>`).join('');
+}
+function _colorOptions(sel) {
+  return COLOR_NAMES_LIST.map(n =>
+    `<option value="${n}" ${n===sel?'selected':''}>${n||'—'}</option>`
+  ).join('');
+}
+
+function _cableRowHtml(c) {
+  const locColor = (() => { const l=getShow().locations.find(x=>x.id===c.locationId); return l?(COLORS[l.color]||'#555'):'#555'; })();
+  const chipColor = COLORS[c.color] || 'transparent';
+  const secChipColor = COLORS[c.secColor] || 'transparent';
+  const id = c.id;
+
+  // Row 1 — identity fields
+  const r1 = `<tr class="cable-r1">
+    <td style="min-width:130px">
+      <span class="color-chip-inline" id="loc-chip-${id}" style="background:${locColor}"></span>
+      <select class="cbl-sel" style="width:calc(100% - 16px)" onchange="saveCableFieldInline(this,'${id}','locationId')" onkeydown="cblNav(event,this)">${_locOptions(c.locationId)}</select>
+    </td>
+    <td style="min-width:90px"><input class="cbl-inp" value="${esc(c.label||'')}" placeholder="Label" onblur="saveCableFieldInline(this,'${id}','label')" onkeydown="cblNav(event,this)"></td>
+    <td style="min-width:100px">
+      <div class="col-color-wrap">
+        <span class="color-chip-inline" id="clr-chip-${id}" style="background:${chipColor}"></span>
+        <select class="cbl-sel" style="flex:1" onchange="saveCableFieldInline(this,'${id}','color')" onkeydown="cblNav(event,this)">${_colorOptions(c.color||'')}</select>
+      </div>
+    </td>
+    <td style="min-width:100px">
+      <div class="col-color-wrap">
+        <span class="color-chip-inline" id="sec-chip-${id}" style="background:${secChipColor}"></span>
+        <select class="cbl-sel" style="flex:1" onchange="saveCableFieldInline(this,'${id}','secColor')" onkeydown="cblNav(event,this)">${_colorOptions(c.secColor||'')}</select>
+      </div>
+    </td>
+    <td style="min-width:100px"><select class="cbl-sel" onchange="saveCableFieldInline(this,'${id}','type')" onkeydown="cblNav(event,this)">${_typeOptions(c.type||'SOCAPEX')}</select></td>
+    <td style="min-width:80px"><input class="cbl-inp" value="${esc(c.breakout||'')}" placeholder="B/O" onblur="saveCableFieldInline(this,'${id}','breakout')" onkeydown="cblNav(event,this)"></td>
+    <td style="min-width:90px"><input class="cbl-inp" value="${esc(c.loomId||'')}" placeholder="Loom/Case" onblur="saveCableFieldInline(this,'${id}','loomId')" onkeydown="cblNav(event,this)"></td>
+    <td style="min-width:120px"><input class="cbl-inp" value="${esc(c.notes||'')}" placeholder="Notes" onblur="saveCableFieldInline(this,'${id}','notes')" onkeydown="cblNav(event,this)"></td>
+    <td style="width:28px;text-align:center"><button class="cbl-del" onclick="confirmDeleteCable('${id}')" title="Delete">✕</button></td>
+  </tr>`;
+
+  // Row 2 — parts bar
+  const slots = [0,1,2,3,4,5].map(pi => {
+    const len = (c.parts && c.parts[pi]) ? c.parts[pi] : '';
+    const pos = (c.partPositions && c.partPositions[pi]) ? c.partPositions[pi] : '';
+    return `<div class="part-cell-inline">
+      <span class="part-num-label">PT ${pi+1}</span>
+      <input class="cbl-inp cbl-inp-len" type="number" min="1" value="${esc(String(len))}" placeholder="ft"
+        onblur="saveCablePartInline(this,'${id}',${pi},false)" onkeydown="cblNav(event,this)">
+      <input class="cbl-inp cbl-inp-pos" type="text" value="${esc(String(pos))}" placeholder="position"
+        onblur="saveCablePartInline(this,'${id}',${pi},true)" onkeydown="cblNav(event,this)">
+    </div>`;
+  }).join('');
+
+  const r2 = `<tr class="cable-r2">
+    <td colspan="9">
+      <div class="parts-bar">
+        <span class="parts-bar-label">PARTS</span>
+        ${slots}
+      </div>
+    </td>
+  </tr>`;
+
+  return `<tbody class="cable-group" data-id="${id}">${r1}${r2}</tbody>`;
+}
+
 function renderCables() {
   const s = getShow();
   // Populate filters
@@ -954,8 +1041,8 @@ function renderCables() {
     allTypes.map(t=>`<option value="${t}" ${t===curType?'selected':''}>${t}</option>`).join('');
 
   const q = document.getElementById('cable-search').value.toLowerCase();
-  const locF = document.getElementById('filter-loc').value;
-  const typeF = document.getElementById('filter-type').value;
+  const locF = locSel.value;
+  const typeF = typeSel.value;
 
   let cables = s.cables.filter(c =>
     (!locF  || c.locationId===locF) &&
@@ -963,7 +1050,6 @@ function renderCables() {
     (!q     || [c.label,getLocName(c.locationId),c.type,c.loomId,c.notes].join(' ').toLowerCase().includes(q))
   );
 
-  // Sort
   cables.sort((a,b) => {
     let va = cableSort.col==='location' ? getLocName(a.locationId) : (a[cableSort.col]||'');
     let vb = cableSort.col==='location' ? getLocName(b.locationId) : (b[cableSort.col]||'');
@@ -971,41 +1057,103 @@ function renderCables() {
   });
 
   document.getElementById('cable-count-label').textContent = `${cables.length} of ${s.cables.length}`;
-  const tbody = document.getElementById('cable-tbody');
+  const wrap = document.getElementById('cables-table-wrap');
   const empty = document.getElementById('cables-empty');
 
-  if (!s.cables.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  if (!s.cables.length) { wrap.innerHTML=''; wrap.appendChild(empty); empty.style.display='block'; return; }
   empty.style.display='none';
 
-  tbody.innerHTML = cables.map(c => {
-    const loc = s.locations.find(l=>l.id===c.locationId);
-    const color = COLORS[c.color]||'#444';
-    const locColor = loc ? (COLORS[loc.color]||'#444') : '#444';
-    const ts = TYPE_STYLE[c.type]||{bg:'#333',fg:'#aaa'};
-    const partsStr = c.parts.filter(p=>p).map(p=>`${p}'`).join(' + ');
-    return `<tr>
-      <td>
-        <span class="color-chip" style="background:${locColor}"></span>
-        ${esc(getLocName(c.locationId))}
-      </td>
-      <td><strong>${esc(c.label)}</strong></td>
-      <td><span class="color-chip" style="background:${color}"></span>${c.color||'—'}</td>
-      <td><span class="type-badge" style="background:${ts.bg};color:${ts.fg}">${c.type}</span></td>
-      <td class="parts-str">${partsStr||'—'}</td>
-      <td style="color:var(--muted)">${esc(c.breakout)||'—'}</td>
-      <td style="color:var(--muted)">${esc(c.loomId)||'—'}</td>
-      <td><div class="td-actions">
-        <button class="btn-icon btn-sm" onclick="openEditCable('${c.id}')" title="Edit">✎</button>
-        <button class="btn-icon btn-sm" onclick="confirmDeleteCable('${c.id}')" title="Delete" style="color:var(--danger)">✕</button>
-      </div></td>
-    </tr>`;
-  }).join('');
+  const sortArrow = dir => dir ? ' ↑' : ' ↓';
+  const thead = `<thead><tr>
+    <th class="sortable" onclick="sortCables('location')" style="min-width:130px">Location${cableSort.col==='location'?sortArrow(cableSort.asc):''}</th>
+    <th class="sortable" onclick="sortCables('label')" style="min-width:90px">Label${cableSort.col==='label'?sortArrow(cableSort.asc):''}</th>
+    <th style="min-width:100px">Color</th>
+    <th style="min-width:100px">Sec Color</th>
+    <th class="sortable" onclick="sortCables('type')" style="min-width:100px">Type${cableSort.col==='type'?sortArrow(cableSort.asc):''}</th>
+    <th style="min-width:80px">B/O</th>
+    <th style="min-width:90px">Loom/Case</th>
+    <th style="min-width:120px">Notes</th>
+    <th style="width:28px"></th>
+  </tr></thead>`;
+
+  const addRow = `<tbody class="cable-add-row"><tr><td colspan="9">
+    <button class="cable-add-btn" onclick="addCableRow()">+ Add Cable</button>
+  </td></tr></tbody>`;
+
+  wrap.innerHTML = `<table>${thead}${cables.map(_cableRowHtml).join('')}${addRow}</table>`;
 }
 
 function sortCables(col) {
   if (cableSort.col===col) cableSort.asc=!cableSort.asc;
   else { cableSort.col=col; cableSort.asc=true; }
   renderCables();
+}
+
+function saveCableFieldInline(el, cableId, field) {
+  const s = getShow();
+  const cable = s.cables.find(c => c.id === cableId);
+  if (!cable) return;
+  cable[field] = el.value;
+  markDirty();
+  // update dependent DOM elements without re-render
+  if (field === 'locationId') {
+    const loc = s.locations.find(l => l.id === el.value);
+    const chip = document.getElementById('loc-chip-' + cableId);
+    if (chip) chip.style.background = loc ? (COLORS[loc.color]||'#555') : '#555';
+  }
+  if (field === 'color') {
+    const chip = document.getElementById('clr-chip-' + cableId);
+    if (chip) chip.style.background = COLORS[el.value] || 'transparent';
+  }
+  if (field === 'secColor') {
+    const chip = document.getElementById('sec-chip-' + cableId);
+    if (chip) chip.style.background = COLORS[el.value] || 'transparent';
+  }
+}
+
+function saveCablePartInline(el, cableId, pi, isPos) {
+  const s = getShow();
+  const cable = s.cables.find(c => c.id === cableId);
+  if (!cable) return;
+  const field = isPos ? 'partPositions' : 'parts';
+  if (!cable[field]) cable[field] = [];
+  while (cable[field].length <= pi) cable[field].push('');
+  cable[field][pi] = el.value.trim();
+  markDirty();
+}
+
+function cblNav(e, el) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const all = [...document.querySelectorAll('#cables-table-wrap input.cbl-inp, #cables-table-wrap select.cbl-sel')];
+    const idx = all.indexOf(el);
+    if (idx >= 0 && idx < all.length - 1) all[idx + 1].focus();
+  }
+}
+
+function addCableRow() {
+  const s = getShow();
+  const newCable = {
+    id: 'c_' + Date.now(),
+    locationId: s.locations[0]?.id || '',
+    label: '',
+    color: '',
+    secColor: '',
+    type: 'SOCAPEX',
+    parts: [],
+    partPositions: [],
+    breakout: '',
+    loomId: '',
+    notes: '',
+  };
+  s.cables.push(newCable);
+  markDirty();
+  renderCables();
+  // focus label field of new row
+  setTimeout(() => {
+    const row = document.querySelector(`[data-id="${newCable.id}"] .cable-r1 input.cbl-inp`);
+    if (row) { row.focus(); row.scrollIntoView({block:'center',behavior:'smooth'}); }
+  }, 40);
 }
 
 function filterToLoc(locId) {
