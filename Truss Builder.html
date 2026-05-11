@@ -379,7 +379,7 @@
       font-family: Arial, Helvetica, sans-serif;
       font-weight: 900; text-align: center;
       line-height: 1; padding: 4px;
-      word-break: break-all;
+      white-space: nowrap; overflow: hidden;
     }
     .sheet-label-empty {
       background: #f5f5f5; border: 1px dashed #ddd;
@@ -1579,14 +1579,16 @@ function renderLabelPreview() {
   const marginTpx = fmt.marginTop  * mm2px;
   const marginLpx = fmt.marginLeft * mm2px;
 
-  const maxFontPx = labelHpx * 0.78;
-  let fontSize    = maxFontPx;
-  if (labels[0]) {
-    const textLen  = labels.reduce((a,l) => Math.max(a, l.length), 0);
-    const maxChars = (labelWpx - 12) / (maxFontPx * 0.55);
-    if (textLen > maxChars) fontSize = fontSize * maxChars / textLen;
-    fontSize = Math.min(fontSize, maxFontPx);
-    fontSize = Math.max(fontSize, 8);
+  // Size font to fit the longest label on one line within the label width.
+  // Bold Helvetica/Arial char width ≈ 0.62 × fontSize (em).
+  const maxFontByH = labelHpx * 0.72;
+  let fontSize = maxFontByH;
+  if (labels.length > 0) {
+    const maxLen    = labels.reduce((a,l) => Math.max(a, l.length), 0);
+    const availW    = labelWpx - 12;
+    const fontByW   = availW / (maxLen * 0.62);
+    fontSize = Math.min(maxFontByH, fontByW);
+    fontSize = Math.max(fontSize, 7);
   }
 
   const fmtBtns = Object.values(LABEL_FORMATS).map(f =>
@@ -1704,8 +1706,7 @@ function _buildPDFBlob(truss) {
       let fs = 120;
       doc.setFontSize(fs);
       while (fs > 10) {
-        const dims = doc.getTextDimensions(text);
-        if (dims.w <= maxW && dims.h <= maxH) break;
+        if (doc.getTextDimensions(text).w <= maxW) break;
         fs -= 2; doc.setFontSize(fs);
       }
       doc.setTextColor(labelColorEnabled ? (isDark ? 255 : 0) : 0);
