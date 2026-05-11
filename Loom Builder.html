@@ -75,7 +75,7 @@ input,select,textarea{font-family:inherit;font-size:13px;}
 .ov-icon-btn:hover{background:var(--surface2);color:var(--text);}
 .ov-add-cable-row{padding:6px 14px 2px;}
 .ov-add-cable-btn{background:none;border:1px dashed var(--border);border-radius:4px;color:var(--muted);font-size:11px;font-family:inherit;cursor:pointer;padding:4px 10px;width:100%;text-align:left;}
-.ov-add-cable-btn:hover{border-color:var(--accent,#3dd68c);color:var(--accent,#3dd68c);}
+.ov-add-cable-btn:hover{border-color:var(--accent,#00cc44);color:var(--accent,#00cc44);}
 .ov-loc-count{font-size:10px;color:var(--muted);padding:4px 14px 2px;}
 
 /* ── TOOLBAR ── */
@@ -533,20 +533,20 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);}
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════
 const COLORS = {
-  RED:    '#ff3b30',
-  ORANGE: '#ff6b00',
+  RED:    '#ff2020',
+  ORANGE: '#ff6600',
   YELLOW: '#ffcc00',
-  GREEN:  '#30d158',
-  BLUE:   '#0a84ff',
-  PURPLE: '#bf5af2',
-  GREY:   '#98989d',
-  TEAL:   '#40c8e0',
-  BLACK:  '#3a3a3c',
-  WHITE:  '#e5e5ea',
-  PINK:   '#ff2d78',
-  LIME:   '#b8e000',
-  CYAN:   '#00c7be',
-  BROWN:  '#ac8560',
+  GREEN:  '#00cc44',
+  BLUE:   '#0066ff',
+  PURPLE: '#9900ff',
+  GREY:   '#808080',
+  TEAL:   '#00ccaa',
+  BLACK:  '#111111',
+  WHITE:  '#f0f0f0',
+  PINK:   '#ff0099',
+  LIME:   '#aadd00',
+  CYAN:   '#00ccff',
+  BROWN:  '#cc4400',
 };
 
 const TYPE_STYLE = {
@@ -767,10 +767,10 @@ function _driveSetUI(state) {
   if (!btn) return;
   const cfg = {
     disconnected: ['☁ Drive',      '#888',    'Connect Google Drive backup',              'driveConnect()'],
-    pending:      ['☁ Drive',      '#facc15', 'Waiting to sync…',                         ''],
-    syncing:      ['☁ Syncing…',   '#22d3ee', 'Syncing to Google Drive…',                 ''],
-    synced:       ['☁ Drive ✓',    '#3dd68c', 'Backed up to Drive — click to disconnect', 'driveDisconnect()'],
-    error:        ['☁ Sync Error', '#f97316', 'Sync failed — click to retry',             '_driveSyncNow()'],
+    pending:      ['☁ Drive',      '#ffcc00', 'Waiting to sync…',                         ''],
+    syncing:      ['☁ Syncing…',   '#00ccff', 'Syncing to Google Drive…',                 ''],
+    synced:       ['☁ Drive ✓',    '#00cc44', 'Backed up to Drive — click to disconnect', 'driveDisconnect()'],
+    error:        ['☁ Sync Error', '#ff6600', 'Sync failed — click to retry',             '_driveSyncNow()'],
   }[state] || ['☁ Drive','#888','','driveConnect()'];
   btn.textContent = cfg[0]; btn.style.color = cfg[1];
   btn.title = cfg[2]; btn.setAttribute('onclick', cfg[3]);

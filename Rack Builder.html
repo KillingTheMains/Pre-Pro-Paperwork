@@ -19,14 +19,14 @@
   --text-secondary:#8888a4;
   --text-muted:   #50505e;
 
-  --blue:   #4a9eff;
-  --green:  #3dd68c;
-  --purple: #a855f7;
-  --orange: #f97316;
-  --pink:   #ec4899;
-  --cyan:   #22d3ee;
-  --yellow: #facc15;
-  --red:    #ef4444;
+  --blue:   #0066ff;
+  --green:  #00cc44;
+  --purple: #9900ff;
+  --orange: #ff6600;
+  --pink:   #ff0099;
+  --cyan:   #00ccff;
+  --yellow: #ffcc00;
+  --red:    #ff2020;
 
   --sidebar-w: 220px;
   --header-h:  50px;
@@ -706,11 +706,11 @@ body {
 // ║  CONSTANTS & HELPERS                                     ║
 // ╚══════════════════════════════════════════════════════════╝
 
-const COLORS = ['#4a9eff','#3dd68c','#a855f7','#f97316','#ec4899','#22d3ee','#facc15','#ef4444','#f0f0f0','#9ca3af','#14b8a6'];
+const COLORS = ['#0066ff','#00cc44','#9900ff','#ff6600','#ff0099','#00ccff','#ffcc00','#ff2020','#f0f0f0','#808080','#00ccaa'];
 const COLOR_NAMES = {
-  '#4a9eff':'BLUE', '#3dd68c':'GREEN', '#a855f7':'PURPLE',
-  '#f97316':'ORANGE', '#ec4899':'PINK', '#22d3ee':'CYAN',
-  '#facc15':'YELLOW', '#ef4444':'RED', '#f0f0f0':'WHITE', '#9ca3af':'GREY', '#14b8a6':'TEAL'
+  '#0066ff':'BLUE', '#00cc44':'GREEN', '#9900ff':'PURPLE',
+  '#ff6600':'ORANGE', '#ff0099':'PINK', '#00ccff':'CYAN',
+  '#ffcc00':'YELLOW', '#ff2020':'RED', '#f0f0f0':'WHITE', '#808080':'GREY', '#00ccaa':'TEAL'
 };
 function rackColorName(rack) {
   return COLOR_NAMES[(rack?.color||'').toLowerCase()] || '';
@@ -756,7 +756,7 @@ const BUILTIN_TYPES = [
   {
     id: 'ma3_npu', name: 'MA3 NPU',
     manufacturer: 'grandMA', model: 'NPU 3',
-    ruHeight: 2, color: '#4a9eff', hasIp: true,
+    ruHeight: 2, color: '#0066ff', hasIp: true,
     ports: [
       { id:'port_a', name:'Port A', group:'DMX Out', type:'output' },
       { id:'port_b', name:'Port B', group:'DMX Out', type:'output' },
@@ -771,7 +771,7 @@ const BUILTIN_TYPES = [
   {
     id: 'proplex_iq2', name: 'Proplex IQ II',
     manufacturer: 'Entertainment Technology', model: 'Proplex IQ II',
-    ruHeight: 1, color: '#f97316', hasIp: true,
+    ruHeight: 1, color: '#ff6600', hasIp: true,
     ports: [
       { id:'port_a', name:'Port A', group:'DMX Out', type:'output' },
       { id:'port_b', name:'Port B', group:'DMX Out', type:'output' },
@@ -794,7 +794,7 @@ const BUILTIN_TYPES = [
   {
     id: 'optosplitter', name: 'Optosplitter (1×5)',
     manufacturer: 'Elation / Various', model: '1×5 DMX',
-    ruHeight: 1, color: '#3dd68c', hasIp: false,
+    ruHeight: 1, color: '#00cc44', hasIp: false,
     ports: [
       { id:'in',         name:'In',         group:'DMX', type:'input'  },
       { id:'pass_thru',  name:'Pass-Thru',  group:'DMX', type:'output' },
@@ -810,7 +810,7 @@ const BUILTIN_TYPES = [
   {
     id: 'proplex_iq1616', name: 'Proplex IQ Two 1616',
     manufacturer: 'ProPlex / TMB', model: 'IQ Two 1616',
-    ruHeight: 2, color: '#f97316', hasIp: true,
+    ruHeight: 2, color: '#ff6600', hasIp: true,
     ports: [
       { id:'dmx_1',  name:'DMX 1',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
       { id:'dmx_2',  name:'DMX 2',  group:'DMX Ports (16 × XLR5 Bidirectional)', type:'output' },
@@ -837,7 +837,7 @@ const BUILTIN_TYPES = [
   {
     id: 'gigacore10', name: 'GigaCore 10',
     manufacturer: 'Luminex', model: 'GigaCore 10',
-    ruHeight: 1, color: '#22d3ee', hasIp: true,
+    ruHeight: 1, color: '#00ccff', hasIp: true,
     ports: [
       { id:'eth_f1', name:'ETH 1',   group:'EtherCon — Front (4×)',  type:'network' },
       { id:'eth_f2', name:'ETH 2',   group:'EtherCon — Front (4×)',  type:'network' },
@@ -855,7 +855,7 @@ const BUILTIN_TYPES = [
   {
     id: 'luminode12', name: 'LumiNode 12',
     manufacturer: 'Luminex', model: 'LumiNode 12',
-    ruHeight: 1, color: '#a855f7', hasIp: true,
+    ruHeight: 1, color: '#9900ff', hasIp: true,
     ports: [
       { id:'dmx_1',  name:'DMX 1',  group:'DMX / RDM Ports', type:'output' },
       { id:'dmx_2',  name:'DMX 2',  group:'DMX / RDM Ports', type:'output' },
@@ -878,7 +878,7 @@ const BUILTIN_TYPES = [
   {
     id: 'lumisplit210', name: 'LumiSplit 2.10',
     manufacturer: 'Luminex', model: 'LumiSplit 2.10',
-    ruHeight: 1, color: '#3dd68c', hasIp: false,
+    ruHeight: 1, color: '#00cc44', hasIp: false,
     ports: [
       { id:'in_f1',  name:'In 1 (Front)', group:'DMX Input — 4× XLR5M',  type:'input'  },
       { id:'in_f2',  name:'In 2 (Front)', group:'DMX Input — 4× XLR5M',  type:'input'  },
@@ -901,7 +901,7 @@ const BUILTIN_TYPES = [
   {
     id: 'swisson_xsr', name: 'Swisson XSR',
     manufacturer: 'Swisson', model: 'XSR-5 / XSP-5',
-    ruHeight: 1, color: '#ec4899', hasIp: false,
+    ruHeight: 1, color: '#ff0099', hasIp: false,
     ports: [
       { id:'in',       name:'In',     group:'DMX',  type:'input'  },
       { id:'thru',     name:'Thru',   group:'DMX',  type:'output' },
@@ -927,10 +927,10 @@ function _ppsGetShowName() {
 
 // Map Loom Builder color names to Rack Builder hex values
 const LOOM_COLOR_TO_HEX = {
-  RED:'#ef4444', ORANGE:'#f97316', YELLOW:'#facc15', GREEN:'#3dd68c',
-  BLUE:'#4a9eff', PURPLE:'#a855f7', GREY:'#9ca3af', TEAL:'#14b8a6',
-  BLACK:'#9ca3af', WHITE:'#f0f0f0', PINK:'#ec4899', LIME:'#3dd68c',
-  CYAN:'#22d3ee', BROWN:'#f97316',
+  RED:'#ff2020', ORANGE:'#ff6600', YELLOW:'#ffcc00', GREEN:'#00cc44',
+  BLUE:'#0066ff', PURPLE:'#9900ff', GREY:'#808080', TEAL:'#00ccaa',
+  BLACK:'#808080', WHITE:'#f0f0f0', PINK:'#ff0099', LIME:'#00cc44',
+  CYAN:'#00ccff', BROWN:'#ff6600',
 };
 
 // Normalize Loom Builder cable type to Rack Builder snake type
@@ -979,7 +979,7 @@ function syncFromLoom() {
   cables.forEach(cable => {
     const snakeType = _loomTypeToSnakeType(cable.type);
     const targetCount = _lineCountForType(snakeType, 4);
-    const colorHex = LOOM_COLOR_TO_HEX[cable.color] || '#9ca3af';
+    const colorHex = LOOM_COLOR_TO_HEX[cable.color] || '#808080';
     const loc = locations.find(l => l.id === cable.locationId);
     const locationName = loc ? loc.name : '';
 
@@ -1055,7 +1055,7 @@ function defaultProject() {
     racks: [
       // ── BLUE PIT ──────────────────────────────────────
       {
-        id: uid(), name: 'BLUE PIT', color: '#4a9eff',
+        id: uid(), name: 'BLUE PIT', color: '#0066ff',
         equipment: [
           newItem('ma3_npu','BLUE NPU 1','192.168.1.111',{
             port_a:'FOR PARAMETERS ONLY'
@@ -1089,7 +1089,7 @@ function defaultProject() {
       },
       // ── GREEN PIT ─────────────────────────────────────
       {
-        id: uid(), name: 'GREEN PIT', color: '#3dd68c',
+        id: uid(), name: 'GREEN PIT', color: '#00cc44',
         equipment: [
           newItem('ma3_npu','GREEN NPU 1','192.168.1.112',{
             port_a:'FOR PARAMETERS ONLY'
@@ -1119,7 +1119,7 @@ function defaultProject() {
       },
       // ── PURPLE PIT ────────────────────────────────────
       {
-        id: uid(), name: 'PURPLE PIT', color: '#a855f7',
+        id: uid(), name: 'PURPLE PIT', color: '#9900ff',
         equipment: [
           newItem('proplex_iq2','PURPLE PIT','192.168.1.123',{
             port_a:'UNIV 1',  port_b:'UNIV 2',  port_c:'UNIV 3',  port_d:'UNIV 4',
@@ -1151,7 +1151,7 @@ function defaultProject() {
       },
       // ── OSA 12 UNIVERSE RACK ──────────────────────────
       {
-        id: uid(), name: 'OSA 12 Universe Rack', color: '#22d3ee',
+        id: uid(), name: 'OSA 12 Universe Rack', color: '#00ccff',
         equipment: [
           newItem('gigacore10',  'GigaCore 10 — A', '', {}),
           newItem('gigacore10',  'GigaCore 10 — B', '', {}),
@@ -1163,7 +1163,7 @@ function defaultProject() {
       },
       // ── UPSTAGE LEFT ──────────────────────────────────
       {
-        id: uid(), name: 'UPSTAGE LEFT', color: '#facc15',
+        id: uid(), name: 'UPSTAGE LEFT', color: '#ffcc00',
         equipment: [
           newItem('proplex_iq2','UPSTAGE LEFT','192.168.1.TBD',{}),
           newItem('optosplitter','OPTO 1','',  {}),
@@ -1187,117 +1187,117 @@ function defaultProject() {
     ],
     snakes: [
       // ── CPC8 (8-Channel Snakes) ───────────────────────────
-      { id:uid(), name:'GRID', type:'cpc8', color:'#f97316', lines:[
+      { id:uid(), name:'GRID', type:'cpc8', color:'#ff6600', lines:[
         newLine(1,'TRUSS A','UNIV 1','FX 2001'), newLine(2,'TRUSS A','U1 SP',''),
         newLine(3,'TRUSS B','UNIV 2','FX 27'),   newLine(4,'TRUSS B','UNIV 3','FX 2104'),
         newLine(5,'TRUSS B','B SP',''),           newLine(6,'TRUSS C','UNIV 4','FX 2201'),
         newLine(7,'TRUSS C','UNIV 5','FX 2205'), newLine(8,'TRUSS C','C SP',''),
       ]},
-      { id:uid(), name:'J', type:'cpc8', color:'#ec4899', lines:[
+      { id:uid(), name:'J', type:'cpc8', color:'#ff0099', lines:[
         newLine(1,'TRUSS J','UNIV 22','FX 182'),  newLine(2,'TRUSS J','U22 SP',''),
         newLine(3,'TRUSS J','UNIV 23','FX 785'),  newLine(4,'TRUSS J','U23 SP',''),
         newLine(5,'TRUSS J','UNIV 24','FX 442'),  newLine(6,'TRUSS J','U24 SP',''),
         newLine(7,'J LINE 7','',''),              newLine(8,'J LINE 8','',''),
       ]},
-      { id:uid(), name:'M', type:'cpc8', color:'#22d3ee', lines:[
+      { id:uid(), name:'M', type:'cpc8', color:'#00ccff', lines:[
         newLine(1,'TRUSS M','UNIV 29',''), newLine(2,'TRUSS M','U29 SP',''),
         newLine(3,'TRUSS M','UNIV 30',''), newLine(4,'TRUSS M','U30 SP',''),
         newLine(5,'TRUSS M','UNIV 31',''), newLine(6,'TRUSS M','U31 SP',''),
         newLine(7,'TRUSS M','UNIV 32',''), newLine(8,'TRUSS M','U32 SP',''),
       ]},
-      { id:uid(), name:'F', type:'cpc8', color:'#facc15', lines:[
+      { id:uid(), name:'F', type:'cpc8', color:'#ffcc00', lines:[
         newLine(1,'TRUSS F','UNIV 11','FX 727'), newLine(2,'TRUSS F','U11 SP',''),
         newLine(3,'TRUSS F','UNIV 12','FX 824'), newLine(4,'TRUSS F','U12 SP',''),
         newLine(5,'TRUSS F','UNIV 13','FX 436'), newLine(6,'TRUSS F','U13 SP',''),
         newLine(7,'TRUSS F','UNIV 14','FX 46'),  newLine(8,'TRUSS F','U14 SP',''),
       ]},
-      { id:uid(), name:'G', type:'cpc8', color:'#3dd68c', lines:[
+      { id:uid(), name:'G', type:'cpc8', color:'#00cc44', lines:[
         newLine(1,'TRUSS G','UNIV 15','FX 883'), newLine(2,'TRUSS G','U15 SP',''),
         newLine(3,'TRUSS G','UNIV 16','FX 523'), newLine(4,'TRUSS G','U16 SP',''),
         newLine(5,'TRUSS G','UNIV 17','FX 431'), newLine(6,'TRUSS G','U17 SP',''),
         newLine(7,'G LINE 7','',''),             newLine(8,'G LINE 8','',''),
       ]},
-      { id:uid(), name:'H', type:'cpc8', color:'#a855f7', lines:[
+      { id:uid(), name:'H', type:'cpc8', color:'#9900ff', lines:[
         newLine(1,'TRUSS H','UNIV 18','FX 882'), newLine(2,'TRUSS H','U18 SP',''),
         newLine(3,'TRUSS H','UNIV 19','FX 194'), newLine(4,'TRUSS H','U19 SP',''),
         newLine(5,'TRUSS H','UNIV 20','FX 540'), newLine(6,'H LINE 6','U20 SP',''),
         newLine(7,'H LINE 7','UNIV 21','FX 732'),newLine(8,'H LINE 8','U21 SP',''),
       ]},
-      { id:uid(), name:'WALL', type:'cpc8', color:'#ef4444', lines:[
+      { id:uid(), name:'WALL', type:'cpc8', color:'#ff2020', lines:[
         newLine(1,'VERT 1','UNIV 61',''), newLine(2,'VERT 2','UNIV 62',''),
         newLine(3,'VERT 3','UNIV 63',''), newLine(4,'VERT 4','UNIV 64',''),
         newLine(5,'VERT 5','UNIV 65',''), newLine(6,'VERT 6','UNIV 66',''),
         newLine(7,'','',''),             newLine(8,'','',''),
       ]},
       // ── CPC4 (4-Channel Snakes) ───────────────────────────
-      { id:uid(), name:'D', type:'cpc4', color:'#4a9eff', lines:[
+      { id:uid(), name:'D', type:'cpc4', color:'#0066ff', lines:[
         newLine(1,'TRUSS D','UNIV 6','FX 525'), newLine(2,'TRUSS D','U6 SP',''),
         newLine(3,'TRUSS D','UNIV 7','FX 321'), newLine(4,'TRUSS D','U7 SP',''),
       ]},
-      { id:uid(), name:'USR', type:'cpc4', color:'#f97316', lines:[
+      { id:uid(), name:'USR', type:'cpc4', color:'#ff6600', lines:[
         newLine(1,'US RIGHT','UNIV 42',''), newLine(2,'US RIGHT','UNIV 42',''),
         newLine(3,'US RIGHT','UNIV 42',''), newLine(4,'US RIGHT','UNIV 42',''),
       ]},
-      { id:uid(), name:'L', type:'cpc4', color:'#ec4899', lines:[
+      { id:uid(), name:'L', type:'cpc4', color:'#ff0099', lines:[
         newLine(1,'TRUSS L','UNIV 27','FX 936'), newLine(2,'TRUSS L','U27 SP',''),
         newLine(3,'TRUSS L','UNIV 28','FX 518'), newLine(4,'TRUSS L','U28 SP',''),
       ]},
-      { id:uid(), name:'E', type:'cpc4', color:'#22d3ee', lines:[
+      { id:uid(), name:'E', type:'cpc4', color:'#00ccff', lines:[
         newLine(1,'TRUSS E','UNIV 9','FX 862'),  newLine(2,'TRUSS E','U9 SP',''),
         newLine(3,'TRUSS E','UNIV 10','FX 41'),  newLine(4,'TRUSS E','U10 SP',''),
       ]},
-      { id:uid(), name:'K', type:'cpc4', color:'#facc15', lines:[
+      { id:uid(), name:'K', type:'cpc4', color:'#ffcc00', lines:[
         newLine(1,'TRUSS K','UNIV 25','FX 201'), newLine(2,'TRUSS K','U25 SP',''),
         newLine(3,'TRUSS K','UNIV 26','FX 156'), newLine(4,'TRUSS K','U26 SP',''),
       ]},
-      { id:uid(), name:'USL', type:'cpc4', color:'#3dd68c', lines:[
+      { id:uid(), name:'USL', type:'cpc4', color:'#00cc44', lines:[
         newLine(1,'US LEFT','UNIV 42',''), newLine(2,'US LEFT','UNIV 42',''),
         newLine(3,'US LEFT','UNIV 42',''), newLine(4,'US LEFT','UNIV 42',''),
       ]},
 
       // ── Loom List Snakes (synced from Loom Builder) ─────
-      { id:uid(), name:'B1', location:'TRUSS B1', type:'cpc4', color:'#3dd68c', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'B1 SP', location:'TRUSS B1', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'B2', location:'TRUSS B2', type:'cpc4', color:'#facc15', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'B2 SP', location:'TRUSS B2', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'B3', location:'TRUSS B3', type:'cpc4', color:'#ef4444', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'B3 SP', location:'TRUSS B3', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'B4', location:'TRUSS B4', type:'cpc4', color:'#4a9eff', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'B4 SP', location:'TRUSS B4', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'MA', location:'TRUSS M', type:'cpc8', color:'#9ca3af', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
-      { id:uid(), name:'MA SP', location:'TRUSS M', type:'cpc8', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
-      { id:uid(), name:'MB', location:'TRUSS M', type:'cpc8', color:'#9ca3af', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
-      { id:uid(), name:'MB SP', location:'TRUSS M', type:'cpc8', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
-      { id:uid(), name:'W', location:'TRUSS W', type:'cpc8', color:'#14b8a6', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
-      { id:uid(), name:'W SP', location:'TRUSS W', type:'cpc8', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
-      { id:uid(), name:'O', location:'ORCHESTRA', type:'cpc4', color:'#f97316', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'O SP', location:'ORCHESTRA', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B1', location:'TRUSS B1', type:'cpc4', color:'#00cc44', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B1 SP', location:'TRUSS B1', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B2', location:'TRUSS B2', type:'cpc4', color:'#ffcc00', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B2 SP', location:'TRUSS B2', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B3', location:'TRUSS B3', type:'cpc4', color:'#ff2020', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B3 SP', location:'TRUSS B3', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B4', location:'TRUSS B4', type:'cpc4', color:'#0066ff', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'B4 SP', location:'TRUSS B4', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'MA', location:'TRUSS M', type:'cpc8', color:'#808080', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'MA SP', location:'TRUSS M', type:'cpc8', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'MB', location:'TRUSS M', type:'cpc8', color:'#808080', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'MB SP', location:'TRUSS M', type:'cpc8', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'W', location:'TRUSS W', type:'cpc8', color:'#00ccaa', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'W SP', location:'TRUSS W', type:'cpc8', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','',''),newLine(5,'','',''),newLine(6,'','',''),newLine(7,'','',''),newLine(8,'','','')] },
+      { id:uid(), name:'O', location:'ORCHESTRA', type:'cpc4', color:'#ff6600', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'O SP', location:'ORCHESTRA', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'C1', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'C1 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C1 SP', location:'CAR SALON', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'C2', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'C2 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C2 SP', location:'CAR SALON', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'C3', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'C3 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C3 SP', location:'CAR SALON', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'C4', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'C4 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C4 SP', location:'CAR SALON', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'C5', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'C5 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C5 SP', location:'CAR SALON', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'C6', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'C6 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C6 SP', location:'CAR SALON', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'C7', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'C7 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C7 SP', location:'CAR SALON', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'C8', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'C8 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C8 SP', location:'CAR SALON', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
       { id:uid(), name:'C9', location:'CAR SALON', type:'cpc4', color:'#f0f0f0', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'C9 SP', location:'CAR SALON', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'Q1', location:'Q1 FLOOR', type:'cpc4', color:'#3dd68c', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'Q1 SP', location:'Q1 FLOOR', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'Q2', location:'Q2 FLOOR', type:'cpc4', color:'#facc15', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'Q2 SP', location:'Q2 FLOOR', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'Q3', location:'Q3 FLOOR', type:'cpc4', color:'#ef4444', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'Q3 SP', location:'Q3 FLOOR', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'Q4', location:'Q4 FLOOR', type:'cpc4', color:'#4a9eff', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
-      { id:uid(), name:'Q4 SP', location:'Q4 FLOOR', type:'cpc4', color:'#ec4899', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'C9 SP', location:'CAR SALON', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q1', location:'Q1 FLOOR', type:'cpc4', color:'#00cc44', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q1 SP', location:'Q1 FLOOR', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q2', location:'Q2 FLOOR', type:'cpc4', color:'#ffcc00', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q2 SP', location:'Q2 FLOOR', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q3', location:'Q3 FLOOR', type:'cpc4', color:'#ff2020', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q3 SP', location:'Q3 FLOOR', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q4', location:'Q4 FLOOR', type:'cpc4', color:'#0066ff', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
+      { id:uid(), name:'Q4 SP', location:'Q4 FLOOR', type:'cpc4', color:'#ff0099', lines:[newLine(1,'','',''),newLine(2,'','',''),newLine(3,'','',''),newLine(4,'','','')] },
     ]
   };
 }
@@ -1591,7 +1591,7 @@ function rSidebar() {
       <div class="sb-items" id="sb-snakes-list">
         ${(S.project?.snakes||[]).map(s => `
           <div class="sb-item ${S.snakeId===s.id&&S.view==='snake'?'active':''} ${s.orphaned?'sb-item-orphan':''}" onclick="selectSnake('${s.id}')" title="${s.orphaned?'Orphaned — cable removed from Loom Builder':''}">
-            <span class="sb-dot" style="background:${s.color||'#f97316'}"></span>
+            <span class="sb-dot" style="background:${s.color||'#ff6600'}"></span>
             ${h(s.name)} <span style="font-size:8px;color:var(--text-muted);margin-left:auto">${s.type==='cpc8'?'8ch':s.type==='cpc4'?'4ch':'?ch'}${s.orphaned?' ⚠':''}${s.loomCableId?' ⬡':''}</span>
           </div>`).join('')}
       </div>
@@ -1641,12 +1641,12 @@ function rToolbar() {
     if (!snake) return `<div id="toolbar"><div id="rack-title" style="color:var(--text-muted)">Select a snake</div></div>`;
     const stype = snake.type==='cpc8' ? '8-Channel' : snake.type==='cpc4' ? '4-Channel' : 'Custom';
     return `<div id="toolbar">
-      <span class="sb-dot" style="background:${snake.color||'#f97316'};width:9px;height:9px"></span>
+      <span class="sb-dot" style="background:${snake.color||'#ff6600'};width:9px;height:9px"></span>
       <div id="rack-title">${h(snake.name)}</div>
       <span style="font-size:9px;color:var(--text-muted)">${stype} · ${snake.lines.length} lines</span>
       <div class="hspacer"></div>
       <button class="hbtn hbtn-ghost" onclick="openEditSnake('${snake.id}')">Edit</button>
-      <button class="hbtn hbtn-ghost" style="color:#ef4444;border-color:#ef4444" onclick="deleteSnake('${snake.id}')">Delete Snake</button>
+      <button class="hbtn hbtn-ghost" style="color:#ff2020;border-color:#ff2020" onclick="deleteSnake('${snake.id}')">Delete Snake</button>
     </div>`;
   }
 
@@ -1662,7 +1662,7 @@ function rToolbar() {
     <button class="hbtn hbtn-ghost" onclick="openDupRack('${rack.id}')">Duplicate</button>
     <button class="hbtn hbtn-ghost" onclick="clearAllPortAssignments('${rack.id}')" title="Clear all port labels, universes, and connections from every piece of equipment in this rack">Clear Port Assignments</button>
     <button class="hbtn hbtn-ghost" onclick="openAddEq('${rack.id}')">+ Add Equipment</button>
-    <button class="hbtn hbtn-ghost" style="color:#ef4444;border-color:#ef4444" onclick="deleteRack('${rack.id}')">Delete Rack</button>
+    <button class="hbtn hbtn-ghost" style="color:#ff2020;border-color:#ff2020" onclick="deleteRack('${rack.id}')">Delete Rack</button>
   </div>`;
 }
 
@@ -1700,7 +1700,7 @@ function rEquipBlock(rack, item, idx) {
   if (!type) return '';
 
   const isSpare = /spare/i.test(item.label || '');
-  const color   = isSpare ? '#ec4899' : (rack.color || '#4a9eff');
+  const color   = isSpare ? '#ff0099' : (rack.color || '#0066ff');
   const canUp  = idx > 0;
   const canDn  = idx < rack.equipment.length - 1;
   // Show copy-to-spare button only on non-spare items that have a matching spare
@@ -1793,7 +1793,7 @@ function rLibrary() {
         : isBuiltin
           ? `<span class="lib-badge lib-badge-builtin">BUILT-IN</span>`
           : `<span class="lib-badge lib-badge-custom">CUSTOM</span>`;
-      return `<div class="lib-card" style="border-left-color:${t.color||'#4a9eff'}">
+      return `<div class="lib-card" style="border-left-color:${t.color||'#0066ff'}">
         <div class="lib-name">${h(t.name)} ${statusBadge}</div>
         <div class="lib-meta">${h(t.manufacturer||'') || (isBuiltin ? 'Built-in' : '—')}${t.model?' · '+h(t.model):''} · <strong>${t.ruHeight}U</strong> · ${(t.ports||[]).length} ports</div>
         <div class="lib-ports">${groupChips || (t.ports||[]).map(p=>`<span class="lib-port-chip">${h(p.name)}</span>`).join('')}</div>
@@ -1920,7 +1920,7 @@ function rSnake() {
   }).join('');
 
   return `<div class="rack-wrap">
-    <div class="snake-block" style="border-left-color:${snake.color||'#f97316'}">
+    <div class="snake-block" style="border-left-color:${snake.color||'#ff6600'}">
       <div class="snake-head">
         <span class="eq-name">${h(snake.name)}</span>
         <span class="eq-badge">${snake.type==='cpc8'?'8-Channel CPC8':snake.type==='cpc4'?'4-Channel CPC4':'Custom'} Snake</span>
@@ -1971,7 +1971,7 @@ function rModal() {
     const psLine     = psSnake?.lines.find(l=>l.id===psLineId);
     const hasSnake   = !!(psSnakeId && psLineId);
     // Spare snakes (pink/SP) have no heads — exclude from port assignment
-    const isSpareSnake = s => s.color === '#ec4899' || / SP$/i.test((s.name||'').trim());
+    const isSpareSnake = s => s.color === '#ff0099' || / SP$/i.test((s.name||'').trim());
     const isSpareSnakeLine = l => (l.universe||'').toUpperCase().includes('SP');
     const allSnakes  = (S.project.snakes || []).filter(s => !isSpareSnake(s));
     const psLineOpts = psSnake
@@ -2297,7 +2297,7 @@ function rModal() {
       </div>
       <div class="fg">
         <label class="flabel">Accent Color</label>
-        <input class="finput" id="at-color" type="color" value="${existing?.color||'#4a9eff'}" style="height:38px;cursor:pointer">
+        <input class="finput" id="at-color" type="color" value="${existing?.color||'#0066ff'}" style="height:38px;cursor:pointer">
       </div>
       <div class="fg">
         <label class="flabel">
@@ -2589,7 +2589,7 @@ function _schLayout() {
       // Connection line from port to snake row
       const pk=`${line.connRackId}/${line.connItemId}/${line.connPortId}`;
       const pp=portPos.get(pk);
-      if (pp) snakeConnLines.push({x1:pp.x,y1:pp.y,x2:rl.x+rl.w/2,y2:y+SNH/2,color:snake.color||'#4a9eff'});
+      if (pp) snakeConnLines.push({x1:pp.x,y1:pp.y,x2:rl.x+rl.w/2,y2:y+SNH/2,color:snake.color||'#0066ff'});
       return {snake,line,y};
     });
     snakeSections.push({rack:rl.rack,x:rl.x,y:snakeTopY,w:RW,rows,sh:sy-snakeTopY});
@@ -2701,7 +2701,7 @@ function _schSVG(data) {
 
         // Port dot
         const dotX=isIn?x+19:x+w-19, dotY=py+10;
-        const dc=pl.connRackId?'#3dd68c':pl.snakeId?'#4a9eff':'#282840';
+        const dc=pl.connRackId?'#00cc44':pl.snakeId?'#0066ff':'#282840';
         s+=`<circle cx="${dotX}" cy="${dotY}" r="3.5" fill="${dc}"/>`;
         if (pl.connRackId||pl.snakeId) s+=`<circle cx="${dotX}" cy="${dotY}" r="5.5" fill="none" stroke="${dc}44" stroke-width="1"/>`;
 
@@ -2713,7 +2713,7 @@ function _schSVG(data) {
         if (pl.universe) {
           const sp=pl.universe.toUpperCase().includes('SP');
           s+=`<text x="${x+w*0.54}" y="${dotY+1}" font-family=${F} font-size="8.5" font-weight="700"
-            fill="${sp?'#ec4899':'#facc15'}" dominant-baseline="middle" text-anchor="middle">${X(pl.universe)}</text>`;
+            fill="${sp?'#ff0099':'#ffcc00'}" dominant-baseline="middle" text-anchor="middle">${X(pl.universe)}</text>`;
         }
 
         // Destination label (freetext label)
@@ -2729,7 +2729,7 @@ function _schSVG(data) {
           const destRack=S.project.racks.find(r=>r.id===pl.connRackId);
           const bx=isIn?x+w-14:x+14;
           s+=`<text x="${bx}" y="${dotY+1}" font-family=${F} font-size="7.5"
-            fill="${destRack?.color||'#4a9eff'}99" dominant-baseline="middle"
+            fill="${destRack?.color||'#0066ff'}99" dominant-baseline="middle"
             text-anchor="${isIn?'end':'start'}">→ ${X(ci.short)}</text>`;
         }
 
@@ -2740,7 +2740,7 @@ function _schSVG(data) {
             const snl=snk.lines.find(l=>l.id===pl.snakeLineId);
             const bx=isIn?x+w-14:x+14;
             s+=`<text x="${bx}" y="${dotY+1}" font-family=${F} font-size="7.5"
-              fill="${snk.color||'#4a9eff'}bb" dominant-baseline="middle"
+              fill="${snk.color||'#0066ff'}bb" dominant-baseline="middle"
               text-anchor="${isIn?'end':'start'}">⬡ ${X(snk.name+(snl?' L'+snl.lineNum:''))}</text>`;
           }
         }
@@ -2765,23 +2765,23 @@ function _schSVG(data) {
     rows.forEach(({snake,line,y:sy})=>{
       const sp=(line.universe||'').toUpperCase().includes('SP');
       const bg=sp?'#16091a':'#0f1221';
-      const bc=sp?'#ec489955':`${snake.color||'#4a9eff'}44`;
+      const bc=sp?'#ff009955':`${snake.color||'#0066ff'}44`;
       // Row bg
       s+=`<rect x="${x}" y="${sy}" width="${w}" height="17" rx="2" fill="${bg}" stroke="${bc}" stroke-width="0.75"/>`;
 
       // Line number circle
-      s+=`<circle cx="${x+12}" cy="${sy+8.5}" r="7" fill="${sp?'#ec489918':(snake.color||'#4a9eff')+'18'}"/>`;
+      s+=`<circle cx="${x+12}" cy="${sy+8.5}" r="7" fill="${sp?'#ff009918':(snake.color||'#0066ff')+'18'}"/>`;
       s+=`<text x="${x+12}" y="${sy+9}" font-family=${F} font-size="7.5"
-        fill="${sp?'#ec4899':(snake.color||'#4a9eff')}" text-anchor="middle" dominant-baseline="middle">${line.lineNum||''}</text>`;
+        fill="${sp?'#ff0099':(snake.color||'#0066ff')}" text-anchor="middle" dominant-baseline="middle">${line.lineNum||''}</text>`;
 
       // Snake name
       s+=`<text x="${x+24}" y="${sy+9}" font-family=${F} font-size="8" font-weight="600"
-        fill="${sp?'#ec4899bb':'#b0b0cc'}" dominant-baseline="middle">${X(snake.name)}</text>`;
+        fill="${sp?'#ff0099bb':'#b0b0cc'}" dominant-baseline="middle">${X(snake.name)}</text>`;
 
       // Universe
       if (line.universe) {
         s+=`<text x="${x+w*0.56}" y="${sy+9}" font-family=${F} font-size="8" font-weight="700"
-          fill="${sp?'#ec4899':'#facc15'}" text-anchor="middle" dominant-baseline="middle">${X(line.universe)}</text>`;
+          fill="${sp?'#ff0099':'#ffcc00'}" text-anchor="middle" dominant-baseline="middle">${X(line.universe)}</text>`;
       }
 
       // Position / location
@@ -3275,7 +3275,7 @@ function confirmSaveType(existingId) {
     manufacturer: document.getElementById('at-mfr')?.value?.trim()||'',
     model:        document.getElementById('at-model')?.value?.trim()||'',
     ruHeight:     parseInt(document.getElementById('at-ru')?.value)||1,
-    color:        document.getElementById('at-color')?.value||'#4a9eff',
+    color:        document.getElementById('at-color')?.value||'#0066ff',
     hasIp: true, ports
   };
   if (existingId) {
@@ -3817,9 +3817,9 @@ function exportSnakesPDF() { _openPrint(buildSnakesPrintDoc(), 'Snake Lists'); }
 function buildSnakesPrintDoc() {
   const p       = S.project;
   const dt      = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  // Exclude spare snakes (pink color #ec4899 = spare, per suite convention)
+  // Exclude spare snakes (pink color #ff0099 = spare, per suite convention)
   // Also exclude snakes whose name ends in " SP" as a secondary check
-  const isSpareSnake = sn => sn.color === '#ec4899' || / SP$/i.test((sn.name||'').trim());
+  const isSpareSnake = sn => sn.color === '#ff0099' || / SP$/i.test((sn.name||'').trim());
   const allSnakes = (p.snakes||[]).filter(sn => !isSpareSnake(sn));
   const totalLines = allSnakes.reduce((s,sn)=>s+(sn.lines?.length||0),0);
 

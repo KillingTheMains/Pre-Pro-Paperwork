@@ -15,13 +15,13 @@
       --text:     #e8e8f0;
       --muted:    #9090a8;
       --dim:      #555568;
-      --blue:     #4a9eff;
-      --green:    #3dd68c;
-      --orange:   #f97316;
-      --red:      #ef4444;
-      --purple:   #a855f7;
-      --cyan:     #22d3ee;
-      --yellow:   #facc15;
+      --blue:     #0066ff;
+      --green:    #00cc44;
+      --orange:   #ff6600;
+      --red:      #ff2020;
+      --purple:   #9900ff;
+      --cyan:     #00ccff;
+      --yellow:   #ffcc00;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -787,7 +787,7 @@ const TRUSS_LIBRARY = [
     chord: '2" OD × 0.125" wall 6061-T6',
     sections: [2, 4, 5, 8, 10, 20],
     weightPerFt: 3.1,
-    color: '#4a9eff',
+    color: '#0066ff',
     notes: 'Industry-standard 12" aluminum box truss. Widely used in touring, corporate, and concert production. Conforms to BS EN 1090 and ANSI E1.2.'
   },
   {
@@ -797,7 +797,7 @@ const TRUSS_LIBRARY = [
     chord: '2" OD × 0.118" wall 6061-T6',
     sections: [1, 2, 3, 4, 5, 8, 10],
     weightPerFt: 2.8,
-    color: '#3dd68c',
+    color: '#00cc44',
     notes: 'Generic 12" box truss available from multiple manufacturers. Metric equivalents common (0.5m, 1m, 2m, 3m). Verify compatibility between manufacturers before mixing.'
   },
   {
@@ -807,7 +807,7 @@ const TRUSS_LIBRARY = [
     chord: '2" OD × 0.125" wall 6061-T6',
     sections: [2, 5, 8, 10],
     weightPerFt: 5.2,
-    color: '#f97316',
+    color: '#ff6600',
     notes: 'Heavy-duty touring truss for long spans and high-load applications. Common in large-scale arena and stadium production.'
   },
   {
@@ -817,7 +817,7 @@ const TRUSS_LIBRARY = [
     chord: '2" OD × 0.125" wall 6061-T6',
     sections: [2, 5, 8, 10],
     weightPerFt: 3.8,
-    color: '#facc15',
+    color: '#ffcc00',
     notes: 'Mid-size aluminum box truss. Good balance of capacity and weight for medium-span applications. Popular for corporate touring and mid-size event production.'
   },
   {
@@ -827,7 +827,7 @@ const TRUSS_LIBRARY = [
     chord: '2" OD aluminum 6061-T6',
     sections: [2, 4, 5, 8, 10],
     weightPerFt: 3.0,
-    color: '#a855f7',
+    color: '#9900ff',
     notes: "Christie Lites' proprietary rental truss system with F-type connector pins. Common on Christie rental packages. Not interchangeable with other manufacturer's connectors — verify availability with Christie."
   }
 ];
@@ -845,7 +845,7 @@ const LABEL_FORMATS = {
   OL75:     { id:'OL75',     desc:'4"×1" · 20/sheet', w:101.6, h:25.4, cols:2, rows:10, marginTop:12.7, marginLeft:6.35, pageW:215.9, pageH:279.4 },
 };
 
-const COLORS = ['#4a9eff','#3dd68c','#a855f7','#f97316','#ec4899','#22d3ee','#facc15','#ef4444','#f0f0f0','#9ca3af','#92400e','#111111'];
+const COLORS = ['#0066ff','#00cc44','#9900ff','#ff6600','#ff0099','#00ccff','#ffcc00','#ff2020','#f0f0f0','#808080','#cc4400','#111111'];
 
 // ═══════════════════════════════════════════════════════════
 // STATE
@@ -1035,39 +1035,39 @@ function defaultProject() {
   const suite = getSuite();
   const TY = 'TYLER GT TRUSS';
   const trusses = [
-      makeTruss('B1',TY,90, 9,0,0,0,'#ef4444','usds',''),
-      makeTruss('B2',TY,90, 9,0,0,0,'#ef4444','usds',''),
-      makeTruss('B3',TY,90, 9,0,0,0,'#ef4444','usds',''),
-      makeTruss('B4',TY,90, 9,0,0,0,'#ef4444','usds',''),
-      makeTruss('M1',TY,25, 2,0,1,0,'#f97316','usds',''),
-      makeTruss('M2',TY,25, 2,0,1,0,'#f97316','usds',''),
-      makeTruss('M3',TY,25, 2,0,1,0,'#f97316','usds',''),
-      makeTruss('M4',TY,25, 2,0,1,0,'#f97316','usds',''),
-      makeTruss('M5',TY,25, 2,0,1,0,'#f97316','usds',''),
-      makeTruss('M6',TY,25, 2,0,1,0,'#f97316','usds',''),
-      makeTruss('M7',TY,25, 2,0,1,0,'#f97316','usds',''),
-      makeTruss('M8',TY,25, 2,0,1,0,'#f97316','usds',''),
-      makeTruss('W1',TY,10, 1,0,0,0,'#22d3ee','usds',''),
-      makeTruss('W2',TY,10, 1,0,0,0,'#22d3ee','usds',''),
-      makeTruss('W3',TY,10, 1,0,0,0,'#22d3ee','usds',''),
-      makeTruss('W4',TY,10, 1,0,0,0,'#22d3ee','usds',''),
-      makeTruss('W5',TY,10, 1,0,0,0,'#22d3ee','usds',''),
-      makeTruss('W6',TY,10, 1,0,0,0,'#22d3ee','usds',''),
-      makeTruss('W7',TY,10, 1,0,0,0,'#22d3ee','usds',''),
-      makeTruss('W8',TY,10, 1,0,0,0,'#22d3ee','usds',''),
-      makeTruss('O1',TY,10, 1,0,0,0,'#a855f7','srsl',''),
-      makeTruss('O2',TY,40, 4,0,0,0,'#a855f7','srsl',''),
-      makeTruss('O3',TY,10, 1,0,0,0,'#a855f7','srsl',''),
-      makeTruss('C0',TY,50, 5,0,0,0,'#facc15','srsl',''),
-      makeTruss('C1',TY,70, 7,0,0,0,'#facc15','srsl',''),
-      makeTruss('C2',TY,70, 7,0,0,0,'#facc15','srsl',''),
-      makeTruss('C3',TY,70, 7,0,0,0,'#facc15','srsl',''),
-      makeTruss('C4',TY,70, 7,0,0,0,'#facc15','srsl',''),
-      makeTruss('C5',TY,70, 7,0,0,0,'#facc15','srsl',''),
-      makeTruss('C6',TY,70, 7,0,0,0,'#facc15','srsl',''),
-      makeTruss('C7',TY,70, 7,0,0,0,'#facc15','srsl',''),
-      makeTruss('C8',TY,70, 7,0,0,0,'#facc15','srsl',''),
-      makeTruss('C9',TY,70, 7,0,0,0,'#facc15','srsl',''),
+      makeTruss('B1',TY,90, 9,0,0,0,'#ff2020','usds',''),
+      makeTruss('B2',TY,90, 9,0,0,0,'#ff2020','usds',''),
+      makeTruss('B3',TY,90, 9,0,0,0,'#ff2020','usds',''),
+      makeTruss('B4',TY,90, 9,0,0,0,'#ff2020','usds',''),
+      makeTruss('M1',TY,25, 2,0,1,0,'#ff6600','usds',''),
+      makeTruss('M2',TY,25, 2,0,1,0,'#ff6600','usds',''),
+      makeTruss('M3',TY,25, 2,0,1,0,'#ff6600','usds',''),
+      makeTruss('M4',TY,25, 2,0,1,0,'#ff6600','usds',''),
+      makeTruss('M5',TY,25, 2,0,1,0,'#ff6600','usds',''),
+      makeTruss('M6',TY,25, 2,0,1,0,'#ff6600','usds',''),
+      makeTruss('M7',TY,25, 2,0,1,0,'#ff6600','usds',''),
+      makeTruss('M8',TY,25, 2,0,1,0,'#ff6600','usds',''),
+      makeTruss('W1',TY,10, 1,0,0,0,'#00ccff','usds',''),
+      makeTruss('W2',TY,10, 1,0,0,0,'#00ccff','usds',''),
+      makeTruss('W3',TY,10, 1,0,0,0,'#00ccff','usds',''),
+      makeTruss('W4',TY,10, 1,0,0,0,'#00ccff','usds',''),
+      makeTruss('W5',TY,10, 1,0,0,0,'#00ccff','usds',''),
+      makeTruss('W6',TY,10, 1,0,0,0,'#00ccff','usds',''),
+      makeTruss('W7',TY,10, 1,0,0,0,'#00ccff','usds',''),
+      makeTruss('W8',TY,10, 1,0,0,0,'#00ccff','usds',''),
+      makeTruss('O1',TY,10, 1,0,0,0,'#9900ff','srsl',''),
+      makeTruss('O2',TY,40, 4,0,0,0,'#9900ff','srsl',''),
+      makeTruss('O3',TY,10, 1,0,0,0,'#9900ff','srsl',''),
+      makeTruss('C0',TY,50, 5,0,0,0,'#ffcc00','srsl',''),
+      makeTruss('C1',TY,70, 7,0,0,0,'#ffcc00','srsl',''),
+      makeTruss('C2',TY,70, 7,0,0,0,'#ffcc00','srsl',''),
+      makeTruss('C3',TY,70, 7,0,0,0,'#ffcc00','srsl',''),
+      makeTruss('C4',TY,70, 7,0,0,0,'#ffcc00','srsl',''),
+      makeTruss('C5',TY,70, 7,0,0,0,'#ffcc00','srsl',''),
+      makeTruss('C6',TY,70, 7,0,0,0,'#ffcc00','srsl',''),
+      makeTruss('C7',TY,70, 7,0,0,0,'#ffcc00','srsl',''),
+      makeTruss('C8',TY,70, 7,0,0,0,'#ffcc00','srsl',''),
+      makeTruss('C9',TY,70, 7,0,0,0,'#ffcc00','srsl',''),
   ];
   return {
     name: suite.showName || 'New Show',
@@ -1264,7 +1264,7 @@ function openColorPicker(trussId, dotEl) {
       onclick="pickColorInline('${c}')"></div>`
   ).join('');
   html += `<label class="cswatch-custom" title="Custom color">
-    <input type="color" value="${t.color||'#4a9eff'}" oninput="pickColorInline(this.value)">
+    <input type="color" value="${t.color||'#0066ff'}" oninput="pickColorInline(this.value)">
   </label>`;
   popover.innerHTML = html;
 
@@ -1653,7 +1653,7 @@ function getLabelTextColor(hex) {
   const b = parseInt(hex.slice(5,7),16)||0;
   // Always black text; white only on very dark/black backgrounds
   const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
-  return luminance < 0.2 ? '#ffffff' : '#000000';
+  return luminance < 0.45 ? '#ffffff' : '#000000';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1671,7 +1671,7 @@ function _buildPDFBlob(truss) {
   const r = parseInt(bgColor.slice(1,3),16);
   const g = parseInt(bgColor.slice(3,5),16);
   const b = parseInt(bgColor.slice(5,7),16);
-  const isDark    = (0.299*r + 0.587*g + 0.114*b)/255 < 0.2;
+  const isDark    = (0.299*r + 0.587*g + 0.114*b)/255 < 0.45;
   const pageCount = Math.ceil(labels.length / labelsPerPage);
 
   doc.setFont('helvetica', 'bold');
@@ -2133,9 +2133,9 @@ function boDragEnd(e) {
 // BUILD ORDER
 // ═══════════════════════════════════════════════════════════
 const COLOR_NAME_MAP = {
-  '#4a9eff':'BLUE','#3dd68c':'GREEN','#a855f7':'PURPLE','#f97316':'ORANGE',
-  '#ec4899':'PINK','#22d3ee':'CYAN','#facc15':'YELLOW','#ef4444':'RED',
-  '#f0f0f0':'WHITE','#9ca3af':'GREY','#92400e':'BROWN','#111111':'BLACK'
+  '#0066ff':'BLUE','#00cc44':'GREEN','#9900ff':'PURPLE','#ff6600':'ORANGE',
+  '#ff0099':'PINK','#00ccff':'CYAN','#ffcc00':'YELLOW','#ff2020':'RED',
+  '#f0f0f0':'WHITE','#808080':'GREY','#cc4400':'BROWN','#111111':'BLACK'
 };
 function colorLabel(hex) {
   return COLOR_NAME_MAP[(hex||'').toLowerCase()] || (hex ? hex.toUpperCase() : '—');
