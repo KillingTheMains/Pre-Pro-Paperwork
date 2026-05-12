@@ -4545,7 +4545,6 @@ function exportCPCLabelsPDF() {
   const snakes = _getSelSnakes();
   if (!snakes.length) { alert('No snakes selected.'); return; }
   const proj = S.project?.name || 'Project';
-  const dt   = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
   const LW = 1.25, LH = 0.75;
   const COLS = 6, ROWS = 12;
@@ -4560,22 +4559,22 @@ function exportCPCLabelsPDF() {
       const tc = _lblTextColor(bg);
       const tc2 = tc === '#000000' ? 'rgba(0,0,0,.65)' : 'rgba(255,255,255,.7)';
       const center = 'text-align:center;width:100%;';
-      return `<div style="background:${bg};display:flex;flex-direction:column;justify-content:center;align-items:center;padding:1pt 2pt;overflow:hidden">
-        <div style="font-size:12pt;font-weight:800;font-family:'Courier New',monospace;color:${tc};${center}">${h(lb.univ)}</div>
-        <div style="font-size:7pt;font-weight:700;font-family:'Courier New',monospace;color:${tc2};letter-spacing:.1em;text-transform:uppercase;${center}">${h(lb.loc)}</div>
+      return `<div style="background:${bg};display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2pt 3pt;overflow:hidden">
+        <div style="font-size:20pt;font-weight:800;font-family:'Courier New',monospace;color:${tc};line-height:1.1;${center}">${h(lb.univ)}</div>
+        <div style="font-size:10pt;font-weight:700;font-family:'Courier New',monospace;color:${tc2};letter-spacing:.08em;text-transform:uppercase;${center}">${h(lb.loc)}</div>
       </div>`;
     }
     const isSpare  = lb.type === 'spare';
     const isUnused = lb.type === 'unused';
     const bg       = '#ffffff';
     const univColor = isSpare ? '#cc00cc' : isUnused ? '#bbbbbb' : '#000000';
-    const locColor  = isUnused ? '#bbbbbb' : '#000000';   // location never pink
+    const locColor  = isUnused ? '#bbbbbb' : '#000000';
     const center    = 'text-align:center;width:100%;';
-    const numStyle  = `font-size:5.5pt;color:#aaa;font-family:'Courier New',monospace;line-height:1;${center}`;
-    const univStyle = `font-size:10pt;font-weight:800;font-family:'Courier New',monospace;color:${univColor};line-height:1.15;white-space:nowrap;overflow:hidden;${center}`;
-    const locStyle  = `font-size:7.5pt;font-weight:600;font-family:'Courier New',monospace;color:${locColor};line-height:1.2;white-space:nowrap;overflow:hidden;${center}`;
-    return `<div style="background:${bg};display:flex;flex-direction:column;justify-content:center;align-items:center;padding:1pt 2pt;overflow:hidden">
-      <div style="${numStyle}">${h(lb.snakeName)} L${lb.lineNum}</div>
+    const numStyle  = `font-size:7pt;color:#aaa;font-family:'Courier New',monospace;line-height:1;${center}`;
+    const univStyle = `font-size:16pt;font-weight:800;font-family:'Courier New',monospace;color:${univColor};line-height:1.1;white-space:nowrap;overflow:hidden;${center}`;
+    const locStyle  = `font-size:10pt;font-weight:600;font-family:'Courier New',monospace;color:${locColor};line-height:1.15;white-space:nowrap;overflow:hidden;${center}`;
+    return `<div style="background:${bg};display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2pt 3pt;overflow:hidden">
+      <div style="${numStyle}">${h(lb.snakeName)} · L${lb.lineNum}</div>
       <div style="${univStyle}">${h(lb.univ)}</div>
       <div style="${locStyle}">${h(lb.loc)}</div>
     </div>`;
@@ -4591,10 +4590,9 @@ function exportCPCLabelsPDF() {
     sheets.push(cells.map(cellHtml));
   }
 
-  const sheetHtml = sheets.map((cells, si) => `
+  const sheetHtml = sheets.map(cells => `
     <div class="pg">
       <div class="grid">${cells.join('')}</div>
-      <div class="footer">${h(proj)} · CPC Breakout Labels · Sheet ${si+1} of ${sheets.length} · ${dt}</div>
     </div>`).join('');
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -4603,10 +4601,9 @@ function exportCPCLabelsPDF() {
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:-apple-system,sans-serif;background:#fff;}
     @page{size:letter;margin:0;}
-    .pg{width:8.5in;height:11in;position:relative;page-break-after:always;padding:${MT}in ${ML}in;}
+    .pg{width:8.5in;height:11in;page-break-after:always;padding:${MT}in ${ML}in;}
     .grid{display:grid;grid-template-columns:repeat(${COLS},${LW}in);grid-template-rows:repeat(${ROWS},${LH}in);gap:0;border:0.5pt solid #eee;}
     .grid > div{border:0.5pt solid #ddd;}
-    .footer{position:absolute;bottom:0.25in;left:${ML}in;right:${ML}in;font-size:7pt;color:#aaa;text-align:center;}
   </style>
   </head><body>${sheetHtml}</body></html>`;
 
