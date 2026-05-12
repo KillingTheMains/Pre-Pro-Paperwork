@@ -847,7 +847,7 @@ const LABEL_FORMATS = {
   OL75:     { id:'OL75',     desc:'4"×1" · 20/sheet', w:101.6, h:25.4, cols:2, rows:10, marginTop:12.7, marginLeft:6.35, pageW:215.9, pageH:279.4 },
 };
 
-const COLORS = ['#0066ff','#00cc44','#9900ff','#ff6600','#ff0099','#00ccff','#ffcc00','#ff2020','#f0f0f0','#808080','#cc4400','#111111'];
+const COLORS = ['#0066ff','#00cc44','#9900ff','#ff6600','#ff0099','#00ccff','#ffcc00','#ff2020','#f0f0f0','#808080','#7b3200','#111111'];
 
 // ═══════════════════════════════════════════════════════════
 // STATE
@@ -2135,7 +2135,7 @@ function boDragEnd(e) {
 const COLOR_NAME_MAP = {
   '#0066ff':'BLUE','#00cc44':'GREEN','#9900ff':'PURPLE','#ff6600':'ORANGE',
   '#ff0099':'PINK','#00ccff':'CYAN','#ffcc00':'YELLOW','#ff2020':'RED',
-  '#f0f0f0':'WHITE','#808080':'GREY','#cc4400':'BROWN','#111111':'BLACK'
+  '#f0f0f0':'WHITE','#808080':'GREY','#7b3200':'BROWN','#111111':'BLACK'
 };
 function colorLabel(hex) {
   return COLOR_NAME_MAP[(hex||'').toLowerCase()] || (hex ? hex.toUpperCase() : '—');
