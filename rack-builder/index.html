@@ -3940,14 +3940,11 @@ function buildRacksPrintDoc() {
       });
 
       const portRows = Object.entries(groups).map(([gn, pts]) => {
-        const groupHeader = `<tr class="port-group-hdr"><td colspan="5">${h(gn)}</td></tr>`;
+        const groupHeader = `<tr class="port-group-hdr"><td colspan="4">${h(gn)}</td></tr>`;
         const rows = pts.map(pt => {
           const pl = item.portLabels?.[pt.id] || {};
           const ci = connInfo(rack.id, pl);
           const isDmx = (pt.type==='output'||pt.type==='input');
-          const univStyle = pl.universe
-            ? `font-weight:700;color:#005588`
-            : `color:#ccc`;
           const spare = (pl.universe||'').toUpperCase().includes('SP');
           const univColor = spare ? '#cc0066' : '#005588';
           const univVal = pl.universe
@@ -3957,7 +3954,6 @@ function buildRacksPrintDoc() {
             <td class="pcell pname">${h(pt.name)}</td>
             <td class="pcell puniv">${isDmx ? univVal : '<span style="color:#ddd">—</span>'}</td>
             <td class="pcell plabel">${pl.label ? `<strong>${h(pl.label)}</strong>` : '<span style="color:#bbb">—</span>'}</td>
-            <td class="pcell pnotes">${pl.notes ? h(pl.notes) : ''}</td>
             <td class="pcell pconn">${ci ? `⟶&nbsp;${h(ci.full)}` : ''}</td>
           </tr>`;
         }).join('');
@@ -3976,11 +3972,16 @@ function buildRacksPrintDoc() {
         </div>
         ${notesStr}
         <table class="pt">
+          <colgroup>
+            <col style="width:12%">
+            <col style="width:12%">
+            <col style="width:34%">
+            <col style="width:42%">
+          </colgroup>
           <thead><tr>
             <th class="pcell pname">Port</th>
             <th class="pcell puniv">Universe</th>
             <th class="pcell plabel">Label / Destination</th>
-            <th class="pcell pnotes">Notes</th>
             <th class="pcell pconn">Connected To</th>
           </tr></thead>
           <tbody>${portRows}</tbody>
@@ -4001,13 +4002,7 @@ function buildRacksPrintDoc() {
         </div>
       </div>
       <div class="rack-body">
-        <div class="rack-graphic-col">
-          ${rackSVG}
-          <div class="rack-graphic-label">${h(rack.name)}</div>
-        </div>
-        <div class="rack-eq-col">
-          ${eqBlocks}
-        </div>
+        ${eqBlocks}
       </div>
     </div>`;
   });
@@ -4020,7 +4015,7 @@ function buildRacksPrintDoc() {
   body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
   /* ── rack section ── */
-  .rack-section{padding:10mm 12mm 8mm 12mm}
+  .rack-section{padding:8mm 10mm 6mm 10mm}
   .break-before{break-before:page;page-break-before:always}
   .rack-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:6px 8px;background:#f4f4f4;border-bottom:1px solid #ccc;margin-bottom:8px;gap:10px}
   .rack-hdr-main{display:flex;flex-direction:column;gap:2px}
@@ -4030,11 +4025,8 @@ function buildRacksPrintDoc() {
   .project-name{font-weight:600;color:#444}
   .print-date{color:#888}
 
-  /* ── two-column layout: graphic | equipment ── */
-  .rack-body{display:flex;gap:10px;align-items:flex-start}
-  .rack-graphic-col{flex-shrink:0;width:105px;display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
-  .rack-graphic-label{font-size:6.5pt;color:#888;text-align:center;letter-spacing:.04em}
-  .rack-eq-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  /* ── equipment column ── */
+  .rack-body{display:flex;flex-direction:column;gap:6px}
 
   /* ── equipment block (no-split) ── */
   .eq-block{break-inside:avoid;page-break-inside:avoid;border:1px solid #ddd;border-radius:3px;overflow:hidden}
@@ -4046,22 +4038,20 @@ function buildRacksPrintDoc() {
   .eq-notes{font-size:7.5pt;color:#555;font-style:italic;padding:2px 7px;background:#fffbe6;border-bottom:1px solid #eedea0}
 
   /* ── port table ── */
-  .pt{width:100%;border-collapse:collapse;font-size:7.5pt}
+  .pt{width:100%;border-collapse:collapse;font-size:7.5pt;table-layout:fixed}
   .pt thead tr{background:#444;color:#fff}
   .pt thead th{padding:3px 5px;text-align:left;font-size:6.5pt;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
   .pt tbody tr:nth-child(even) td{background:#fafafa}
-  .pt tbody tr:hover td{background:#f0f4ff}
   .port-group-hdr td{font-size:6pt;color:#999;letter-spacing:.1em;text-transform:uppercase;padding:3px 5px 1px;border-top:1px solid #e0e0e0;background:#f7f7f7}
-  .pcell{padding:2px 5px;border-bottom:1px solid #ececec;vertical-align:middle}
-  .pname{color:#555;white-space:nowrap;min-width:70px}
-  .puniv{min-width:70px;white-space:nowrap}
-  .plabel{min-width:120px}
-  .pnotes{font-style:italic;color:#777;font-size:7pt}
-  .pconn{font-size:7pt;color:#0055aa;white-space:nowrap}
+  .pcell{padding:2px 5px;border-bottom:1px solid #ececec;vertical-align:top;overflow:hidden}
+  .pname{color:#555;white-space:nowrap}
+  .puniv{white-space:nowrap}
+  .plabel{}
+  .pconn{font-size:7pt;color:#0055aa;overflow-wrap:break-word;word-break:break-word}
 
   @media print{
     @page{size:letter portrait;margin:0}
-    .rack-section{padding:10mm 12mm 8mm 12mm}
+    .rack-section{padding:8mm 10mm 6mm 10mm}
     body{background:white}
   }
 </style>
