@@ -3133,6 +3133,27 @@ function savePort(rid,iid,pid) {
   }
 
   item.portLabels[pid] = newPl;
+
+  // ── Input → output universe propagation ──────────────────
+  // For splitters/buffers (optosplitter, lumisplit, etc.): when an input port
+  // gets a universe assigned, copy it to every output port that is either blank
+  // or already matched the input's previous universe.
+  const _itype     = getType(item.typeId);
+  const _savedPort = _itype?.ports.find(p => p.id === pid);
+  if (_savedPort?.type === 'input') {
+    const _outPorts = (_itype?.ports || []).filter(p => p.type === 'output');
+    if (_outPorts.length) {
+      const oldUniv = (oldPl.universe || '').trim();
+      _outPorts.forEach(op => {
+        if (!item.portLabels[op.id]) item.portLabels[op.id] = { label:'', notes:'' };
+        const existingUniv = (item.portLabels[op.id].universe || '').trim();
+        if (!existingUniv || existingUniv === oldUniv) {
+          item.portLabels[op.id].universe = newPl.universe;
+        }
+      });
+    }
+  }
+
   closeModal(); save();
 
   // After saving, if a universe was assigned and port has no snake connection yet,
