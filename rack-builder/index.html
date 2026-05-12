@@ -707,6 +707,21 @@ body {
 .lbl-preview-header { display:flex; align-items:center; gap:10px; }
 .lbl-preview-header h3 { font-size:13px; font-weight:700; }
 .lbl-info { font-size:11px; color:var(--text-muted); }
+/* ── Universe-match popup ── */
+#univ-match-popup { display:none; position:fixed; z-index:3000; background:var(--surface); border:1px solid var(--yellow); border-radius:8px; box-shadow:0 6px 28px rgba(0,0,0,.65); padding:10px 12px; min-width:240px; max-width:320px; font-size:12px; pointer-events:all; }
+.ump-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
+.ump-univ { font-size:13px; font-weight:900; font-family:monospace; color:var(--yellow); letter-spacing:.04em; }
+.ump-close { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px; padding:0; line-height:1; }
+.ump-close:hover { color:var(--text-primary); }
+.ump-hint { font-size:10px; color:var(--text-muted); margin-bottom:8px; }
+.ump-item { padding:5px 0; border-top:1px solid var(--border); }
+.ump-item-name { font-size:11px; font-weight:700; color:var(--text-primary); margin-bottom:3px; }
+.ump-port-row { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:2px 0; }
+.ump-port-label { font-size:10px; color:var(--text-secondary); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ump-port-linked { font-size:9px; color:var(--text-muted); font-style:italic; }
+.ump-link-btn { padding:2px 9px; background:var(--yellow); color:#000; border:none; border-radius:3px; font-size:10px; font-weight:700; cursor:pointer; flex-shrink:0; }
+.ump-link-btn:hover { filter:brightness(1.15); }
+.ump-link-btn:disabled { background:var(--border); color:var(--text-muted); cursor:default; filter:none; }
 /* Label sheet preview */
 .lbl-sheet { background:#fff; border:1px solid #ccc; border-radius:4px; display:inline-grid; gap:0; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.3); }
 /* CPC label cell (OL285: 1.25"×0.75") — grid controls sizing, no fixed w/h here */
@@ -3100,6 +3115,19 @@ function savePort(rid,iid,pid) {
 
   item.portLabels[pid] = newPl;
   closeModal(); save();
+
+  // After saving, if a universe was assigned and port has no snake connection yet,
+  // check for matching snake lines and offer to link
+  const savedUniv = newPl.universe;
+  const noConn    = !newPl.snakeId && !newPl.connRackId;
+  if (savedUniv && noConn) {
+    // Position popup near the port row in the rack view (now re-rendered)
+    // Use a small delay so render() has completed and the port row is in the DOM
+    setTimeout(() => {
+      const portRow = document.querySelector(`.port-row[onclick*="'${pid}'"]`);
+      showUnivMatchPopup(portRow, savedUniv, 'fromPort', { rackId: rid, itemId: iid, portId: pid });
+    }, 80);
+  }
 }
 
 // ── Connection helpers ───────────────────────────────────────────────────────
@@ -3518,8 +3546,16 @@ function saveInlineField(el) {
   if (!line) return;
   line[field] = el.value.trim();
   save();
-  // Universe change: swap FX cell in-place without re-rendering
-  if (field === 'universe') _applySpareRowDOM(el, sid, lid, line);
+  // Universe change: swap FX cell in-place + offer match popup
+  if (field === 'universe') {
+    _applySpareRowDOM(el, sid, lid, line);
+    const univ = line[field];
+    if (univ && !line.connRackId) { // only suggest when not already connected
+      showUnivMatchPopup(el, univ, 'fromSnake', { snakeId: sid, lineId: lid });
+    } else {
+      dismissUnivPopup();
+    }
+  }
 }
 
 // Swap the FX cell between <input> and a "spare" label without touching the rest of the DOM
@@ -4591,8 +4627,190 @@ function exportRackLabelsPDF() {
 // ╔══════════════════════════════════════════════════════════╗
 // ║  BOOT                                                    ║
 // ╚══════════════════════════════════════════════════════════╝
+// ╔══════════════════════════════════════════════════════════╗
+// ║  UNIVERSE MATCH POPUP                                    ║
+// ╚══════════════════════════════════════════════════════════╝
+
+// Find all rack ports that have a given universe assigned, grouped by item.
+// Returns: [{ rack, item, type, ports:[{port, pl}] }]
+function _umpFindRackPorts(universe) {
+  const u = universe.trim().toUpperCase();
+  const results = [];
+  (S.project.racks||[]).forEach(rack => {
+    (rack.equipment||[]).forEach(item => {
+      const type = getType(item.typeId);
+      if (!type) return;
+      const matched = type.ports
+        .filter(p => (item.portLabels?.[p.id]?.universe||'').trim().toUpperCase() === u)
+        .map(p => ({ port:p, pl: item.portLabels[p.id] }));
+      if (matched.length) results.push({ rack, item, type, ports: matched });
+    });
+  });
+  return results;
+}
+
+// Find all snake lines that have a given universe assigned.
+// Returns: [{ snake, line }]
+function _umpFindSnakeLines(universe) {
+  const u = universe.trim().toUpperCase();
+  const results = [];
+  (S.project.snakes||[]).filter(s => !s.orphaned).forEach(snake => {
+    (snake.lines||[]).forEach(line => {
+      if ((line.universe||'').trim().toUpperCase() === u) results.push({ snake, line });
+    });
+  });
+  return results;
+}
+
+// Create a bidirectional snake↔port connection without going through the modal form.
+function _umpDoLink(snakeId, lineId, rackId, itemId, portId) {
+  const snake = (S.project.snakes||[]).find(s => s.id === snakeId);
+  const line  = snake?.lines.find(l => l.id === lineId);
+  const rack  = S.project.racks.find(r => r.id === rackId);
+  const item  = rack?.equipment.find(e => e.id === itemId);
+  if (!snake || !line || !rack || !item) return false;
+  if (!item.portLabels) item.portLabels = {};
+  if (!item.portLabels[portId]) item.portLabels[portId] = {};
+
+  // Clear old snake back-ref on target port if it points to something else
+  const oldPl = item.portLabels[portId];
+  if (oldPl.snakeId && (oldPl.snakeId !== snakeId || oldPl.snakeLineId !== lineId)) {
+    const os = (S.project.snakes||[]).find(s => s.id === oldPl.snakeId);
+    const ol = os?.lines.find(l => l.id === oldPl.snakeLineId);
+    if (ol) { ol.connRackId = ''; ol.connItemId = ''; ol.connPortId = ''; }
+  }
+  // Clear old rack-port forward ref on line if pointing elsewhere
+  if (line.connRackId && (line.connRackId !== rackId || line.connItemId !== itemId || line.connPortId !== portId)) {
+    const or2 = S.project.racks.find(r => r.id === line.connRackId);
+    const oi  = or2?.equipment.find(e => e.id === line.connItemId);
+    if (oi?.portLabels?.[line.connPortId]) {
+      delete oi.portLabels[line.connPortId].snakeId;
+      delete oi.portLabels[line.connPortId].snakeLineId;
+    }
+  }
+
+  // Write forward: snake line → port
+  line.connRackId = rackId; line.connItemId = itemId; line.connPortId = portId;
+  // Write back-ref: port → snake line
+  item.portLabels[portId].snakeId     = snakeId;
+  item.portLabels[portId].snakeLineId = lineId;
+
+  save();
+  return true;
+}
+
+// Position and show the popup near a trigger element.
+// context: 'fromSnake' (show rack port options) | 'fromPort' (show snake line options)
+// src: { snakeId, lineId } for 'fromSnake'; { rackId, itemId, portId } for 'fromPort'
+function showUnivMatchPopup(triggerEl, universe, context, src) {
+  if (!universe || universe.trim().toUpperCase().includes('SP')) return; // skip spares
+
+  const pop  = document.getElementById('univ-match-popup');
+  const u    = universe.trim().toUpperCase();
+
+  let itemsHtml = '';
+  let hintText  = '';
+
+  if (context === 'fromSnake') {
+    // Triggered from snake line — find matching rack ports
+    const matches = _umpFindRackPorts(universe);
+    if (!matches.length) return;
+    hintText = `Found in racks — link <strong>${h(universe)}</strong>?`;
+    itemsHtml = matches.map(({ rack, item, type, ports }) => {
+      const alreadyLinked = ports.every(({ pl }) => pl.snakeId === src.snakeId && pl.snakeLineId === src.lineId);
+      const portRows = ports.map(({ port, pl }) => {
+        const isLinked = pl.snakeId === src.snakeId && pl.snakeLineId === src.lineId;
+        const otherLinked = pl.snakeId && !isLinked;
+        const portName = `PORT ${port.name}` + (pl.label ? ` — ${pl.label}` : '');
+        return `<div class="ump-port-row">
+          <span class="ump-port-label">${h(portName)}</span>
+          ${isLinked
+            ? `<span class="ump-port-linked">✓ linked</span>`
+            : `<button class="ump-link-btn" onclick="umpLinkFromSnake('${src.snakeId}','${src.lineId}','${rack.id}','${item.id}','${port.id}')">Link ↗</button>`}
+        </div>`;
+      }).join('');
+      return `<div class="ump-item">
+        <div class="ump-item-name">${h(rack.name)} &rsaquo; ${h(item.label||type.name)}</div>
+        ${portRows}
+      </div>`;
+    }).join('');
+
+  } else {
+    // Triggered from rack port — find matching snake lines
+    const matches = _umpFindSnakeLines(universe);
+    if (!matches.length) return;
+    hintText = `Found in snakes — link <strong>${h(universe)}</strong>?`;
+    itemsHtml = matches.map(({ snake, line }) => {
+      const isLinked = line.connRackId === src.rackId && line.connItemId === src.itemId && line.connPortId === src.portId;
+      const lineLabel = `${snake.name} · Line ${line.lineNum}` + (line.position ? ` — ${line.position}` : '');
+      return `<div class="ump-item">
+        <div class="ump-port-row">
+          <span class="ump-port-label">${h(lineLabel)}</span>
+          ${isLinked
+            ? `<span class="ump-port-linked">✓ linked</span>`
+            : `<button class="ump-link-btn" onclick="umpLinkFromPort('${src.rackId}','${src.itemId}','${src.portId}','${snake.id}','${line.id}')">Link ↗</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  if (!itemsHtml) return;
+
+  pop.innerHTML = `
+    <div class="ump-header">
+      <span class="ump-univ">${h(u)}</span>
+      <button class="ump-close" onclick="dismissUnivPopup()">×</button>
+    </div>
+    <div class="ump-hint">${hintText}</div>
+    ${itemsHtml}`;
+  pop.style.display = 'block';
+
+  // Position near trigger element, staying on screen
+  const POPUP_W = 300, POPUP_H = 200; // approx
+  const r = triggerEl ? triggerEl.getBoundingClientRect() : { left: window.innerWidth/2, bottom: window.innerHeight/2, top: window.innerHeight/2, right: window.innerWidth/2 };
+  let left = r.right + 8;
+  let top  = r.top;
+  if (left + POPUP_W > window.innerWidth  - 8) left = r.left - POPUP_W - 8;
+  if (left < 8) left = 8;
+  if (top  + POPUP_H > window.innerHeight - 8) top  = window.innerHeight - POPUP_H - 8;
+  if (top  < 8) top  = 8;
+  pop.style.left = left + 'px';
+  pop.style.top  = top  + 'px';
+}
+
+function dismissUnivPopup() {
+  const pop = document.getElementById('univ-match-popup');
+  pop.style.display = 'none';
+  pop.innerHTML = '';
+}
+
+// Called when user clicks Link from snake-side popup
+function umpLinkFromSnake(snakeId, lineId, rackId, itemId, portId) {
+  if (_umpDoLink(snakeId, lineId, rackId, itemId, portId)) {
+    showToast('Linked ✓', 'ok');
+    dismissUnivPopup();
+    render();
+  }
+}
+
+// Called when user clicks Link from rack-port-side popup
+function umpLinkFromPort(rackId, itemId, portId, snakeId, lineId) {
+  if (_umpDoLink(snakeId, lineId, rackId, itemId, portId)) {
+    showToast('Linked ✓', 'ok');
+    dismissUnivPopup();
+    render();
+  }
+}
+
+// Dismiss on outside click
+document.addEventListener('mousedown', e => {
+  const pop = document.getElementById('univ-match-popup');
+  if (pop && pop.style.display !== 'none' && !pop.contains(e.target)) dismissUnivPopup();
+});
+
 init();
 </script>
 <div id="toast"></div>
+<div id="univ-match-popup"></div>
 </body>
 </html>
