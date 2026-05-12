@@ -4008,7 +4008,7 @@ function rLabels() {
     </div>` +
     cpcSnakes.map(s => `
       <label class="lbl-check-item">
-        <input type="checkbox" class="lbl-chk-snake" data-id="${s.id}" ${(S.lblSelSnakes||{})[s.id]!==false?'checked':''}>
+        <input type="checkbox" class="lbl-chk-snake" data-id="${s.id}" ${(S.lblSelSnakes||{})[s.id]!==false?'checked':''} onchange="refreshLblPreview()">
         <span class="lbl-dot" style="background:${s.color||'#aaa'}"></span>
         <span style="flex:1">${h(s.name)}</span>
         <span style="font-size:9px;color:var(--text-muted)">${s.type==='cpc8'?'8ch':'4ch'}</span>
@@ -4020,7 +4020,7 @@ function rLabels() {
     </div>` +
     racks.map(r => `
       <label class="lbl-check-item">
-        <input type="checkbox" class="lbl-chk-rack" data-id="${r.id}" ${(S.lblSelRacks||{})[r.id]!==false?'checked':''}>
+        <input type="checkbox" class="lbl-chk-rack" data-id="${r.id}" ${(S.lblSelRacks||{})[r.id]!==false?'checked':''} onchange="refreshLblPreview()">
         <span class="lbl-dot" style="background:${r.color||'#aaa'}"></span>
         <span style="flex:1">${h(r.name)}</span>
         <span style="font-size:9px;color:var(--text-muted)">${r.equipment?.length||0} items</span>
@@ -4094,6 +4094,22 @@ function _saveLblChecks() {
 function setAllLblChecks(type, val) {
   const cls = type === 'snake' ? '.lbl-chk-snake' : '.lbl-chk-rack';
   document.querySelectorAll(cls).forEach(el => { el.checked = val; });
+  refreshLblPreview();
+}
+
+// Rebuild just the preview area when checkboxes change — avoids full page re-render
+function refreshLblPreview() {
+  _saveLblChecks();
+  const wrap = document.querySelector('.lbl-preview-wrap');
+  if (!wrap) return;
+  const isCpc = (S.labelTab || 'cpc') === 'cpc';
+  if (isCpc) {
+    const snakes = _getSelSnakes();
+    wrap.innerHTML = _cpcLabelPreview(snakes);
+  } else {
+    const racks = _getSelRacks();
+    wrap.innerHTML = _rackLabelPreview(racks);
+  }
 }
 
 function _getSelSnakes() {
