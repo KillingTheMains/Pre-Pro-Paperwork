@@ -712,11 +712,12 @@ body {
 /* CPC label cell (OL285: 1.25"×0.75") — grid controls sizing, no fixed w/h here */
 .lbl-cell-cpc { border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:2px 4px; overflow:hidden; background:#fff; min-width:0; min-height:0; }
 .lbl-cell-cpc .lbl-linenum { font-size:7px; color:#999; font-family:monospace; line-height:1; margin-bottom:1px; text-align:center; width:100%; }
-.lbl-cell-cpc .lbl-univ { font-size:11px; font-weight:800; font-family:monospace; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; width:100%; }
+.lbl-cell-cpc .lbl-univ { font-size:11px; font-weight:800; font-family:monospace; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; width:100%; color:#111; }
 .lbl-cell-cpc .lbl-loc  { font-size:8px; font-weight:600; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333; text-align:center; width:100%; }
 .lbl-cell-cpc.spare .lbl-univ { color:#cc00cc; }
 .lbl-cell-cpc.spare .lbl-loc  { color:#333; }
-.lbl-cell-cpc.unused .lbl-univ, .lbl-cell-cpc.unused .lbl-loc { color:#bbb; }
+.lbl-cell-cpc.unused .lbl-univ { color:#bbb; font-weight:400; font-style:italic; }
+.lbl-cell-cpc.unused .lbl-loc  { color:#ccc; }
 .lbl-cell-cpc.empty-slot { background:#f8f8f8; }
 .lbl-cell-cpc.header .lbl-linenum { display:none; }
 .lbl-cell-cpc.header .lbl-univ { font-size:13px; color:#fff; }
