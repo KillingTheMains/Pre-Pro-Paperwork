@@ -709,12 +709,13 @@ body {
 .lbl-info { font-size:11px; color:var(--text-muted); }
 /* Label sheet preview */
 .lbl-sheet { background:#fff; border:1px solid #ccc; border-radius:4px; display:inline-grid; gap:0; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.3); }
-/* CPC label cell (OL285: 1.25"×0.75", preview scaled 3×) */
-.lbl-cell-cpc { width:calc(1.25in * var(--lbl-scale,0.6)); height:calc(0.75in * var(--lbl-scale,0.6)); border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; padding:2px 4px; overflow:hidden; background:#fff; }
-.lbl-cell-cpc .lbl-linenum { font-size:7px; color:#999; font-family:monospace; line-height:1; margin-bottom:1px; }
-.lbl-cell-cpc .lbl-univ { font-size:11px; font-weight:800; font-family:monospace; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.lbl-cell-cpc .lbl-loc  { font-size:8px; font-weight:600; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333; }
-.lbl-cell-cpc.spare .lbl-univ, .lbl-cell-cpc.spare .lbl-loc { color:#cc00cc; }
+/* CPC label cell (OL285: 1.25"×0.75") */
+.lbl-cell-cpc { width:calc(1.25in * var(--lbl-scale,0.6)); height:calc(0.75in * var(--lbl-scale,0.6)); border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:2px 4px; overflow:hidden; background:#fff; }
+.lbl-cell-cpc .lbl-linenum { font-size:7px; color:#999; font-family:monospace; line-height:1; margin-bottom:1px; text-align:center; width:100%; }
+.lbl-cell-cpc .lbl-univ { font-size:11px; font-weight:800; font-family:monospace; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; width:100%; }
+.lbl-cell-cpc .lbl-loc  { font-size:8px; font-weight:600; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333; text-align:center; width:100%; }
+.lbl-cell-cpc.spare .lbl-univ { color:#cc00cc; }
+.lbl-cell-cpc.spare .lbl-loc  { color:#333; }
 .lbl-cell-cpc.unused .lbl-univ, .lbl-cell-cpc.unused .lbl-loc { color:#bbb; }
 .lbl-cell-cpc.empty-slot { background:#f8f8f8; }
 /* Rack equipment label cell (OL875: 2.625"×1") */
@@ -4112,24 +4113,27 @@ function _getSelRacks() {
   return (S.project.racks||[]).filter(r => (S.lblSelRacks||{})[r.id] !== false);
 }
 
-// ── CPC Preview ──────────────────────────────────────────
-function _cpcLabelData(snakes) {
-  // Returns flat array of label objects in sheet order (column-by-column, 12 rows per col)
-  const labels = [];
-  snakes.forEach(snake => {
+// ── CPC Label Helpers ─────────────────────────────────────
+
+// Build one column (12 cells) per snake — each snake is its own column
+function _buildCpcColumns(snakes) {
+  const ROWS = 12;
+  const EMPTY = { type:'empty-slot', univ:'', loc:'', lineNum:0, snakeName:'' };
+  return snakes.map(snake => {
     const maxLines = snake.type === 'cpc8' ? 8 : 4;
     const lines    = snake.lines || [];
+    const col = [];
     for (let i = 0; i < maxLines; i++) {
       const line = lines[i];
       if (!line) {
-        labels.push({ type:'unused', univ: `LINE ${i+1}`, loc: snake.location||snake.name, lineNum: i+1, snakeName: snake.name });
+        col.push({ type:'unused', univ:`LINE ${i+1}`, loc:snake.location||snake.name, lineNum:i+1, snakeName:snake.name });
         continue;
       }
-      const univ = (line.universe||'').trim();
-      const loc  = (line.position||snake.location||snake.name||'').trim();
-      const isSpLn = univ.toUpperCase().includes('SP') || univ === '';
+      const univ    = (line.universe||'').trim();
+      const loc     = (line.position||snake.location||snake.name||'').trim();
       const isEmpty = !univ;
-      labels.push({
+      const isSpLn  = !isEmpty && univ.toUpperCase().includes('SP');
+      col.push({
         type: isEmpty ? 'unused' : isSpLn ? 'spare' : 'normal',
         univ: isEmpty ? `LINE ${i+1}` : univ,
         loc,
@@ -4137,37 +4141,49 @@ function _cpcLabelData(snakes) {
         snakeName: snake.name
       });
     }
+    // pad column to ROWS with empty slots
+    while (col.length < ROWS) col.push(EMPTY);
+    return col;
   });
-  return labels;
+}
+
+// Interleave columns row-by-row (for CSS grid row-major fill)
+function _interleaveCols(sheetCols, COLS, ROWS) {
+  const EMPTY = { type:'empty-slot', univ:'', loc:'', lineNum:0, snakeName:'' };
+  const padded = [...sheetCols];
+  while (padded.length < COLS) padded.push(Array(ROWS).fill(EMPTY));
+  const cells = [];
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      cells.push(padded[c][r] || EMPTY);
+  return cells;
 }
 
 function _cpcLabelPreview(allSnakes) {
   const selSnakes = allSnakes.filter(s => (S.lblSelSnakes||{})[s.id] !== false);
   if (!selSnakes.length) return `<div style="color:var(--text-muted);padding:40px;text-align:center">Select snakes from the sidebar to preview labels.</div>`;
 
-  const labels  = _cpcLabelData(selSnakes);
-  const COLS    = 6;
-  const ROWS    = 12;
-  const perSheet = COLS * ROWS;
-  const totalSheets = Math.ceil(labels.length / perSheet);
-  const SC = 0.5; // preview scale
-  // OL285 margins: 0.5" L/R, 1" T/B
-  const ML = 0.5, MT = 1.0;
+  const COLS = 6, ROWS = 12;
+  const SC   = 0.5;  // preview scale
+  const ML   = 0.5, MT = 1.0;  // OL285 margins in inches
 
-  while (labels.length % perSheet !== 0) labels.push({ type:'empty-slot', univ:'', loc:'', lineNum:0, snakeName:'' });
+  const columns     = _buildCpcColumns(selSnakes);
+  const totalSheets = Math.ceil(columns.length / COLS);
+  const totalLabels = selSnakes.reduce((n, s) => n + (s.type==='cpc8' ? 8 : 4), 0);
 
   let html = `<div class="lbl-preview-header">
     <h3>CPC Breakout Labels</h3>
-    <span class="lbl-info">${selSnakes.length} snakes · ${labels.filter(l=>l.type!=='empty-slot').length} labels · ${totalSheets} sheet${totalSheets!==1?'s':''}</span>
+    <span class="lbl-info">${selSnakes.length} snakes · ${totalLabels} labels · ${totalSheets} sheet${totalSheets!==1?'s':''}</span>
   </div>`;
 
   for (let sh = 0; sh < totalSheets; sh++) {
-    const chunk = labels.slice(sh * perSheet, (sh+1) * perSheet);
+    const sheetCols = columns.slice(sh * COLS, (sh+1) * COLS);
+    const cells     = _interleaveCols(sheetCols, COLS, ROWS);
     html += `<div style="margin-bottom:16px">
       <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">Sheet ${sh+1} &nbsp;·&nbsp; OL285 · 1.25" × 0.75" · 6 cols × 12 rows · margins: 0.5" L/R, 1" T/B</div>
       <div style="background:#e0e0e0;display:inline-block;border:1px solid #bbb;box-shadow:0 2px 8px rgba(0,0,0,.25);width:calc(8.5in * ${SC});height:calc(11in * ${SC});padding:calc(${MT}in * ${SC}) calc(${ML}in * ${SC});box-sizing:border-box;">
         <div style="display:grid;grid-template-columns:repeat(${COLS},calc(1.25in * ${SC}));grid-template-rows:repeat(${ROWS},calc(0.75in * ${SC}));gap:0;background:#fff;border:0.5px solid #bbb;">
-          ${chunk.map(lb => `
+          ${cells.map(lb => `
             <div class="lbl-cell-cpc ${lb.type}">
               ${lb.type!=='empty-slot'?`
                 <span class="lbl-linenum">${h(lb.snakeName)} · L${lb.lineNum}</span>
@@ -4248,42 +4264,45 @@ function _rackLabelPreview(allRacks) {
 // ╚══════════════════════════════════════════════════════════╝
 
 // OL285: 1.25" × 0.75", 6 cols × 12 rows, letter sheet
-// Margins: 0.5" L/R, 1" T/B (no gap between labels)
+// Margins: 0.5" L/R, 1" T/B — each snake is its own column
 function exportCPCLabelsPDF() {
   const snakes = _getSelSnakes();
   if (!snakes.length) { alert('No snakes selected.'); return; }
-  const labels = _cpcLabelData(snakes);
-  const proj   = S.project?.name || 'Project';
-  const dt     = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const proj = S.project?.name || 'Project';
+  const dt   = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
-  const LW = 1.25, LH = 0.75; // label inches
+  const LW = 1.25, LH = 0.75;
   const COLS = 6, ROWS = 12;
-  const ML = 0.5, MT = 1.0;   // margins inches
+  const ML = 0.5, MT = 1.0;
 
-  const labelCells = labels.map(lb => {
+  const EMPTY_DIV = `<div style="background:#f8f8f8"></div>`;
+
+  function cellHtml(lb) {
+    if (lb.type === 'empty-slot') return EMPTY_DIV;
     const isSpare  = lb.type === 'spare';
     const isUnused = lb.type === 'unused';
-    const isEmpty  = lb.type === 'empty-slot';
-    const color    = isSpare ? '#cc00cc' : isUnused ? '#bbbbbb' : '#000000';
-    const bg       = isEmpty ? '#f8f8f8' : '#ffffff';
-    const univStyle = `font-size:10pt;font-weight:800;font-family:'Courier New',monospace;color:${color};line-height:1.15;white-space:nowrap;overflow:hidden;`;
-    const locStyle  = `font-size:7.5pt;font-weight:600;font-family:'Courier New',monospace;color:${color};line-height:1.2;white-space:nowrap;overflow:hidden;`;
-    const numStyle  = `font-size:6pt;color:#aaa;font-family:monospace;line-height:1;`;
-    return isEmpty ? `<div style="background:${bg}"></div>` : `
-      <div style="background:${bg};display:flex;flex-direction:column;justify-content:center;padding:1pt 3pt;overflow:hidden">
-        <div style="${numStyle}">${h(lb.snakeName)} L${lb.lineNum}</div>
-        <div style="${univStyle}">${h(lb.univ)}</div>
-        <div style="${locStyle}">${h(lb.loc)}</div>
-      </div>`;
-  });
+    const bg       = '#ffffff';
+    const univColor = isSpare ? '#cc00cc' : isUnused ? '#bbbbbb' : '#000000';
+    const locColor  = isUnused ? '#bbbbbb' : '#000000';   // location never pink
+    const center    = 'text-align:center;width:100%;';
+    const numStyle  = `font-size:5.5pt;color:#aaa;font-family:'Courier New',monospace;line-height:1;${center}`;
+    const univStyle = `font-size:10pt;font-weight:800;font-family:'Courier New',monospace;color:${univColor};line-height:1.15;white-space:nowrap;overflow:hidden;${center}`;
+    const locStyle  = `font-size:7.5pt;font-weight:600;font-family:'Courier New',monospace;color:${locColor};line-height:1.2;white-space:nowrap;overflow:hidden;${center}`;
+    return `<div style="background:${bg};display:flex;flex-direction:column;justify-content:center;align-items:center;padding:1pt 2pt;overflow:hidden">
+      <div style="${numStyle}">${h(lb.snakeName)} L${lb.lineNum}</div>
+      <div style="${univStyle}">${h(lb.univ)}</div>
+      <div style="${locStyle}">${h(lb.loc)}</div>
+    </div>`;
+  }
 
-  // Pad to full sheets
-  const perSheet = COLS * ROWS;
-  while (labelCells.length % perSheet !== 0) labelCells.push(`<div style="background:#f8f8f8"></div>`);
+  const columns     = _buildCpcColumns(snakes);
+  const totalSheets = Math.ceil(columns.length / COLS);
 
   const sheets = [];
-  for (let i = 0; i < labelCells.length; i += perSheet) {
-    sheets.push(labelCells.slice(i, i + perSheet));
+  for (let sh = 0; sh < totalSheets; sh++) {
+    const sheetCols = columns.slice(sh * COLS, (sh+1) * COLS);
+    const cells     = _interleaveCols(sheetCols, COLS, ROWS);
+    sheets.push(cells.map(cellHtml));
   }
 
   const sheetHtml = sheets.map((cells, si) => `
@@ -4298,22 +4317,10 @@ function exportCPCLabelsPDF() {
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:-apple-system,sans-serif;background:#fff;}
     @page{size:letter;margin:0;}
-    .pg{
-      width:8.5in;height:11in;position:relative;page-break-after:always;
-      padding:${MT}in ${ML}in;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns:repeat(${COLS},${LW}in);
-      grid-template-rows:repeat(${ROWS},${LH}in);
-      gap:0;
-      border:0.5pt solid #eee;
-    }
+    .pg{width:8.5in;height:11in;position:relative;page-break-after:always;padding:${MT}in ${ML}in;}
+    .grid{display:grid;grid-template-columns:repeat(${COLS},${LW}in);grid-template-rows:repeat(${ROWS},${LH}in);gap:0;border:0.5pt solid #eee;}
     .grid > div{border:0.5pt solid #ddd;}
-    .footer{
-      position:absolute;bottom:0.25in;left:${ML}in;right:${ML}in;
-      font-size:7pt;color:#aaa;text-align:center;
-    }
+    .footer{position:absolute;bottom:0.25in;left:${ML}in;right:${ML}in;font-size:7pt;color:#aaa;text-align:center;}
   </style>
   </head><body>${sheetHtml}</body></html>`;
 
