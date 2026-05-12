@@ -725,9 +725,9 @@ body {
 /* Label sheet preview */
 .lbl-sheet { background:#fff; border:1px solid #ccc; border-radius:4px; display:inline-grid; gap:0; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.3); }
 /* CPC label cell (OL285: 1.25"×0.75") — grid controls sizing, no fixed w/h here */
-.lbl-cell-cpc { border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:2px 4px; overflow:hidden; background:#fff; min-width:0; min-height:0; }
-.lbl-cell-cpc .lbl-linenum { font-size:7px; color:#999; font-family:monospace; line-height:1; margin-bottom:1px; text-align:center; width:100%; }
-.lbl-cell-cpc .lbl-univ { font-size:11px; font-weight:800; font-family:monospace; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; width:100%; color:#111; }
+.lbl-cell-cpc { border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:2px 4px; overflow:hidden; background:#fff; min-width:0; min-height:0; gap:1px; }
+.lbl-cell-cpc .lbl-linenum { font-size:7px; color:#999; font-family:monospace; line-height:1; text-align:center; width:100%; }
+.lbl-cell-cpc .lbl-univ { font-size:12px; font-weight:800; font-family:monospace; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; width:100%; color:#111; }
 .lbl-cell-cpc .lbl-loc  { font-size:8px; font-weight:600; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333; text-align:center; width:100%; }
 .lbl-cell-cpc.spare .lbl-univ { color:#cc00cc; }
 .lbl-cell-cpc.spare .lbl-loc  { color:#333; }
@@ -4442,7 +4442,7 @@ function rLabels() {
         if (!type) return;
         type.ports.forEach(pt => {
           const pl = eq.portLabels?.[pt.id] || {};
-          if (!pl.snakeId && (pl.universe || pl.label)) portCount++;
+          if (!pl.snakeId && pl.universe) portCount++;
         });
       });
       return `<label class="lbl-check-item">
@@ -4736,14 +4736,13 @@ function _buildPortLabelCells(racks) {
       if (!type) return;
       type.ports.forEach(pt => {
         const pl = eq.portLabels?.[pt.id] || {};
-        if (!pl.snakeId && (pl.universe || pl.label)) {
-          const univ = (pl.universe || '').trim() || '—';
+        if (!pl.snakeId && pl.universe) {
+          const univ = pl.universe.trim();
           const spare = univ.toUpperCase().includes('SP');
           rackPorts.push({
             type: spare ? 'spare' : 'normal',
             univ,
             loc: (pl.label || '').trim(),
-            eqPort: `${eq.label || type.name} · ${pt.name}`,
             rack: rack.name
           });
         }
@@ -4788,7 +4787,7 @@ function _portLabelPreview(allRacks) {
           ${chunk.map(lb => {
             if (lb.type === 'empty-slot') return `<div class="lbl-cell-cpc empty-slot"></div>`;
             if (lb.type === 'header') { const _tc = _lblTextColor(lb.color); return `<div class="lbl-cell-cpc header" style="background:${lb.color};color:${_tc}"><span class="lbl-univ">${h(lb.univ)}</span><span class="lbl-loc">${h(lb.loc)}</span></div>`; }
-            return `<div class="lbl-cell-cpc ${lb.type}"><span class="lbl-linenum">${h(lb.eqPort)}</span><span class="lbl-univ">${h(lb.univ)}</span><span class="lbl-loc">${h(lb.loc)}</span></div>`;
+            return `<div class="lbl-cell-cpc ${lb.type}"><span class="lbl-univ">${h(lb.univ)}</span><span class="lbl-loc">${h(lb.loc)}</span></div>`;
           }).join('')}
         </div>
       </div>
@@ -4973,9 +4972,8 @@ function exportPortLabelsPDF() {
     const univColor = isSpare ? '#cc00cc' : '#000000';
     const center    = 'text-align:center;width:100%;';
     return `<div style="background:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2pt 3pt;overflow:hidden">
-      <div style="font-size:7pt;color:#aaa;font-family:'Courier New',monospace;line-height:1;${center}">${h(lb.eqPort)}</div>
-      <div style="font-size:16pt;font-weight:800;font-family:'Courier New',monospace;color:${univColor};line-height:1.1;white-space:nowrap;overflow:hidden;${center}">${h(lb.univ)}</div>
-      <div style="font-size:10pt;font-weight:600;font-family:'Courier New',monospace;color:#000;line-height:1.15;white-space:nowrap;overflow:hidden;${center}">${h(lb.loc)}</div>
+      <div style="font-size:18pt;font-weight:800;font-family:'Courier New',monospace;color:${univColor};line-height:1.1;white-space:nowrap;overflow:hidden;${center}">${h(lb.univ)}</div>
+      ${lb.loc ? `<div style="font-size:10pt;font-weight:600;font-family:'Courier New',monospace;color:#000;line-height:1.2;white-space:nowrap;overflow:hidden;${center}">${h(lb.loc)}</div>` : ''}
     </div>`;
   }
 
