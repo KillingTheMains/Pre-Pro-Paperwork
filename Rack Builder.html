@@ -974,7 +974,7 @@ const LOOM_COLOR_TO_HEX = {
 
 // Normalize Loom Builder cable type to Rack Builder snake type
 function _loomTypeToSnakeType(t) {
-  if (!t) return 'cpc8';
+  if (!t) return 'custom'; // null/undefined type → skip, not cpc8
   const u = t.toUpperCase();
   if (u === 'CPC4') return 'cpc4';
   if (u === 'CPC8') return 'cpc8';
@@ -1017,6 +1017,7 @@ function syncFromLoom() {
 
   cables.forEach(cable => {
     const snakeType = _loomTypeToSnakeType(cable.type);
+    if (snakeType === 'custom') return; // skip non-CPC cables (Socapex, fiber, etc.)
     const targetCount = _lineCountForType(snakeType, 4);
     const colorHex = LOOM_COLOR_TO_HEX[cable.color] || '#808080';
     const loc = locations.find(l => l.id === cable.locationId);
@@ -4094,9 +4095,14 @@ function _getSelSnakes() {
   _saveLblChecks();
   // #ff0099 = Rack Builder pink, #ec4899 = Loom Builder pink (synced snakes use LB palette)
   const isSpare = sn => sn.color === '#ff0099' || sn.color === '#ec4899' || / SP$/i.test((sn.name||'').trim());
-  return (S.project.snakes||[]).filter(s =>
-    !isSpare(s) && (s.type==='cpc4'||s.type==='cpc8') && (S.lblSelSnakes||{})[s.id] !== false
+  const filtered = (S.project.snakes||[]).filter(s =>
+    !s.orphaned && !isSpare(s) && (s.type==='cpc4'||s.type==='cpc8') && (S.lblSelSnakes||{})[s.id] !== false
   );
+  // Deduplicate by name — if two snakes share a name (e.g. a stale wrong-type copy and the
+  // correct Loom-synced one), keep only the last occurrence (most recently added by syncFromLoom)
+  const seen = new Map();
+  filtered.forEach(s => seen.set((s.name||'').trim().toLowerCase(), s));
+  return [...seen.values()];
 }
 
 function _getSelRacks() {
