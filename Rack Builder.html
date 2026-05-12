@@ -688,7 +688,41 @@ body {
 #sch-svg-wrap { position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; }
 #sch-hint { position:absolute; bottom:10px; right:12px; font-size:9px; color:var(--text-muted); pointer-events:none; }
 #sch-zoom-badge { position:absolute; bottom:10px; left:12px; font-size:9px; color:var(--text-muted); pointer-events:none; }
-.hbtn-sch-active { background:var(--blue)!important; color:#000!important; font-weight:800!important; }
+.hbtn-sch-active  { background:var(--blue)!important;   color:#000!important; font-weight:800!important; }
+.hbtn-lbl-active  { background:var(--yellow)!important; color:#000!important; font-weight:800!important; }
+
+/* ── LABELS VIEW ── */
+#labels-view { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
+#labels-toolbar { display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--surface2); border-bottom:1px solid var(--border); flex-shrink:0; }
+.lbl-tab { padding:5px 14px; border-radius:5px; border:1px solid var(--border); background:transparent; color:var(--text-muted); font-size:12px; cursor:pointer; }
+.lbl-tab.active { background:var(--yellow); color:#000; font-weight:700; border-color:var(--yellow); }
+#labels-body { flex:1; overflow-y:auto; padding:16px 20px; display:grid; grid-template-columns:220px 1fr; gap:16px; min-height:0; }
+.lbl-sidebar { display:flex; flex-direction:column; gap:8px; }
+.lbl-sidebar h4 { font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); margin-bottom:2px; }
+.lbl-check-item { display:flex; align-items:center; gap:7px; padding:4px 6px; border-radius:4px; cursor:pointer; font-size:12px; }
+.lbl-check-item:hover { background:var(--surface2); }
+.lbl-check-item input[type=checkbox] { accent-color:var(--yellow); }
+.lbl-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.lbl-preview-wrap { display:flex; flex-direction:column; gap:12px; }
+.lbl-preview-header { display:flex; align-items:center; gap:10px; }
+.lbl-preview-header h3 { font-size:13px; font-weight:700; }
+.lbl-info { font-size:11px; color:var(--text-muted); }
+/* Label sheet preview */
+.lbl-sheet { background:#fff; border:1px solid #ccc; border-radius:4px; display:inline-grid; gap:0; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+/* CPC label cell (OL285: 1.25"×0.75", preview scaled 3×) */
+.lbl-cell-cpc { width:calc(1.25in * var(--lbl-scale,0.6)); height:calc(0.75in * var(--lbl-scale,0.6)); border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; padding:2px 4px; overflow:hidden; background:#fff; }
+.lbl-cell-cpc .lbl-linenum { font-size:7px; color:#999; font-family:monospace; line-height:1; margin-bottom:1px; }
+.lbl-cell-cpc .lbl-univ { font-size:11px; font-weight:800; font-family:monospace; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lbl-cell-cpc .lbl-loc  { font-size:8px; font-weight:600; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333; }
+.lbl-cell-cpc.spare .lbl-univ, .lbl-cell-cpc.spare .lbl-loc { color:#cc00cc; }
+.lbl-cell-cpc.unused .lbl-univ, .lbl-cell-cpc.unused .lbl-loc { color:#bbb; }
+.lbl-cell-cpc.empty-slot { background:#f8f8f8; }
+/* Rack equipment label cell (OL875: 2.625"×1") */
+.lbl-cell-rack { width:calc(2.625in * var(--lbl-scale,0.45)); height:calc(1in * var(--lbl-scale,0.45)); border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; padding:3px 7px; overflow:hidden; background:#fff; }
+.lbl-cell-rack .lbl-rack-name { font-size:9px; font-weight:800; font-family:monospace; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lbl-cell-rack .lbl-rack-ip   { font-size:8px; font-family:monospace; color:#0044cc; line-height:1.2; white-space:nowrap; overflow:hidden; }
+.lbl-cell-rack .lbl-rack-meta { font-size:7px; color:#888; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lbl-cell-rack.empty-slot { background:#f8f8f8; }
 
 /* ============================================================
    PRINT STYLES (for PDF export window)
@@ -1562,6 +1596,7 @@ function rHeader() {
     <button id="drive-btn" class="hbtn hbtn-ghost" onclick="driveConnect()" title="Connect Google Drive backup" style="color:var(--text-muted)">☁ Drive</button>
     <button class="hbtn hbtn-ghost${S.view==='schematic'?' hbtn-sch-active':''}" onclick="selectSchematic()" title="Network schematic view">⬡ Schematic</button>
     <button class="hbtn hbtn-ghost${S.view==='bulk'?' hbtn-bulk-active':''}" onclick="selectView('bulk')" title="Bulk edit equipment names and IPs">📋 Gear List</button>
+    <button class="hbtn hbtn-ghost${S.view==='labels'?' hbtn-lbl-active':''}" onclick="selectView('labels')" title="Generate equipment and CPC breakout labels">🏷 Labels</button>
     <button class="hbtn hbtn-ghost" onclick="exportRacksPDF()" title="Export rack layouts as PDF">🖨 Racks PDF</button>
     <button class="hbtn hbtn-primary" onclick="exportSnakesPDF()" title="Export snake/loom lists as PDF">🖨 Snakes PDF</button>
   </header>`;
@@ -1616,6 +1651,7 @@ function rSidebar() {
 // ── Main ──────────────────────────────────────────────────
 function rMain() {
   if (S.view === 'schematic') return `<div id="main" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">${rSchematic()}</div>`;
+  if (S.view === 'labels')    return `<div id="main" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">${rLabels()}</div>`;
   return `<div id="main">${rToolbar()}
     <div id="main-scroll">${S.view==='library' ? rLibrary() : S.view==='snake' ? rSnake() : S.view==='bulk' ? rBulkEdit() : rRack()}</div>
   </div>`;
@@ -3967,6 +4003,380 @@ function buildSnakesPrintDoc() {
   ${snakeBlocks}
 </div>
 </body></html>`;
+}
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  LABELS VIEW                                             ║
+// ╚══════════════════════════════════════════════════════════╝
+
+// Which sub-tab is active in Labels view (persists across renders via S)
+// S.labelTab = 'cpc' | 'rack'
+
+function rLabels() {
+  if (!S.labelTab) S.labelTab = 'cpc';
+  const isCpc  = S.labelTab === 'cpc';
+  const isRack = S.labelTab === 'rack';
+
+  const isSpare    = sn => sn.color === '#ff0099' || / SP$/i.test((sn.name||'').trim());
+  const cpcSnakes  = (S.project.snakes||[]).filter(s => !isSpare(s) && (s.type==='cpc4'||s.type==='cpc8'));
+  const racks      = S.project.racks || [];
+
+  // ── sidebar: checkboxes ──
+  let sidebarItems = '';
+  if (isCpc) {
+    sidebarItems = `<div style="display:flex;gap:4px;margin-bottom:6px">
+      <button class="hbtn hbtn-ghost" style="font-size:10px;padding:3px 8px" onclick="setAllLblChecks('snake',true)">All</button>
+      <button class="hbtn hbtn-ghost" style="font-size:10px;padding:3px 8px" onclick="setAllLblChecks('snake',false)">None</button>
+    </div>` +
+    cpcSnakes.map(s => `
+      <label class="lbl-check-item">
+        <input type="checkbox" class="lbl-chk-snake" data-id="${s.id}" ${(S.lblSelSnakes||{})[s.id]!==false?'checked':''}>
+        <span class="lbl-dot" style="background:${s.color||'#aaa'}"></span>
+        <span style="flex:1">${h(s.name)}</span>
+        <span style="font-size:9px;color:var(--text-muted)">${s.type==='cpc8'?'8ch':'4ch'}</span>
+      </label>`).join('');
+  } else {
+    sidebarItems = `<div style="display:flex;gap:4px;margin-bottom:6px">
+      <button class="hbtn hbtn-ghost" style="font-size:10px;padding:3px 8px" onclick="setAllLblChecks('rack',true)">All</button>
+      <button class="hbtn hbtn-ghost" style="font-size:10px;padding:3px 8px" onclick="setAllLblChecks('rack',false)">None</button>
+    </div>` +
+    racks.map(r => `
+      <label class="lbl-check-item">
+        <input type="checkbox" class="lbl-chk-rack" data-id="${r.id}" ${(S.lblSelRacks||{})[r.id]!==false?'checked':''}>
+        <span class="lbl-dot" style="background:${r.color||'#aaa'}"></span>
+        <span style="flex:1">${h(r.name)}</span>
+        <span style="font-size:9px;color:var(--text-muted)">${r.equipment?.length||0} items</span>
+      </label>`).join('');
+  }
+
+  // ── preview ──
+  const preview = isCpc ? _cpcLabelPreview(cpcSnakes) : _rackLabelPreview(racks);
+  const exportBtn = isCpc
+    ? `<button class="hbtn hbtn-primary" onclick="exportCPCLabelsPDF()">🖨 Print OL285 Labels</button>
+       <span class="lbl-info">OL285 · 1.25" × 0.75" · 72/sheet · 6 cols × 12 rows</span>`
+    : `<button class="hbtn hbtn-primary" onclick="exportRackLabelsPDF()">🖨 Print OL875 Labels</button>
+       <span class="lbl-info">OL875 · 2.625" × 1" · 30/sheet · 3 cols × 10 rows</span>`;
+
+  return `<div id="labels-view">
+    <div id="labels-toolbar">
+      <button class="lbl-tab${isCpc?' active':''}" onclick="switchLblTab('cpc')">CPC Breakout Labels</button>
+      <button class="lbl-tab${isRack?' active':''}" onclick="switchLblTab('rack')">Rack Equipment Labels</button>
+      <div style="flex:1"></div>
+      ${exportBtn}
+    </div>
+    <div id="labels-body">
+      <div class="lbl-sidebar">
+        <h4>${isCpc?'Snakes':'Racks'}</h4>
+        ${sidebarItems}
+      </div>
+      <div class="lbl-preview-wrap">
+        ${preview}
+      </div>
+    </div>
+  </div>`;
+}
+
+function switchLblTab(tab) {
+  _saveLblChecks();
+  S.labelTab = tab;
+  render();
+}
+
+function _saveLblChecks() {
+  // persist checkbox state into S before re-render
+  document.querySelectorAll('.lbl-chk-snake').forEach(el => {
+    if (!S.lblSelSnakes) S.lblSelSnakes = {};
+    S.lblSelSnakes[el.dataset.id] = el.checked;
+  });
+  document.querySelectorAll('.lbl-chk-rack').forEach(el => {
+    if (!S.lblSelRacks) S.lblSelRacks = {};
+    S.lblSelRacks[el.dataset.id] = el.checked;
+  });
+}
+
+function setAllLblChecks(type, val) {
+  const cls = type === 'snake' ? '.lbl-chk-snake' : '.lbl-chk-rack';
+  document.querySelectorAll(cls).forEach(el => { el.checked = val; });
+}
+
+function _getSelSnakes() {
+  _saveLblChecks();
+  const isSpare = sn => sn.color === '#ff0099' || / SP$/i.test((sn.name||'').trim());
+  return (S.project.snakes||[]).filter(s =>
+    !isSpare(s) && (s.type==='cpc4'||s.type==='cpc8') && (S.lblSelSnakes||{})[s.id] !== false
+  );
+}
+
+function _getSelRacks() {
+  _saveLblChecks();
+  return (S.project.racks||[]).filter(r => (S.lblSelRacks||{})[r.id] !== false);
+}
+
+// ── CPC Preview ──────────────────────────────────────────
+function _cpcLabelData(snakes) {
+  // Returns flat array of label objects in sheet order (column-by-column, 12 rows per col)
+  const labels = [];
+  snakes.forEach(snake => {
+    const maxLines = snake.type === 'cpc8' ? 8 : 4;
+    const lines    = snake.lines || [];
+    for (let i = 0; i < maxLines; i++) {
+      const line = lines[i];
+      if (!line) {
+        labels.push({ type:'unused', univ: `LINE ${i+1}`, loc: snake.location||snake.name, lineNum: i+1, snakeName: snake.name });
+        continue;
+      }
+      const univ = (line.universe||'').trim();
+      const loc  = (line.position||snake.location||snake.name||'').trim();
+      const isSpLn = univ.toUpperCase().includes('SP') || univ === '';
+      const isEmpty = !univ;
+      labels.push({
+        type: isEmpty ? 'unused' : isSpLn ? 'spare' : 'normal',
+        univ: isEmpty ? `LINE ${i+1}` : univ,
+        loc,
+        lineNum: i+1,
+        snakeName: snake.name
+      });
+    }
+  });
+  return labels;
+}
+
+function _cpcLabelPreview(allSnakes) {
+  const selSnakes = allSnakes.filter(s => (S.lblSelSnakes||{})[s.id] !== false);
+  if (!selSnakes.length) return `<div style="color:var(--text-muted);padding:40px;text-align:center">Select snakes from the sidebar to preview labels.</div>`;
+
+  const labels  = _cpcLabelData(selSnakes);
+  const COLS    = 6;
+  const ROWS    = 12;
+  const perSheet = COLS * ROWS;
+  const totalSheets = Math.ceil(labels.length / perSheet);
+
+  // Pad to full sheets
+  while (labels.length % perSheet !== 0) labels.push({ type:'empty-slot', univ:'', loc:'', lineNum:0, snakeName:'' });
+
+  let html = `<div class="lbl-preview-header">
+    <h3>CPC Breakout Labels</h3>
+    <span class="lbl-info">${selSnakes.length} snakes · ${labels.filter(l=>l.type!=='empty-slot').length} labels · ${totalSheets} sheet${totalSheets!==1?'s':''}</span>
+  </div>`;
+
+  for (let sh = 0; sh < totalSheets; sh++) {
+    const chunk = labels.slice(sh * perSheet, (sh+1) * perSheet);
+    html += `<div style="margin-bottom:16px">
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">Sheet ${sh+1}</div>
+      <div class="lbl-sheet" style="--lbl-scale:0.55;grid-template-columns:repeat(${COLS},calc(1.25in * 0.55));grid-template-rows:repeat(${ROWS},calc(0.75in * 0.55));">
+        ${chunk.map(lb => `
+          <div class="lbl-cell-cpc ${lb.type}">
+            ${lb.type!=='empty-slot'?`
+              <span class="lbl-linenum">${h(lb.snakeName)} · L${lb.lineNum}</span>
+              <span class="lbl-univ">${h(lb.univ)}</span>
+              <span class="lbl-loc">${h(lb.loc)}</span>
+            `:''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+  return html;
+}
+
+// ── Rack Equipment Preview ────────────────────────────────
+function _rackLabelData(racks) {
+  const labels = [];
+  racks.forEach(rack => {
+    (rack.equipment||[]).forEach(eq => {
+      const type  = getType(eq.typeId);
+      const name  = eq.label || type?.name || '';
+      const typeName = type?.name || '';
+      labels.push({
+        name,
+        typeName,
+        ip:    eq.ip    || '',
+        notes: eq.notes || '',
+        rack:  rack.name,
+        color: rack.color
+      });
+    });
+  });
+  return labels;
+}
+
+function _rackLabelPreview(allRacks) {
+  const selRacks = allRacks.filter(r => (S.lblSelRacks||{})[r.id] !== false);
+  if (!selRacks.length) return `<div style="color:var(--text-muted);padding:40px;text-align:center">Select racks from the sidebar to preview labels.</div>`;
+
+  const labels   = _rackLabelData(selRacks);
+  const COLS     = 3;
+  const ROWS     = 10;
+  const perSheet = COLS * ROWS;
+  const totalSheets = Math.ceil(labels.length / perSheet);
+
+  while (labels.length % perSheet !== 0) labels.push(null);
+
+  let html = `<div class="lbl-preview-header">
+    <h3>Rack Equipment Labels</h3>
+    <span class="lbl-info">${selRacks.length} rack${selRacks.length!==1?'s':''} · ${labels.filter(Boolean).length} items · ${totalSheets} sheet${totalSheets!==1?'s':''}</span>
+  </div>`;
+
+  for (let sh = 0; sh < totalSheets; sh++) {
+    const chunk = labels.slice(sh * perSheet, (sh+1) * perSheet);
+    html += `<div style="margin-bottom:16px">
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">Sheet ${sh+1}</div>
+      <div class="lbl-sheet" style="--lbl-scale:0.5;grid-template-columns:repeat(${COLS},calc(2.625in * 0.5));grid-template-rows:repeat(${ROWS},calc(1in * 0.5));">
+        ${chunk.map(lb => lb ? `
+          <div class="lbl-cell-rack">
+            <span class="lbl-rack-name">${h(lb.typeName ? lb.typeName + ' · ' + lb.name : lb.name)}</span>
+            ${lb.ip   ? `<span class="lbl-rack-ip">${h(lb.ip)}</span>` : ''}
+            <span class="lbl-rack-meta">${h(lb.rack)}${lb.notes?' · '+lb.notes:''}</span>
+          </div>` : `<div class="lbl-cell-rack empty-slot"></div>`).join('')}
+      </div>
+    </div>`;
+  }
+  return html;
+}
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  LABEL PDF EXPORT                                        ║
+// ╚══════════════════════════════════════════════════════════╝
+
+// OL285: 1.25" × 0.75", 6 cols × 12 rows, letter sheet
+// Margins: 0.5" L/R, 1" T/B (no gap between labels)
+function exportCPCLabelsPDF() {
+  const snakes = _getSelSnakes();
+  if (!snakes.length) { alert('No snakes selected.'); return; }
+  const labels = _cpcLabelData(snakes);
+  const proj   = S.project?.name || 'Project';
+  const dt     = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  const LW = 1.25, LH = 0.75; // label inches
+  const COLS = 6, ROWS = 12;
+  const ML = 0.5, MT = 1.0;   // margins inches
+
+  const labelCells = labels.map(lb => {
+    const isSpare  = lb.type === 'spare';
+    const isUnused = lb.type === 'unused';
+    const isEmpty  = lb.type === 'empty-slot';
+    const color    = isSpare ? '#cc00cc' : isUnused ? '#bbbbbb' : '#000000';
+    const bg       = isEmpty ? '#f8f8f8' : '#ffffff';
+    const univStyle = `font-size:10pt;font-weight:800;font-family:'Courier New',monospace;color:${color};line-height:1.15;white-space:nowrap;overflow:hidden;`;
+    const locStyle  = `font-size:7.5pt;font-weight:600;font-family:'Courier New',monospace;color:${color};line-height:1.2;white-space:nowrap;overflow:hidden;`;
+    const numStyle  = `font-size:6pt;color:#aaa;font-family:monospace;line-height:1;`;
+    return isEmpty ? `<div style="background:${bg}"></div>` : `
+      <div style="background:${bg};display:flex;flex-direction:column;justify-content:center;padding:1pt 3pt;overflow:hidden">
+        <div style="${numStyle}">${h(lb.snakeName)} L${lb.lineNum}</div>
+        <div style="${univStyle}">${h(lb.univ)}</div>
+        <div style="${locStyle}">${h(lb.loc)}</div>
+      </div>`;
+  });
+
+  // Pad to full sheets
+  const perSheet = COLS * ROWS;
+  while (labelCells.length % perSheet !== 0) labelCells.push(`<div style="background:#f8f8f8"></div>`);
+
+  const sheets = [];
+  for (let i = 0; i < labelCells.length; i += perSheet) {
+    sheets.push(labelCells.slice(i, i + perSheet));
+  }
+
+  const sheetHtml = sheets.map((cells, si) => `
+    <div class="pg">
+      <div class="grid">${cells.join('')}</div>
+      <div class="footer">${h(proj)} · CPC Breakout Labels · Sheet ${si+1} of ${sheets.length} · ${dt}</div>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${h(proj)} — CPC Breakout Labels</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,sans-serif;background:#fff;}
+    @page{size:letter;margin:0;}
+    .pg{
+      width:8.5in;height:11in;position:relative;page-break-after:always;
+      padding:${MT}in ${ML}in;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(${COLS},${LW}in);
+      grid-template-rows:repeat(${ROWS},${LH}in);
+      gap:0;
+      border:0.5pt solid #eee;
+    }
+    .grid > div{border:0.5pt solid #ddd;}
+    .footer{
+      position:absolute;bottom:0.25in;left:${ML}in;right:${ML}in;
+      font-size:7pt;color:#aaa;text-align:center;
+    }
+  </style>
+  </head><body>${sheetHtml}</body></html>`;
+
+  _openPrint(html, 'CPC Breakout Labels');
+}
+
+// OL875: 2.625" × 1", 3 cols × 10 rows, letter sheet
+// Margins: 0.1875" L/R, 0.5" T/B, 0.125" column gap
+function exportRackLabelsPDF() {
+  const racks = _getSelRacks();
+  if (!racks.length) { alert('No racks selected.'); return; }
+  const labels = _rackLabelData(racks);
+  const proj   = S.project?.name || 'Project';
+  const dt     = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  const LW = 2.625, LH = 1.0;
+  const COLS = 3, ROWS = 10;
+  const ML = 0.1875, MT = 0.5;
+  const CGAP = 0.125;
+
+  const labelCells = labels.map(lb => {
+    if (!lb) return `<div style="background:#f8f8f8"></div>`;
+    const nameStr  = lb.typeName ? `${lb.typeName} · ${lb.name}` : lb.name;
+    const metaStr  = lb.rack + (lb.notes ? ' · ' + lb.notes : '');
+    return `
+      <div style="background:#fff;display:flex;flex-direction:column;justify-content:center;padding:2pt 6pt;overflow:hidden;gap:1pt">
+        <div style="font-size:11pt;font-weight:800;font-family:'Courier New',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h(nameStr)}</div>
+        ${lb.ip ? `<div style="font-size:9pt;font-family:'Courier New',monospace;color:#0044cc;white-space:nowrap">${h(lb.ip)}</div>` : ''}
+        <div style="font-size:7.5pt;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h(metaStr)}</div>
+      </div>`;
+  });
+
+  const perSheet = COLS * ROWS;
+  while (labelCells.length % perSheet !== 0) labelCells.push(`<div style="background:#f8f8f8"></div>`);
+
+  const sheets = [];
+  for (let i = 0; i < labelCells.length; i += perSheet) {
+    sheets.push(labelCells.slice(i, i + perSheet));
+  }
+
+  const sheetHtml = sheets.map((cells, si) => `
+    <div class="pg">
+      <div class="grid">${cells.join('')}</div>
+      <div class="footer">${h(proj)} · Rack Equipment Labels · Sheet ${si+1} of ${sheets.length} · ${dt}</div>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${h(proj)} — Rack Equipment Labels</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,sans-serif;background:#fff;}
+    @page{size:letter;margin:0;}
+    .pg{
+      width:8.5in;height:11in;position:relative;page-break-after:always;
+      padding:${MT}in ${ML}in;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(${COLS},${LW}in);
+      grid-template-rows:repeat(${ROWS},${LH}in);
+      column-gap:${CGAP}in;
+      row-gap:0;
+      border:0.5pt solid #eee;
+    }
+    .grid > div{border:0.5pt solid #ddd;}
+    .footer{
+      position:absolute;bottom:0.25in;left:${ML}in;right:${ML}in;
+      font-size:7pt;color:#aaa;text-align:center;
+    }
+  </style>
+  </head><body>${sheetHtml}</body></html>`;
+
+  _openPrint(html, 'Rack Equipment Labels');
 }
 
 // ╔══════════════════════════════════════════════════════════╗
