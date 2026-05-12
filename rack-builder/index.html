@@ -4463,8 +4463,10 @@ function rLabels() {
         if (!type) return;
         const isOpto = eq.typeId === 'optosplitter';
         type.ports.forEach(pt => {
-          const pl = eq.portLabels?.[pt.id] || {};
-          if (!pl.snakeId && pl.universe && !(isOpto && !pl.label)) portCount++;
+          const pl    = eq.portLabels?.[pt.id] || {};
+          const univ  = (pl.universe || '').trim();
+          const label = (pl.label   || '').trim();
+          if (univ && !pl.snakeId && !(isOpto && !label)) portCount++;
         });
       });
       return `<label class="lbl-check-item">
@@ -4763,15 +4765,14 @@ function _buildPortLabelColumns(racks) {
       if (!type) return;
       const isOpto = eq.typeId === 'optosplitter';
       type.ports.forEach(pt => {
-        const pl = eq.portLabels?.[pt.id] || {};
-        if (!pl.snakeId && pl.universe) {
-          // Optosplitter ports without a label are skipped — auto-propagated
-          // outputs all share the same universe and carry no useful destination info
-          if (isOpto && !pl.label) return;
-          const univ  = pl.universe.trim();
-          const spare = univ.toUpperCase().includes('SP');
-          portCells.push({ type: spare ? 'spare' : 'normal', univ, loc: (pl.label||'').trim() });
-        }
+        const pl    = eq.portLabels?.[pt.id] || {};
+        const univ  = (pl.universe || '').trim();
+        const label = (pl.label   || '').trim();
+        if (!univ) return;                              // no universe → skip
+        if (pl.snakeId) return;                        // snake-connected → skip
+        if (isOpto && !label) return;                  // opto without label → skip
+        const spare = univ.toUpperCase().includes('SP');
+        portCells.push({ type: spare ? 'spare' : 'normal', univ, loc: label });
       });
     });
     if (!portCells.length) return;
