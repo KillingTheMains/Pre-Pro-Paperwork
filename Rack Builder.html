@@ -1682,6 +1682,17 @@ function init() {
 
   // Keyboard handler
   document.addEventListener('keydown', e => {
+    // Universe match popup — handle before modal guard
+    const _ump = document.getElementById('univ-match-popup');
+    if (_ump && _ump.style.display !== 'none') {
+      if (e.key === 'Escape') { e.preventDefault(); dismissUnivPopup(); return; }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const btn = _ump.querySelector('.ump-link-btn:not(:disabled)');
+        if (btn) btn.click();
+        return;
+      }
+    }
     if (!S.modal) return;
     if (e.key === 'Escape') { closeModal(); return; }
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -4787,18 +4798,24 @@ function dismissUnivPopup() {
 // Called when user clicks Link from snake-side popup
 function umpLinkFromSnake(snakeId, lineId, rackId, itemId, portId) {
   if (_umpDoLink(snakeId, lineId, rackId, itemId, portId)) {
+    repairConnections();
     showToast('Linked ✓', 'ok');
     dismissUnivPopup();
     render();
+  } else {
+    showToast('Link failed — IDs not found', 'warn');
   }
 }
 
 // Called when user clicks Link from rack-port-side popup
 function umpLinkFromPort(rackId, itemId, portId, snakeId, lineId) {
   if (_umpDoLink(snakeId, lineId, rackId, itemId, portId)) {
+    repairConnections();
     showToast('Linked ✓', 'ok');
     dismissUnivPopup();
     render();
+  } else {
+    showToast('Link failed — IDs not found', 'warn');
   }
 }
 
