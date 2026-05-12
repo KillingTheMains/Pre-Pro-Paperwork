@@ -2061,11 +2061,31 @@ function buildColorPickers() {
 
 function toggleColorPicker(which) {
   const popup = document.getElementById('color-popup-'+which);
-  popup.classList.toggle('hidden');
-  // close others
-  ['primary','secondary','loc'].filter(w=>w!==which).forEach(w => {
+  const isHidden = popup.classList.contains('hidden');
+  // close all
+  ['primary','secondary','loc'].forEach(w => {
     document.getElementById('color-popup-'+w)?.classList.add('hidden');
   });
+  if (isHidden) {
+    // position as fixed to escape overflow clipping in scroll containers
+    const btnId = which === 'loc' ? 'loc-color-btn' : 'color-btn-'+which;
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      const r = btn.getBoundingClientRect();
+      const POPUP_H = 150;
+      popup.style.position = 'fixed';
+      popup.style.left = r.left + 'px';
+      popup.style.right = 'auto';
+      if (r.bottom + POPUP_H + 4 > window.innerHeight) {
+        popup.style.top = 'auto';
+        popup.style.bottom = (window.innerHeight - r.top + 4) + 'px';
+      } else {
+        popup.style.top = (r.bottom + 4) + 'px';
+        popup.style.bottom = 'auto';
+      }
+    }
+    popup.classList.remove('hidden');
+  }
 }
 
 function selectColor(which, name) {
