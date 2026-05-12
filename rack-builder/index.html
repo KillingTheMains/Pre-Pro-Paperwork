@@ -735,8 +735,8 @@ body {
 .lbl-cell-cpc.unused .lbl-loc  { color:#ccc; }
 .lbl-cell-cpc.empty-slot { background:#f8f8f8; }
 .lbl-cell-cpc.header .lbl-linenum { display:none; }
-.lbl-cell-cpc.header .lbl-univ { font-size:13px; color:#fff; }
-.lbl-cell-cpc.header .lbl-loc  { font-size:8px; font-weight:700; color:rgba(255,255,255,.75); letter-spacing:.07em; text-transform:uppercase; }
+.lbl-cell-cpc.header .lbl-univ { font-size:13px; }
+.lbl-cell-cpc.header .lbl-loc  { font-size:8px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; opacity:.75; }
 /* Rack equipment label cell (OL875: 2.625"×1") */
 .lbl-cell-rack { width:calc(2.625in * var(--lbl-scale,0.45)); height:calc(1in * var(--lbl-scale,0.45)); border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; padding:3px 7px; overflow:hidden; background:#fff; }
 .lbl-cell-rack .lbl-rack-name { font-size:9px; font-weight:800; font-family:monospace; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -4231,6 +4231,13 @@ function buildSnakesPrintDoc() {
 // Which sub-tab is active in Labels view (persists across renders via S)
 // S.labelTab = 'cpc' | 'rack'
 
+// Returns '#000000' or '#ffffff' — whichever contrasts better against the given hex background
+function _lblTextColor(hex) {
+  const c = hex.replace('#','');
+  const r = parseInt(c.slice(0,2),16), g = parseInt(c.slice(2,4),16), b = parseInt(c.slice(4,6),16);
+  return (0.299*r + 0.587*g + 0.114*b) / 255 > 0.45 ? '#000000' : '#ffffff';
+}
+
 function rLabels() {
   if (!S.labelTab) S.labelTab = 'cpc';
   const isCpc  = S.labelTab === 'cpc';
@@ -4457,7 +4464,7 @@ function _cpcLabelPreview(allSnakes) {
         <div style="display:grid;grid-template-columns:repeat(${COLS},calc(1.25in * ${SC}));grid-template-rows:repeat(${ROWS},calc(0.75in * ${SC}));gap:0;background:#fff;border:0.5px solid #bbb;">
           ${cells.map(lb => {
             if (lb.type === 'empty-slot') return `<div class="lbl-cell-cpc empty-slot"></div>`;
-            if (lb.type === 'header') return `<div class="lbl-cell-cpc header" style="background:${lb.color}"><span class="lbl-univ">${h(lb.univ)}</span><span class="lbl-loc">${h(lb.loc)}</span></div>`;
+            if (lb.type === 'header') { const _tc = _lblTextColor(lb.color); return `<div class="lbl-cell-cpc header" style="background:${lb.color};color:${_tc}"><span class="lbl-univ">${h(lb.univ)}</span><span class="lbl-loc">${h(lb.loc)}</span></div>`; }
             return `<div class="lbl-cell-cpc ${lb.type}"><span class="lbl-linenum">${h(lb.snakeName)} · L${lb.lineNum}</span><span class="lbl-univ">${h(lb.univ)}</span><span class="lbl-loc">${h(lb.loc)}</span></div>`;
           }).join('')}
         </div>
@@ -4550,10 +4557,12 @@ function exportCPCLabelsPDF() {
     if (lb.type === 'empty-slot') return EMPTY_DIV;
     if (lb.type === 'header') {
       const bg = lb.color || '#222222';
+      const tc = _lblTextColor(bg);
+      const tc2 = tc === '#000000' ? 'rgba(0,0,0,.65)' : 'rgba(255,255,255,.7)';
       const center = 'text-align:center;width:100%;';
       return `<div style="background:${bg};display:flex;flex-direction:column;justify-content:center;align-items:center;padding:1pt 2pt;overflow:hidden">
-        <div style="font-size:12pt;font-weight:800;font-family:'Courier New',monospace;color:#fff;${center}">${h(lb.univ)}</div>
-        <div style="font-size:7pt;font-weight:700;font-family:'Courier New',monospace;color:rgba(255,255,255,.7);letter-spacing:.1em;text-transform:uppercase;${center}">${h(lb.loc)}</div>
+        <div style="font-size:12pt;font-weight:800;font-family:'Courier New',monospace;color:${tc};${center}">${h(lb.univ)}</div>
+        <div style="font-size:7pt;font-weight:700;font-family:'Courier New',monospace;color:${tc2};letter-spacing:.1em;text-transform:uppercase;${center}">${h(lb.loc)}</div>
       </div>`;
     }
     const isSpare  = lb.type === 'spare';
