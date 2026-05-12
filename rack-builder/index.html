@@ -709,8 +709,8 @@ body {
 .lbl-info { font-size:11px; color:var(--text-muted); }
 /* Label sheet preview */
 .lbl-sheet { background:#fff; border:1px solid #ccc; border-radius:4px; display:inline-grid; gap:0; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.3); }
-/* CPC label cell (OL285: 1.25"×0.75") */
-.lbl-cell-cpc { width:calc(1.25in * var(--lbl-scale,0.6)); height:calc(0.75in * var(--lbl-scale,0.6)); border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:2px 4px; overflow:hidden; background:#fff; }
+/* CPC label cell (OL285: 1.25"×0.75") — grid controls sizing, no fixed w/h here */
+.lbl-cell-cpc { border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:2px 4px; overflow:hidden; background:#fff; min-width:0; min-height:0; }
 .lbl-cell-cpc .lbl-linenum { font-size:7px; color:#999; font-family:monospace; line-height:1; margin-bottom:1px; text-align:center; width:100%; }
 .lbl-cell-cpc .lbl-univ { font-size:11px; font-weight:800; font-family:monospace; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; width:100%; }
 .lbl-cell-cpc .lbl-loc  { font-size:8px; font-weight:600; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333; text-align:center; width:100%; }
@@ -718,6 +718,9 @@ body {
 .lbl-cell-cpc.spare .lbl-loc  { color:#333; }
 .lbl-cell-cpc.unused .lbl-univ, .lbl-cell-cpc.unused .lbl-loc { color:#bbb; }
 .lbl-cell-cpc.empty-slot { background:#f8f8f8; }
+.lbl-cell-cpc.header .lbl-linenum { display:none; }
+.lbl-cell-cpc.header .lbl-univ { font-size:13px; color:#fff; }
+.lbl-cell-cpc.header .lbl-loc  { font-size:8px; font-weight:700; color:rgba(255,255,255,.75); letter-spacing:.07em; text-transform:uppercase; }
 /* Rack equipment label cell (OL875: 2.625"×1") */
 .lbl-cell-rack { width:calc(2.625in * var(--lbl-scale,0.45)); height:calc(1in * var(--lbl-scale,0.45)); border:0.5px solid #ddd; display:flex; flex-direction:column; justify-content:center; padding:3px 7px; overflow:hidden; background:#fff; }
 .lbl-cell-rack .lbl-rack-name { font-size:9px; font-weight:800; font-family:monospace; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -4115,14 +4118,25 @@ function _getSelRacks() {
 
 // ── CPC Label Helpers ─────────────────────────────────────
 
-// Build one column (12 cells) per snake — each snake is its own column
+// Build one column (12 cells) per snake — first cell is a header, rest are lines
 function _buildCpcColumns(snakes) {
   const ROWS = 12;
   const EMPTY = { type:'empty-slot', univ:'', loc:'', lineNum:0, snakeName:'' };
   return snakes.map(snake => {
     const maxLines = snake.type === 'cpc8' ? 8 : 4;
+    const typeLabel = snake.type === 'cpc8' ? 'CPC8' : 'CPC4';
     const lines    = snake.lines || [];
-    const col = [];
+
+    // Header cell — uses the snake's own color as background
+    const col = [{
+      type: 'header',
+      univ: snake.name,
+      loc:  typeLabel,
+      lineNum: 0,
+      snakeName: snake.name,
+      color: snake.color || '#222222'
+    }];
+
     for (let i = 0; i < maxLines; i++) {
       const line = lines[i];
       if (!line) {
@@ -4141,7 +4155,7 @@ function _buildCpcColumns(snakes) {
         snakeName: snake.name
       });
     }
-    // pad column to ROWS with empty slots
+    // pad column to ROWS with empty slots (header + maxLines + padding = 12)
     while (col.length < ROWS) col.push(EMPTY);
     return col;
   });
@@ -4183,14 +4197,11 @@ function _cpcLabelPreview(allSnakes) {
       <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">Sheet ${sh+1} &nbsp;·&nbsp; OL285 · 1.25" × 0.75" · 6 cols × 12 rows · margins: 0.5" L/R, 1" T/B</div>
       <div style="background:#e0e0e0;display:inline-block;border:1px solid #bbb;box-shadow:0 2px 8px rgba(0,0,0,.25);width:calc(8.5in * ${SC});height:calc(11in * ${SC});padding:calc(${MT}in * ${SC}) calc(${ML}in * ${SC});box-sizing:border-box;">
         <div style="display:grid;grid-template-columns:repeat(${COLS},calc(1.25in * ${SC}));grid-template-rows:repeat(${ROWS},calc(0.75in * ${SC}));gap:0;background:#fff;border:0.5px solid #bbb;">
-          ${cells.map(lb => `
-            <div class="lbl-cell-cpc ${lb.type}">
-              ${lb.type!=='empty-slot'?`
-                <span class="lbl-linenum">${h(lb.snakeName)} · L${lb.lineNum}</span>
-                <span class="lbl-univ">${h(lb.univ)}</span>
-                <span class="lbl-loc">${h(lb.loc)}</span>
-              `:''}
-            </div>`).join('')}
+          ${cells.map(lb => {
+            if (lb.type === 'empty-slot') return `<div class="lbl-cell-cpc empty-slot"></div>`;
+            if (lb.type === 'header') return `<div class="lbl-cell-cpc header" style="background:${lb.color}"><span class="lbl-univ">${h(lb.univ)}</span><span class="lbl-loc">${h(lb.loc)}</span></div>`;
+            return `<div class="lbl-cell-cpc ${lb.type}"><span class="lbl-linenum">${h(lb.snakeName)} · L${lb.lineNum}</span><span class="lbl-univ">${h(lb.univ)}</span><span class="lbl-loc">${h(lb.loc)}</span></div>`;
+          }).join('')}
         </div>
       </div>
     </div>`;
@@ -4279,6 +4290,14 @@ function exportCPCLabelsPDF() {
 
   function cellHtml(lb) {
     if (lb.type === 'empty-slot') return EMPTY_DIV;
+    if (lb.type === 'header') {
+      const bg = lb.color || '#222222';
+      const center = 'text-align:center;width:100%;';
+      return `<div style="background:${bg};display:flex;flex-direction:column;justify-content:center;align-items:center;padding:1pt 2pt;overflow:hidden">
+        <div style="font-size:12pt;font-weight:800;font-family:'Courier New',monospace;color:#fff;${center}">${h(lb.univ)}</div>
+        <div style="font-size:7pt;font-weight:700;font-family:'Courier New',monospace;color:rgba(255,255,255,.7);letter-spacing:.1em;text-transform:uppercase;${center}">${h(lb.loc)}</div>
+      </div>`;
+    }
     const isSpare  = lb.type === 'spare';
     const isUnused = lb.type === 'unused';
     const bg       = '#ffffff';
