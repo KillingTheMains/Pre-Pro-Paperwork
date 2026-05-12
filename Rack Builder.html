@@ -1757,7 +1757,8 @@ function rHeader() {
     <button class="hbtn hbtn-ghost${S.view==='schematic'?' hbtn-sch-active':''}" onclick="selectSchematic()" title="Network schematic view">⬡ Schematic</button>
     <button class="hbtn hbtn-ghost${S.view==='bulk'?' hbtn-bulk-active':''}" onclick="selectView('bulk')" title="Bulk edit equipment names and IPs">📋 Gear List</button>
     <button class="hbtn hbtn-ghost${S.view==='labels'?' hbtn-lbl-active':''}" onclick="selectView('labels')" title="Generate equipment and CPC breakout labels">🏷 Labels</button>
-    <button class="hbtn hbtn-ghost" onclick="exportRacksPDF()" title="Export rack layouts as PDF">🖨 Racks PDF</button>
+    <button class="hbtn hbtn-ghost" onclick="exportRackDiagramsPDF()" title="Export full-page rack diagram per rack">🖨 Diagrams PDF</button>
+    <button class="hbtn hbtn-ghost" onclick="exportRacksPDF()" title="Export rack port assignments as PDF">🖨 Racks PDF</button>
     <button class="hbtn hbtn-primary" onclick="exportSnakesPDF()" title="Export snake/loom lists as PDF">🖨 Snakes PDF</button>
   </header>`;
 }
@@ -3843,6 +3844,168 @@ function _openPrint(html, title) {
 }
 
 // ── Racks PDF ──────────────────────────────────────────────
+function exportRackDiagramsPDF() { _openPrint(buildRackDiagramPrintDoc(), 'Rack Diagrams'); }
+
+function buildRackDiagramPrintDoc() {
+  const p  = S.project;
+  const dt = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  let pages = '';
+
+  p.racks.forEach((rack, ri) => {
+    const rackColor = rack.color || '#555555';
+    const items = (rack.equipment||[]).map((eq, idx) => {
+      const type = getType(eq.typeId);
+      return {
+        idx,
+        label:     eq.label || type?.name || '',
+        typeName:  type?.name || '',
+        typeColor: type?.color || '#888888',
+        ruHeight:  type?.ruHeight || 1,
+        ip:        eq.ip    || '',
+        notes:     eq.notes || ''
+      };
+    });
+
+    const PAD_RU    = 1;
+    const totalItemRU = items.reduce((s,i) => s + i.ruHeight, 0);
+    const totalRU   = totalItemRU + PAD_RU * 2;
+
+    // SVG geometry — work in points (1pt = 1/72 in)
+    // Available content area: 8.5in – 1in margin = 7.5in = 540pt wide
+    // Vertical: 11in – 0.8in margin – ~0.7in header = ~8.5in = 612pt for diagram
+    const SVG_W  = 540;
+    const RU_H   = Math.min(50, Math.max(22, Math.floor(592 / totalRU)));
+    const RAIL_W = Math.max(30, RU_H * 0.75);
+    const CAP_H  = Math.round(RU_H * 0.55);
+    const IW     = SVG_W - RAIL_W * 2;
+    const SVG_H  = CAP_H * 2 + totalRU * RU_H;
+
+    let svg = `<svg viewBox="0 0 ${SVG_W} ${SVG_H}" width="${SVG_W}" height="${SVG_H}" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%">`;
+
+    // ── Chassis shell ──
+    svg += `<rect width="${SVG_W}" height="${SVG_H}" fill="#d0d0d0" rx="4"/>`;
+
+    // ── Rails (left & right) ──
+    svg += `<rect x="0" y="${CAP_H}" width="${RAIL_W}" height="${totalRU * RU_H}" fill="#a8a8a8"/>`;
+    svg += `<rect x="${SVG_W-RAIL_W}" y="${CAP_H}" width="${RAIL_W}" height="${totalRU * RU_H}" fill="#a8a8a8"/>`;
+
+    // Rail cage-nut holes + RU numbers
+    const holeR   = Math.max(2, RU_H * 0.15);
+    const ruFontS = Math.max(7, RU_H * 0.32);
+    for (let ru = 0; ru < totalRU; ru++) {
+      const cy = CAP_H + ru * RU_H + RU_H * 0.5;
+      // Holes
+      svg += `<circle cx="${RAIL_W * 0.5}" cy="${cy}" r="${holeR}" fill="#777"/>`;
+      svg += `<circle cx="${SVG_W - RAIL_W * 0.5}" cy="${cy}" r="${holeR}" fill="#777"/>`;
+      // RU numbers (left rail)
+      svg += `<text x="${RAIL_W * 0.5}" y="${cy}" font-family="Arial,Helvetica,sans-serif" font-size="${ruFontS}" font-weight="700" fill="#eee" text-anchor="middle" dominant-baseline="middle">${ru+1}</text>`;
+    }
+
+    // ── Cap bars ──
+    svg += `<rect x="0" y="0" width="${SVG_W}" height="${CAP_H}" fill="#555" rx="3"/>`;
+    svg += `<rect x="0" y="${SVG_H-CAP_H}" width="${SVG_W}" height="${CAP_H}" fill="#555" rx="3"/>`;
+
+    // Rack name badge inside top cap (between rails)
+    svg += `<rect x="${RAIL_W}" y="0" width="${IW}" height="${CAP_H}" fill="${rackColor}"/>`;
+    const capFontS = Math.max(8, CAP_H * 0.56);
+    const capTc    = _lblTextColor(rackColor);
+    svg += `<text x="${RAIL_W + IW*0.5}" y="${CAP_H*0.52}" font-family="Arial,Helvetica,sans-serif" font-size="${capFontS}" font-weight="800" fill="${capTc}" text-anchor="middle" dominant-baseline="middle" letter-spacing="1">${esc(rack.name)}</text>`;
+
+    // Screws on cap corners
+    const sR = CAP_H * 0.28;
+    [[RAIL_W*0.35, CAP_H*0.5],[SVG_W-RAIL_W*0.35, CAP_H*0.5],[RAIL_W*0.35, SVG_H-CAP_H*0.5],[SVG_W-RAIL_W*0.35, SVG_H-CAP_H*0.5]].forEach(([sx,sy])=>{
+      svg += `<circle cx="${sx}" cy="${sy}" r="${sR}" fill="#bbb" stroke="#777" stroke-width="0.5"/>`;
+      svg += `<line x1="${sx-sR*0.65}" y1="${sy}" x2="${sx+sR*0.65}" y2="${sy}" stroke="#777" stroke-width="1"/>`;
+      svg += `<line x1="${sx}" y1="${sy-sR*0.65}" x2="${sx}" y2="${sy+sR*0.65}" stroke="#777" stroke-width="1"/>`;
+    });
+
+    // ── Empty RU slots (top pad) ──
+    for (let ru = 0; ru < PAD_RU; ru++) {
+      const sy = CAP_H + ru * RU_H;
+      svg += `<rect x="${RAIL_W}" y="${sy}" width="${IW}" height="${RU_H-1}" fill="#c4c4c4" stroke="#aaa" stroke-width="0.5"/>`;
+      // Blank rail holes look — just dimmer fill handled above
+    }
+
+    // ── Equipment items ──
+    let y = CAP_H + PAD_RU * RU_H;
+    items.forEach(item => {
+      const ih  = item.ruHeight * RU_H - 1;
+      const tc  = item.typeColor;
+      const BG  = tc + '20';
+      const BD  = tc + 'aa';
+
+      // Item background + border
+      svg += `<rect x="${RAIL_W}" y="${y}" width="${IW}" height="${ih}" fill="${BG}" stroke="${BD}" stroke-width="1"/>`;
+
+      // Left color stripe
+      const stripeW = Math.max(5, IW * 0.012);
+      svg += `<rect x="${RAIL_W}" y="${y}" width="${stripeW}" height="${ih}" fill="${tc}cc"/>`;
+
+      // Sequence # badge (left of label)
+      const badgeH   = Math.min(ih * 0.52, RU_H * 0.58);
+      const badgeW   = badgeH * 1.55;
+      const badgeX   = RAIL_W + stripeW + Math.max(3, IW * 0.006);
+      const badgeY   = y + (ih - badgeH) * 0.5;
+      svg += `<rect x="${badgeX}" y="${badgeY}" width="${badgeW}" height="${badgeH}" fill="${tc}30" rx="2"/>`;
+      const badgeFontS = Math.max(7, badgeH * 0.58);
+      svg += `<text x="${badgeX + badgeW*0.5}" y="${y + ih*0.5}" font-family="Arial,Helvetica,sans-serif" font-size="${badgeFontS}" font-weight="700" fill="${tc}" text-anchor="middle" dominant-baseline="middle">#${item.idx+1}</text>`;
+
+      // Label (bold, centred)
+      const labelFontS = Math.min(RU_H * 0.46, ih * 0.40);
+      const hasSecLine  = !!(item.typeName || item.ip);
+      const labelY      = hasSecLine ? y + ih * 0.36 : y + ih * 0.5;
+      svg += `<text x="${RAIL_W + IW*0.5}" y="${labelY}" font-family="Arial,Helvetica,sans-serif" font-size="${labelFontS}" font-weight="700" fill="#111" text-anchor="middle" dominant-baseline="middle">${esc(item.label)}</text>`;
+
+      // Type name + IP (second line, smaller)
+      if (hasSecLine) {
+        const metaFontS = Math.max(7, labelFontS * 0.55);
+        const metaY     = y + ih * 0.36 + labelFontS * 0.9;
+        const typeStr   = item.typeName ? esc(item.typeName) : '';
+        const ipStr     = item.ip ? esc(item.ip) : '';
+        const metaStr   = [typeStr, ipStr].filter(Boolean).join('  ·  ');
+        const metaFill  = item.ip ? '#0044aa' : tc;
+        svg += `<text x="${RAIL_W + IW*0.5}" y="${metaY}" font-family="'Courier New',Courier,monospace" font-size="${metaFontS}" fill="${metaFill}" text-anchor="middle" dominant-baseline="middle">${metaStr}</text>`;
+      }
+
+      y += item.ruHeight * RU_H;
+    });
+
+    // ── Empty RU slots (bottom pad) ──
+    for (let ru = 0; ru < PAD_RU; ru++) {
+      const sy = y + ru * RU_H;
+      svg += `<rect x="${RAIL_W}" y="${sy}" width="${IW}" height="${RU_H-1}" fill="#c4c4c4" stroke="#aaa" stroke-width="0.5"/>`;
+    }
+
+    svg += '</svg>';
+
+    // ── Page ──
+    const br = ri > 0 ? 'page-break-before:always;' : '';
+    pages += `<div style="${br}width:8.5in;height:11in;padding:0.4in 0.5in;box-sizing:border-box;display:flex;flex-direction:column;gap:10pt">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2.5pt solid ${rackColor};padding-bottom:6pt;flex-shrink:0">
+        <div>
+          <div style="font-size:20pt;font-weight:800;color:${rackColor};letter-spacing:-.02em">${h(rack.name)}</div>
+          <div style="font-size:8.5pt;color:#666;margin-top:2pt">${items.length} item${items.length!==1?'s':''} &nbsp;·&nbsp; ${totalItemRU}U loaded &nbsp;·&nbsp; ${h(p.name)}</div>
+        </div>
+        <div style="font-size:8pt;color:#999;text-align:right">${dt}</div>
+      </div>
+      <div style="flex:1;display:flex;justify-content:center;align-items:flex-start;overflow:hidden">
+        ${svg}
+      </div>
+    </div>`;
+  });
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>${h(p.name)} — Rack Diagrams</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @media print{@page{size:letter portrait;margin:0}}
+</style>
+</head><body>${pages}</body></html>`;
+}
+
 function exportRacksPDF() { _openPrint(buildRacksPrintDoc(), 'Rack Layouts'); }
 
 // Build a compact side-view rack SVG graphic (inline, pre-computed)
