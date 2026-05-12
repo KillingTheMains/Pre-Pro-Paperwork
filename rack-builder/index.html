@@ -2091,7 +2091,14 @@ function rSnake() {
 
   const linesHTML = snake.lines.map((line, li) => {
     const ci = snakeLineConnInfo(line);
-    const isSpLine = /SP/i.test(line.universe || '');
+    // Spare if universe contains "SP" — also check connected port's universe as a fallback
+    const _connPortUniv = (() => {
+      if (!line.connRackId || !line.connItemId || !line.connPortId) return '';
+      const _r = S.project.racks.find(r => r.id === line.connRackId);
+      const _it = _r?.equipment.find(e => e.id === line.connItemId);
+      return _it?.portLabels?.[line.connPortId]?.universe || '';
+    })();
+    const isSpLine = /\bSP\b/i.test(line.universe || '') || /\bSP\b/i.test(_connPortUniv);
     return `<div class="sline-row${isSpLine ? ' sline-spare' : ''}">
       <span class="sline-num">${line.lineNum}</span>
       <input class="sl-input sl-pos"
@@ -3591,10 +3598,11 @@ function saveInlineField(el) {
   if (field === 'universe') {
     _applySpareRowDOM(el, sid, lid, line);
     const univ = line[field];
-    if (univ && !line.connRackId) { // only suggest when not already connected
+    const isSpare = /\bSP\b/i.test(univ);
+    if (univ && !isSpare && !line.connRackId) { // only suggest when not spare and not already connected
       showUnivMatchPopup(el, univ, 'fromSnake', { snakeId: sid, lineId: lid });
     } else {
-      dismissUnivPopup();
+      dismissUnivPopup(); // always dismiss for spare universes or connected lines
     }
   }
 }
