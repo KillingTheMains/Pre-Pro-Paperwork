@@ -1465,20 +1465,25 @@ function init() {
   if (!S.project) { S.project = defaultProject(); save(); }
   // Migrate: add snakes array if missing (legacy saves)
   if (!S.project.snakes) { S.project.snakes = []; save(); }
-  // Migrate: remove stale hardcoded "Loom List" default snakes.
-  // These were injected by old code with a `location` field but no `loomCableId`.
-  // Any snake with a location, no loomCableId, and all-blank lines is an orphaned default
-  // that has since been superseded by syncFromLoom(). Remove them to prevent doubles.
-  (function purgeStaleDefaultSnakes() {
+  // Migrate: clean up garbage snakes from previous sync runs.
+  (function purgeStaleSnakes() {
     const before = S.project.snakes.length;
     S.project.snakes = S.project.snakes.filter(s => {
-      if (s.loomCableId) return true;        // keep all Loom-linked snakes
-      if (!s.location)   return true;        // keep non-location snakes (original A–M etc.)
-      // snake has location but no loomCableId — check if all lines are blank
-      const allBlank = (s.lines||[]).every(l =>
-        !(l.universe||'').trim() && !(l.position||'').trim()
-      );
-      return !allBlank; // keep if any data has been entered; remove if completely blank
+      // 1. Remove non-CPC Loom-synced snakes (type='custom', loomCableId set).
+      //    These came from Socapex/fiber/power cables that syncFromLoom used to import
+      //    before the CPC-only filter was added. They have no use in Rack Builder.
+      if (s.loomCableId && s.type !== 'cpc4' && s.type !== 'cpc8') return false;
+
+      // 2. Remove blank default "Loom List" stubs (location set, no loomCableId, all lines blank).
+      //    These were injected by old migrateLoomSnakes() code and are superseded by syncFromLoom.
+      if (!s.loomCableId && s.location) {
+        const allBlank = (s.lines||[]).every(l =>
+          !(l.universe||'').trim() && !(l.position||'').trim()
+        );
+        if (allBlank) return false;
+      }
+
+      return true;
     });
     if (S.project.snakes.length !== before) save();
   })();
