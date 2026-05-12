@@ -1015,6 +1015,8 @@ function syncFromLoom() {
   }
 
   const snakes = S.project.snakes;
+  // All active Loom cable IDs — used to detect whether a snake's loomCableId is stale
+  const activeLoomIds = new Set(cables.map(c => c.id));
 
   cables.forEach(cable => {
     const snakeType = _loomTypeToSnakeType(cable.type);
@@ -1024,9 +1026,15 @@ function syncFromLoom() {
     const loc = locations.find(l => l.id === cable.locationId);
     const locationName = loc ? loc.name : '';
 
-    // Find existing snake: first by loomCableId, then by name (migration)
+    // Match by loomCableId first (authoritative).
+    // Fallback: match by name — including snakes that already have a loomCableId if that
+    // ID is stale (its Loom cable was deleted/re-created). This prevents duplicates when
+    // a cable is renamed or re-imported with a new ID but the same label.
     let snake = snakes.find(s => s.loomCableId === cable.id)
-             || snakes.find(s => !s.loomCableId && s.name === cable.label);
+             || snakes.find(s =>
+                  (s.name||'').trim() === (cable.label||'').trim() &&
+                  (!s.loomCableId || !activeLoomIds.has(s.loomCableId))
+                );
 
     if (snake) {
       // Update identity fields from Loom
@@ -1088,6 +1096,9 @@ function syncFromLoom() {
   if (nonCpcIds.size) {
     S.project.snakes = S.project.snakes.filter(s => !s.loomCableId || !nonCpcIds.has(s.loomCableId));
   }
+
+  // Merge any same-name duplicates that survived into a single record
+  deduplicateSnakes();
 
   save();
 }
@@ -1468,6 +1479,80 @@ function _driveSetUI(state) {
   btn.title = cfg[2]; btn.setAttribute('onclick', cfg[3]);
 }
 
+// Merge same-name snake duplicates into a single record.
+// Duplicates arise when old connected snakes and new Loom-synced snakes share a name.
+// Strategy: the snake with loomCableId is the canonical identity winner.
+//   The "loser" donates its line connections and universe data to the winner, then is deleted.
+//   Rack port back-references (snakeId/snakeLineId) are redirected to the winner.
+function deduplicateSnakes() {
+  const byName = new Map();
+  (S.project.snakes || []).forEach(s => {
+    const key = (s.name || '').trim().toLowerCase();
+    if (!byName.has(key)) byName.set(key, []);
+    byName.get(key).push(s);
+  });
+
+  let dirty = false;
+  const toRemove = new Set();
+
+  byName.forEach(group => {
+    if (group.length <= 1) return;
+    dirty = true;
+
+    // Sort: loomCableId first (that's the canonical record), then by most connections
+    group.sort((a, b) => {
+      if (a.loomCableId && !b.loomCableId) return -1;
+      if (!a.loomCableId && b.loomCableId) return 1;
+      const aData = (a.lines||[]).filter(l => l.connRackId || (l.universe||'').trim()).length;
+      const bData = (b.lines||[]).filter(l => l.connRackId || (l.universe||'').trim()).length;
+      return bData - aData; // more data first as tiebreak
+    });
+
+    const winner = group[0];
+
+    group.slice(1).forEach(loser => {
+      // Transfer line data from loser → winner, line-by-line by index
+      (loser.lines || []).forEach((ll, idx) => {
+        const wl = (winner.lines || [])[idx];
+        if (!wl) return;
+        // Transfer rack port connection if winner line has none
+        if (ll.connRackId && ll.connItemId && ll.connPortId && !wl.connRackId) {
+          wl.connRackId = ll.connRackId;
+          wl.connItemId = ll.connItemId;
+          wl.connPortId = ll.connPortId;
+        }
+        // Transfer universe/position/firstFixture if winner line has none
+        if ((ll.universe    ||'').trim() && !(wl.universe    ||'').trim()) wl.universe     = ll.universe;
+        if ((ll.position    ||'').trim() && !(wl.position    ||'').trim()) wl.position     = ll.position;
+        if ((ll.firstFixture||'').trim() && !(wl.firstFixture||'').trim()) wl.firstFixture = ll.firstFixture;
+      });
+
+      // Redirect rack port back-references: loser.id → winner.id + winner line id
+      (S.project.racks || []).forEach(rack => {
+        (rack.equipment || []).forEach(item => {
+          Object.values(item.portLabels || {}).forEach(pl => {
+            if (pl.snakeId !== loser.id) return;
+            pl.snakeId = winner.id;
+            // Map loser line index → winner line id
+            const loserIdx = (loser.lines || []).findIndex(l => l.id === pl.snakeLineId);
+            if (loserIdx >= 0) {
+              const wl = (winner.lines || [])[loserIdx];
+              if (wl) pl.snakeLineId = wl.id;
+            }
+          });
+        });
+      });
+
+      toRemove.add(loser.id);
+    });
+  });
+
+  if (dirty) {
+    S.project.snakes = S.project.snakes.filter(s => !toRemove.has(s.id));
+    // No save() here — callers (syncFromLoom, init) handle saving
+  }
+}
+
 // Repair bidirectional snake↔port connections.
 // Snake lines store connRackId/connItemId/connPortId (authoritative).
 // Rack ports store snakeId/snakeLineId (back-reference, can become stale after purges).
@@ -1553,9 +1638,11 @@ function init() {
     });
     if (S.project.snakes.length !== before) save();
   })();
-  // Sync from Loom Builder on load
+  // Merge any pre-existing same-name duplicates before sync (handles leftover localStorage state)
+  deduplicateSnakes();
+  // Sync from Loom Builder on load (also runs deduplicateSnakes internally)
   syncFromLoom();
-  // Repair bidirectional snake↔port connections after any purge/sync
+  // Repair bidirectional snake↔port connections after any purge/sync/dedup
   repairConnections();
 
   S.rackId  = S.project.racks[0]?.id  || null;
