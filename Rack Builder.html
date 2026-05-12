@@ -4371,16 +4371,19 @@ function buildSnakesPrintDoc() {
   .spare-row td{background:#fdf0f7!important;color:#880044}
   .spare-row .c-univ strong{color:#aa0055!important}
 
+  /* ── snake line table — fixed layout so long connection strings wrap ── */
+  .st{width:100%;border-collapse:collapse;font-size:9.5pt;table-layout:fixed}
+
   /* ── column widths ── */
-  .c-ln  {width:32px;text-align:center;font-family:monospace;color:#888;font-size:8.5pt}
-  .c-pos {min-width:140px}
-  .c-univ{min-width:100px;white-space:nowrap;font-family:monospace}
-  .c-ffx {width:72px;color:#444;font-family:monospace;font-size:8.5pt}
-  .c-conn{font-size:8pt;color:#004499}
+  .c-ln  {width:5%;text-align:center;font-family:monospace;color:#888;font-size:8.5pt}
+  .c-pos {width:18%}
+  .c-univ{width:13%;white-space:nowrap;font-family:monospace}
+  .c-ffx {width:9%;color:#444;font-family:monospace;font-size:8.5pt}
+  .c-conn{width:55%;font-size:8pt;color:#004499;overflow-wrap:break-word;word-break:break-word}
 
   @media print{
-    @page{size:letter portrait;margin:0}
-    .wrap{padding:12mm 13mm}
+    @page{size:letter portrait;margin:12mm 13mm}
+    .wrap{padding:0}
     body{background:#fff}
   }
 </style>
