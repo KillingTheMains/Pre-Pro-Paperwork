@@ -4464,12 +4464,12 @@ function rLabels() {
       (r.equipment||[]).forEach(eq => {
         const type = getType(eq.typeId);
         if (!type) return;
-        const isOpto = eq.typeId === 'optosplitter';
+        const skipIfNoLabel = _isDistEq(eq.typeId);
         type.ports.forEach(pt => {
           const pl    = eq.portLabels?.[pt.id] || {};
           const univ  = (pl.universe || '').trim();
           const label = (pl.label   || '').trim();
-          if (univ && !pl.snakeId && !(isOpto && !label)) portCount++;
+          if (univ && !pl.snakeId && !(skipIfNoLabel && !label) && !(pt.type==='input'&&!label)) portCount++;
         });
       });
       return `<label class="lbl-check-item">
@@ -4754,6 +4754,12 @@ function _rackLabelPreview(allRacks) {
 
 // ── Port Labels (direct DMX ports, no snake) ──────────────
 
+// True for equipment types that act as signal distributors (multi-output splitters,
+// breakouts, etc.) — these only appear in Port Labels if they have a destination label.
+function _isDistEq(typeId) {
+  return ['optosplitter','lumisplit210','cpc4_breakout','cpc8_breakout'].includes(typeId);
+}
+
 // Returns array of columns (each column = ROWS cells), one rack per column-group.
 // Each rack starts at the top of a fresh column; overflows to the next column.
 function _buildPortLabelColumns(racks) {
@@ -4766,14 +4772,15 @@ function _buildPortLabelColumns(racks) {
     (rack.equipment||[]).forEach(eq => {
       const type   = getType(eq.typeId);
       if (!type) return;
-      const isOpto = eq.typeId === 'optosplitter';
+      const skipIfNoLabel = _isDistEq(eq.typeId);
       type.ports.forEach(pt => {
         const pl    = eq.portLabels?.[pt.id] || {};
         const univ  = (pl.universe || '').trim();
         const label = (pl.label   || '').trim();
-        if (!univ) return;                              // no universe → skip
-        if (pl.snakeId) return;                        // snake-connected → skip
-        if (isOpto && !label) return;                  // opto without label → skip
+        if (!univ)                        return;   // no universe → skip
+        if (pl.snakeId)                   return;   // snake-connected → skip
+        if (skipIfNoLabel   && !label)    return;   // distribution device, no dest label → skip
+        if (pt.type==='input' && !label)  return;   // unlabeled input port on any device → skip
         const spare = univ.toUpperCase().includes('SP');
         portCells.push({ type: spare ? 'spare' : 'normal', univ, loc: label });
       });
