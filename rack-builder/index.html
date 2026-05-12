@@ -4061,11 +4061,19 @@ function rLabels() {
     : `<button class="hbtn hbtn-primary" onclick="exportRackLabelsPDF()">🖨 Print OL875 Labels</button>
        <span class="lbl-info">OL875 · 2.625" × 1" · 30/sheet · 3 cols × 10 rows</span>`;
 
+  const zoom = S.labelZoom || 0.5;
+  const zoomPct = Math.round(zoom * 100);
   return `<div id="labels-view">
     <div id="labels-toolbar">
       <button class="lbl-tab${isCpc?' active':''}" onclick="switchLblTab('cpc')">CPC Breakout Labels</button>
       <button class="lbl-tab${isRack?' active':''}" onclick="switchLblTab('rack')">Rack Equipment Labels</button>
       <div style="flex:1"></div>
+      <div style="display:flex;align-items:center;gap:4px;margin-right:10px">
+        <button class="hbtn hbtn-ghost" style="font-size:14px;padding:3px 8px;line-height:1" onclick="adjLblZoom(-0.1)" title="Zoom Out">−</button>
+        <span style="font-size:10px;color:var(--text-secondary);min-width:34px;text-align:center">${zoomPct}%</span>
+        <button class="hbtn hbtn-ghost" style="font-size:14px;padding:3px 8px;line-height:1" onclick="adjLblZoom(0.1)" title="Zoom In">+</button>
+        <button class="hbtn hbtn-ghost" style="font-size:10px;padding:3px 7px" onclick="adjLblZoom(0)" title="Reset Zoom">↺</button>
+      </div>
       ${exportBtn}
     </div>
     <div id="labels-body">
@@ -4083,6 +4091,17 @@ function rLabels() {
 function switchLblTab(tab) {
   _saveLblChecks();
   S.labelTab = tab;
+  render();
+}
+
+function adjLblZoom(delta) {
+  _saveLblChecks();
+  if (delta === 0) {
+    S.labelZoom = 0.5; // reset
+  } else {
+    const cur = S.labelZoom || 0.5;
+    S.labelZoom = Math.min(2.0, Math.max(0.2, Math.round((cur + delta) * 10) / 10));
+  }
   render();
 }
 
@@ -4105,7 +4124,8 @@ function setAllLblChecks(type, val) {
 
 function _getSelSnakes() {
   _saveLblChecks();
-  const isSpare = sn => sn.color === '#ff0099' || / SP$/i.test((sn.name||'').trim());
+  // #ff0099 = Rack Builder pink, #ec4899 = Loom Builder pink (synced snakes use LB palette)
+  const isSpare = sn => sn.color === '#ff0099' || sn.color === '#ec4899' || / SP$/i.test((sn.name||'').trim());
   return (S.project.snakes||[]).filter(s =>
     !isSpare(s) && (s.type==='cpc4'||s.type==='cpc8') && (S.lblSelSnakes||{})[s.id] !== false
   );
@@ -4178,7 +4198,7 @@ function _cpcLabelPreview(allSnakes) {
   if (!selSnakes.length) return `<div style="color:var(--text-muted);padding:40px;text-align:center">Select snakes from the sidebar to preview labels.</div>`;
 
   const COLS = 6, ROWS = 12;
-  const SC   = 0.5;  // preview scale
+  const SC   = S.labelZoom || 0.5;  // preview scale
   const ML   = 0.5, MT = 1.0;  // OL285 margins in inches
 
   const columns     = _buildCpcColumns(selSnakes);
@@ -4247,7 +4267,7 @@ function _rackLabelPreview(allRacks) {
     <span class="lbl-info">${selRacks.length} rack${selRacks.length!==1?'s':''} · ${labels.filter(Boolean).length} items · ${totalSheets} sheet${totalSheets!==1?'s':''}</span>
   </div>`;
 
-  const SC   = 0.5; // preview scale
+  const SC   = S.labelZoom || 0.5; // preview scale
   // OL875 margins: 0.1875" L/R, 0.5" T/B, 0.125" col gap
   const ML875 = 0.1875, MT875 = 0.5, CGAP875 = 0.125;
 
