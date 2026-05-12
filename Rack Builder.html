@@ -4063,8 +4063,10 @@ function rLabels() {
   const isCpc  = S.labelTab === 'cpc';
   const isRack = S.labelTab === 'rack';
 
-  const isSpare    = sn => sn.color === '#ff0099' || / SP$/i.test((sn.name||'').trim());
-  const cpcSnakes  = (S.project.snakes||[]).filter(s => !isSpare(s) && (s.type==='cpc4'||s.type==='cpc8'));
+  // Same filters as Active Snakes sidebar: no orphans, no spares (both RB pink and LB pink), CPC only, sorted
+  const isSpare    = sn => sn.color === '#ff0099' || sn.color === '#ec4899' || / SP$/i.test((sn.name||'').trim());
+  const cpcSnakes  = [...(S.project.snakes||[])].filter(s => !s.orphaned && !isSpare(s) && (s.type==='cpc4'||s.type==='cpc8'))
+    .sort((a,b) => (a.name||'').localeCompare(b.name||'', undefined, {numeric:true, sensitivity:'base'}));
   const racks      = S.project.racks || [];
 
   // ── sidebar: checkboxes ──
