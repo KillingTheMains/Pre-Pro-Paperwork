@@ -744,11 +744,12 @@ body {
 // ║  CONSTANTS & HELPERS                                     ║
 // ╚══════════════════════════════════════════════════════════╝
 
-const COLORS = ['#0066ff','#00cc44','#9900ff','#ff6600','#ff0099','#00ccff','#ffcc00','#ff2020','#f0f0f0','#808080','#00ccaa'];
+const COLORS = ['#0066ff','#00cc44','#9900ff','#ff6600','#ff0099','#00ccff','#ffcc00','#ff2020','#f0f0f0','#808080','#00ccaa','#cc4400'];
 const COLOR_NAMES = {
   '#0066ff':'BLUE', '#00cc44':'GREEN', '#9900ff':'PURPLE',
   '#ff6600':'ORANGE', '#ff0099':'PINK', '#00ccff':'CYAN',
-  '#ffcc00':'YELLOW', '#ff2020':'RED', '#f0f0f0':'WHITE', '#808080':'GREY', '#00ccaa':'TEAL'
+  '#ffcc00':'YELLOW', '#ff2020':'RED', '#f0f0f0':'WHITE', '#808080':'GREY', '#00ccaa':'TEAL',
+  '#cc4400':'BROWN'
 };
 function rackColorName(rack) {
   return COLOR_NAMES[(rack?.color||'').toLowerCase()] || '';
@@ -969,7 +970,7 @@ const LOOM_COLOR_TO_HEX = {
   RED:'#ff2020', ORANGE:'#ff6600', YELLOW:'#ffcc00', GREEN:'#00cc44',
   BLUE:'#0066ff', PURPLE:'#9900ff', GREY:'#808080', TEAL:'#00ccaa',
   BLACK:'#808080', WHITE:'#f0f0f0', PINK:'#ff0099', LIME:'#00cc44',
-  CYAN:'#00ccff', BROWN:'#ff6600',
+  CYAN:'#00ccff', BROWN:'#cc4400',
 };
 
 // Normalize Loom Builder cable type to Rack Builder snake type
@@ -1610,14 +1611,14 @@ function rSidebar() {
     <div class="sb-divider"></div>
     <div class="sb-section flex1">
       <div class="sb-head">
-        <span>Snakes</span>
+        <span>Active Snakes</span>
         <button onclick="openAddSnake()" title="Add snake">+</button>
       </div>
       <div class="sb-items" id="sb-snakes-list">
-        ${(S.project?.snakes||[]).map(s => `
-          <div class="sb-item ${S.snakeId===s.id&&S.view==='snake'?'active':''} ${s.orphaned?'sb-item-orphan':''}" onclick="selectSnake('${s.id}')" title="${s.orphaned?'Orphaned — cable removed from Loom Builder':''}">
+        ${(S.project?.snakes||[]).filter(s => !s.orphaned && !/ SP$/i.test((s.name||'').trim())).map(s => `
+          <div class="sb-item ${S.snakeId===s.id&&S.view==='snake'?'active':''}" onclick="selectSnake('${s.id}')">
             <span class="sb-dot" style="background:${s.color||'#ff6600'}"></span>
-            ${h(s.name)} <span style="font-size:8px;color:var(--text-muted);margin-left:auto">${s.type==='cpc8'?'8ch':s.type==='cpc4'?'4ch':'?ch'}${s.orphaned?' ⚠':''}${s.loomCableId?' ⬡':''}</span>
+            ${h(s.name)} <span style="font-size:8px;color:var(--text-muted);margin-left:auto">${s.type==='cpc8'?'8ch':s.type==='cpc4'?'4ch':'?ch'}${s.loomCableId?' ⬡':''}</span>
           </div>`).join('')}
       </div>
     </div>
