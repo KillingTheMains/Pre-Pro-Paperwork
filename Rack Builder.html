@@ -4232,6 +4232,7 @@ function rLabels() {
   if (!S.labelTab) S.labelTab = 'cpc';
   const isCpc  = S.labelTab === 'cpc';
   const isRack = S.labelTab === 'rack';
+  const isPort = S.labelTab === 'port';
 
   // Same filters as Active Snakes sidebar: no orphans, no spares (both RB pink and LB pink), CPC only, sorted
   const isSpare    = sn => sn.color === '#ff0099' || sn.color === '#ec4899' || / SP$/i.test((sn.name||'').trim());
@@ -4253,7 +4254,7 @@ function rLabels() {
         <span style="flex:1">${h(s.name)}</span>
         <span style="font-size:9px;color:var(--text-muted)">${s.type==='cpc8'?'8ch':'4ch'}</span>
       </label>`).join('');
-  } else {
+  } else if (isRack) {
     sidebarItems = `<div style="display:flex;gap:4px;margin-bottom:6px">
       <button class="hbtn hbtn-ghost" style="font-size:10px;padding:3px 8px" onclick="setAllLblChecks('rack',true)">All</button>
       <button class="hbtn hbtn-ghost" style="font-size:10px;padding:3px 8px" onclick="setAllLblChecks('rack',false)">None</button>
@@ -4265,15 +4266,41 @@ function rLabels() {
         <span style="flex:1">${h(r.name)}</span>
         <span style="font-size:9px;color:var(--text-muted)">${r.equipment?.length||0} items</span>
       </label>`).join('');
+  } else {
+    // port tab — count direct (non-snake) assigned ports per rack
+    sidebarItems = `<div style="display:flex;gap:4px;margin-bottom:6px">
+      <button class="hbtn hbtn-ghost" style="font-size:10px;padding:3px 8px" onclick="setAllLblChecks('port-rack',true)">All</button>
+      <button class="hbtn hbtn-ghost" style="font-size:10px;padding:3px 8px" onclick="setAllLblChecks('port-rack',false)">None</button>
+    </div>` +
+    racks.map(r => {
+      let portCount = 0;
+      (r.equipment||[]).forEach(eq => {
+        const type = getType(eq.typeId);
+        if (!type) return;
+        type.ports.forEach(pt => {
+          const pl = eq.portLabels?.[pt.id] || {};
+          if (!pl.snakeId && (pl.universe || pl.label)) portCount++;
+        });
+      });
+      return `<label class="lbl-check-item">
+        <input type="checkbox" class="lbl-chk-port-rack" data-id="${r.id}" ${(S.lblSelPortRacks||{})[r.id]!==false?'checked':''} onchange="refreshLblPreview()">
+        <span class="lbl-dot" style="background:${r.color||'#aaa'}"></span>
+        <span style="flex:1">${h(r.name)}</span>
+        <span style="font-size:9px;color:var(--text-muted)">${portCount} ports</span>
+      </label>`;
+    }).join('');
   }
 
   // ── preview ──
-  const preview = isCpc ? _cpcLabelPreview(cpcSnakes) : _rackLabelPreview(racks);
+  const preview = isCpc ? _cpcLabelPreview(cpcSnakes) : isRack ? _rackLabelPreview(racks) : _portLabelPreview(racks);
   const exportBtn = isCpc
     ? `<button class="hbtn hbtn-primary" onclick="exportCPCLabelsPDF()">🖨 Print OL285 Labels</button>
        <span class="lbl-info">OL285 · 1.25" × 0.75" · 72/sheet · 6 cols × 12 rows</span>`
-    : `<button class="hbtn hbtn-primary" onclick="exportRackLabelsPDF()">🖨 Print OL875 Labels</button>
-       <span class="lbl-info">OL875 · 2.625" × 1" · 30/sheet · 3 cols × 10 rows</span>`;
+    : isRack
+    ? `<button class="hbtn hbtn-primary" onclick="exportRackLabelsPDF()">🖨 Print OL875 Labels</button>
+       <span class="lbl-info">OL875 · 2.625" × 1" · 30/sheet · 3 cols × 10 rows</span>`
+    : `<button class="hbtn hbtn-primary" onclick="exportPortLabelsPDF()">🖨 Print OL285 Labels</button>
+       <span class="lbl-info">OL285 · 1.25" × 0.75" · 72/sheet · 6 cols × 12 rows</span>`;
 
   const zoom = S.labelZoom || 0.5;
   const zoomPct = Math.round(zoom * 100);
@@ -4281,6 +4308,7 @@ function rLabels() {
     <div id="labels-toolbar">
       <button class="lbl-tab${isCpc?' active':''}" onclick="switchLblTab('cpc')">CPC Breakout Labels</button>
       <button class="lbl-tab${isRack?' active':''}" onclick="switchLblTab('rack')">Rack Equipment Labels</button>
+      <button class="lbl-tab${isPort?' active':''}" onclick="switchLblTab('port')">Port Labels</button>
       <div style="flex:1"></div>
       <div style="display:flex;align-items:center;gap:4px;margin-right:10px">
         <button class="hbtn hbtn-ghost" style="font-size:14px;padding:3px 8px;line-height:1" onclick="adjLblZoom(-0.1)" title="Zoom Out">−</button>
@@ -4329,10 +4357,14 @@ function _saveLblChecks() {
     if (!S.lblSelRacks) S.lblSelRacks = {};
     S.lblSelRacks[el.dataset.id] = el.checked;
   });
+  document.querySelectorAll('.lbl-chk-port-rack').forEach(el => {
+    if (!S.lblSelPortRacks) S.lblSelPortRacks = {};
+    S.lblSelPortRacks[el.dataset.id] = el.checked;
+  });
 }
 
 function setAllLblChecks(type, val) {
-  const cls = type === 'snake' ? '.lbl-chk-snake' : '.lbl-chk-rack';
+  const cls = type === 'snake' ? '.lbl-chk-snake' : type === 'port-rack' ? '.lbl-chk-port-rack' : '.lbl-chk-rack';
   document.querySelectorAll(cls).forEach(el => { el.checked = val; });
   refreshLblPreview();
 }
@@ -4342,13 +4374,13 @@ function refreshLblPreview() {
   _saveLblChecks();
   const wrap = document.querySelector('.lbl-preview-wrap');
   if (!wrap) return;
-  const isCpc = (S.labelTab || 'cpc') === 'cpc';
-  if (isCpc) {
-    const snakes = _getSelSnakes();
-    wrap.innerHTML = _cpcLabelPreview(snakes);
+  const tab = S.labelTab || 'cpc';
+  if (tab === 'cpc') {
+    wrap.innerHTML = _cpcLabelPreview(_getSelSnakes());
+  } else if (tab === 'rack') {
+    wrap.innerHTML = _rackLabelPreview(_getSelRacks());
   } else {
-    const racks = _getSelRacks();
-    wrap.innerHTML = _rackLabelPreview(racks);
+    wrap.innerHTML = _portLabelPreview(_getSelPortRacks());
   }
 }
 
@@ -4369,6 +4401,11 @@ function _getSelSnakes() {
 function _getSelRacks() {
   _saveLblChecks();
   return (S.project.racks||[]).filter(r => (S.lblSelRacks||{})[r.id] !== false);
+}
+
+function _getSelPortRacks() {
+  _saveLblChecks();
+  return (S.project.racks||[]).filter(r => (S.lblSelPortRacks||{})[r.id] !== false);
 }
 
 // ── CPC Label Helpers ─────────────────────────────────────
@@ -4525,6 +4562,78 @@ function _rackLabelPreview(allRacks) {
   return html;
 }
 
+// ── Port Labels (direct DMX ports, no snake) ──────────────
+
+function _buildPortLabelCells(racks) {
+  const cells = [];
+  racks.forEach(rack => {
+    const rackPorts = [];
+    (rack.equipment||[]).forEach(eq => {
+      const type = getType(eq.typeId);
+      if (!type) return;
+      type.ports.forEach(pt => {
+        const pl = eq.portLabels?.[pt.id] || {};
+        if (!pl.snakeId && (pl.universe || pl.label)) {
+          const univ = (pl.universe || '').trim() || '—';
+          const spare = univ.toUpperCase().includes('SP');
+          rackPorts.push({
+            type: spare ? 'spare' : 'normal',
+            univ,
+            loc: (pl.label || '').trim(),
+            eqPort: `${eq.label || type.name} · ${pt.name}`,
+            rack: rack.name
+          });
+        }
+      });
+    });
+    if (rackPorts.length) {
+      cells.push({ type: 'header', univ: rack.name, loc: `${rackPorts.length} PORT${rackPorts.length!==1?'S':''}`, color: rack.color || '#333' });
+      cells.push(...rackPorts);
+    }
+  });
+  return cells;
+}
+
+function _portLabelPreview(allRacks) {
+  const selRacks = allRacks.filter(r => (S.lblSelPortRacks||{})[r.id] !== false);
+  if (!selRacks.length) return `<div style="color:var(--text-muted);padding:40px;text-align:center">Select racks from the sidebar to preview labels.</div>`;
+
+  const COLS = 6, ROWS = 12;
+  const SC = S.labelZoom || 0.5;
+  const ML = 0.5, MT = 1.0;
+  const perSheet = COLS * ROWS;
+
+  const cells = _buildPortLabelCells(selRacks);
+  const totalPortLabels = cells.filter(c => c.type !== 'header').length;
+  if (!totalPortLabels) return `<div style="color:var(--text-muted);padding:40px;text-align:center">No direct port assignments found in selected racks.<br><small style="opacity:.6">Ports connected via a snake are shown in the CPC Breakout Labels tab.</small></div>`;
+
+  const totalSheets = Math.ceil(cells.length / perSheet) || 1;
+  const padded = [...cells];
+  while (padded.length % perSheet !== 0) padded.push({ type: 'empty-slot' });
+
+  let html = `<div class="lbl-preview-header">
+    <h3>Port Labels</h3>
+    <span class="lbl-info">${selRacks.length} rack${selRacks.length!==1?'s':''} · ${totalPortLabels} label${totalPortLabels!==1?'s':''} · ${totalSheets} sheet${totalSheets!==1?'s':''}</span>
+  </div>`;
+
+  for (let sh = 0; sh < totalSheets; sh++) {
+    const chunk = padded.slice(sh * perSheet, (sh+1) * perSheet);
+    html += `<div style="margin-bottom:16px">
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">Sheet ${sh+1} &nbsp;·&nbsp; OL285 · 1.25" × 0.75" · 6 cols × 12 rows · margins: 0.5" L/R, 1" T/B</div>
+      <div style="background:#e0e0e0;display:inline-block;border:1px solid #bbb;box-shadow:0 2px 8px rgba(0,0,0,.25);width:calc(8.5in * ${SC});height:calc(11in * ${SC});padding:calc(${MT}in * ${SC}) calc(${ML}in * ${SC});box-sizing:border-box;">
+        <div style="display:grid;grid-template-columns:repeat(${COLS},calc(1.25in * ${SC}));grid-template-rows:repeat(${ROWS},calc(0.75in * ${SC}));gap:0;background:#fff;border:0.5px solid #bbb;">
+          ${chunk.map(lb => {
+            if (lb.type === 'empty-slot') return `<div class="lbl-cell-cpc empty-slot"></div>`;
+            if (lb.type === 'header') { const _tc = _lblTextColor(lb.color); return `<div class="lbl-cell-cpc header" style="background:${lb.color};color:${_tc}"><span class="lbl-univ">${h(lb.univ)}</span><span class="lbl-loc">${h(lb.loc)}</span></div>`; }
+            return `<div class="lbl-cell-cpc ${lb.type}"><span class="lbl-linenum">${h(lb.eqPort)}</span><span class="lbl-univ">${h(lb.univ)}</span><span class="lbl-loc">${h(lb.loc)}</span></div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+  return html;
+}
+
 // ╔══════════════════════════════════════════════════════════╗
 // ║  LABEL PDF EXPORT                                        ║
 // ╚══════════════════════════════════════════════════════════╝
@@ -4667,6 +4776,72 @@ function exportRackLabelsPDF() {
   </head><body>${sheetHtml}</body></html>`;
 
   _openPrint(html, 'Rack Equipment Labels');
+}
+
+// OL285: 1.25" × 0.75", 6 cols × 12 rows — direct port labels (no snake)
+function exportPortLabelsPDF() {
+  const racks = _getSelPortRacks();
+  if (!racks.length) { alert('No racks selected.'); return; }
+  const cells = _buildPortLabelCells(racks);
+  const portCells = cells.filter(c => c.type !== 'header');
+  if (!portCells.length) { alert('No direct port assignments found in selected racks.'); return; }
+
+  const proj = S.project?.name || 'Project';
+  const LW = 1.25, LH = 0.75;
+  const COLS = 6, ROWS = 12;
+  const ML = 0.5, MT = 1.0;
+  const perSheet = COLS * ROWS;
+
+  const EMPTY_DIV = `<div style="background:#f8f8f8"></div>`;
+
+  function cellHtml(lb) {
+    if (lb.type === 'empty-slot') return EMPTY_DIV;
+    if (lb.type === 'header') {
+      const bg = lb.color || '#222222';
+      const tc = _lblTextColor(bg);
+      const tc2 = tc === '#000000' ? 'rgba(0,0,0,.65)' : 'rgba(255,255,255,.7)';
+      const center = 'text-align:center;width:100%;';
+      return `<div style="background:${bg};display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2pt 3pt;overflow:hidden">
+        <div style="font-size:20pt;font-weight:800;font-family:'Courier New',monospace;color:${tc};line-height:1.1;${center}">${h(lb.univ)}</div>
+        <div style="font-size:10pt;font-weight:700;font-family:'Courier New',monospace;color:${tc2};letter-spacing:.08em;text-transform:uppercase;${center}">${h(lb.loc)}</div>
+      </div>`;
+    }
+    const isSpare  = lb.type === 'spare';
+    const univColor = isSpare ? '#cc00cc' : '#000000';
+    const center    = 'text-align:center;width:100%;';
+    return `<div style="background:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2pt 3pt;overflow:hidden">
+      <div style="font-size:7pt;color:#aaa;font-family:'Courier New',monospace;line-height:1;${center}">${h(lb.eqPort)}</div>
+      <div style="font-size:16pt;font-weight:800;font-family:'Courier New',monospace;color:${univColor};line-height:1.1;white-space:nowrap;overflow:hidden;${center}">${h(lb.univ)}</div>
+      <div style="font-size:10pt;font-weight:600;font-family:'Courier New',monospace;color:#000;line-height:1.15;white-space:nowrap;overflow:hidden;${center}">${h(lb.loc)}</div>
+    </div>`;
+  }
+
+  const padded = [...cells];
+  while (padded.length % perSheet !== 0) padded.push({ type: 'empty-slot' });
+
+  const sheets = [];
+  for (let i = 0; i < padded.length; i += perSheet) {
+    sheets.push(padded.slice(i, i + perSheet).map(cellHtml));
+  }
+
+  const sheetHtml = sheets.map(cells => `
+    <div class="pg">
+      <div class="grid">${cells.join('')}</div>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${h(proj)} — Port Labels</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,sans-serif;background:#fff;}
+    @page{size:letter;margin:0;}
+    .pg{width:8.5in;height:11in;page-break-after:always;padding:${MT}in ${ML}in;}
+    .grid{display:grid;grid-template-columns:repeat(${COLS},${LW}in);grid-template-rows:repeat(${ROWS},${LH}in);gap:0;border:0.5pt solid #eee;}
+    .grid > div{border:0.5pt solid #ddd;}
+  </style>
+  </head><body>${sheetHtml}</body></html>`;
+
+  _openPrint(html, 'Port Labels');
 }
 
 // ╔══════════════════════════════════════════════════════════╗
