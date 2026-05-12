@@ -1468,6 +1468,61 @@ function _driveSetUI(state) {
   btn.title = cfg[2]; btn.setAttribute('onclick', cfg[3]);
 }
 
+// Repair bidirectional snake↔port connections.
+// Snake lines store connRackId/connItemId/connPortId (authoritative).
+// Rack ports store snakeId/snakeLineId (back-reference, can become stale after purges).
+// Pass 1: re-stamp rack port back-references from surviving snake lines.
+// Pass 2: clear rack port references that point to deleted snakes/lines.
+function repairConnections() {
+  let dirty = false;
+
+  // Build fast lookup: snakeId → snake, lineId → {snake, line}
+  const snakeById = {}, lineById = {};
+  (S.project.snakes||[]).forEach(snake => {
+    snakeById[snake.id] = snake;
+    (snake.lines||[]).forEach(line => { lineById[line.id] = { snake, line }; });
+  });
+
+  // Pass 1 — snake lines are authoritative: ensure rack port points back correctly
+  (S.project.snakes||[]).forEach(snake => {
+    (snake.lines||[]).forEach(line => {
+      const { connRackId:rId, connItemId:iId, connPortId:pId } = line;
+      if (!rId || !iId || !pId) return;
+      const rack = S.project.racks.find(r => r.id === rId);
+      const item = rack?.equipment.find(e => e.id === iId);
+      if (!item) {
+        // Rack/item gone — clear stale reference on line
+        line.connRackId = ''; line.connItemId = ''; line.connPortId = '';
+        dirty = true;
+      } else {
+        if (!item.portLabels) item.portLabels = {};
+        if (!item.portLabels[pId]) item.portLabels[pId] = { label:'', notes:'' };
+        const pl = item.portLabels[pId];
+        if (pl.snakeId !== snake.id || pl.snakeLineId !== line.id) {
+          pl.snakeId = snake.id;
+          pl.snakeLineId = line.id;
+          dirty = true;
+        }
+      }
+    });
+  });
+
+  // Pass 2 — clear rack port references to deleted snakes/lines
+  (S.project.racks||[]).forEach(rack => {
+    (rack.equipment||[]).forEach(item => {
+      Object.entries(item.portLabels||{}).forEach(([portId, pl]) => {
+        if (pl.snakeId && (!snakeById[pl.snakeId] || !lineById[pl.snakeLineId])) {
+          delete pl.snakeId;
+          delete pl.snakeLineId;
+          dirty = true;
+        }
+      });
+    });
+  });
+
+  if (dirty) save();
+}
+
 function init() {
   try {
     const raw = localStorage.getItem('rb_project');
@@ -1500,6 +1555,8 @@ function init() {
   })();
   // Sync from Loom Builder on load
   syncFromLoom();
+  // Repair bidirectional snake↔port connections after any purge/sync
+  repairConnections();
 
   S.rackId  = S.project.racks[0]?.id  || null;
   S.snakeId = S.project.snakes[0]?.id || null;
@@ -1615,7 +1672,7 @@ function rSidebar() {
         <button onclick="openAddSnake()" title="Add snake">+</button>
       </div>
       <div class="sb-items" id="sb-snakes-list">
-        ${(S.project?.snakes||[]).filter(s => !s.orphaned && !/ SP$/i.test((s.name||'').trim())).map(s => `
+        ${[...(S.project?.snakes||[])].filter(s => !s.orphaned && !/ SP$/i.test((s.name||'').trim())).sort((a,b) => (a.name||'').localeCompare(b.name||'', undefined, {numeric:true, sensitivity:'base'})).map(s => `
           <div class="sb-item ${S.snakeId===s.id&&S.view==='snake'?'active':''}" onclick="selectSnake('${s.id}')">
             <span class="sb-dot" style="background:${s.color||'#ff6600'}"></span>
             ${h(s.name)} <span style="font-size:8px;color:var(--text-muted);margin-left:auto">${s.type==='cpc8'?'8ch':s.type==='cpc4'?'4ch':'?ch'}${s.loomCableId?' ⬡':''}</span>
