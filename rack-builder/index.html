@@ -1078,6 +1078,16 @@ function syncFromLoom() {
     }
   });
 
+  // Remove snakes whose Loom cable is a non-CPC type (Socapex, fiber, ETH, etc.).
+  // This catches cases where old code synced every cable type, including null-type
+  // cables that became cpc8 snakes due to a now-fixed bug.
+  const nonCpcIds = new Set(
+    cables.filter(c => _loomTypeToSnakeType(c.type) === 'custom').map(c => c.id)
+  );
+  if (nonCpcIds.size) {
+    S.project.snakes = S.project.snakes.filter(s => !s.loomCableId || !nonCpcIds.has(s.loomCableId));
+  }
+
   save();
 }
 
