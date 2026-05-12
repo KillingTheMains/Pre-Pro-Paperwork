@@ -3293,6 +3293,36 @@ function confirmAddEq(rid) {
 
 function openEditEq(rid,iid) { S.modal={type:'editEq',data:{rid,iid}}; render(); focusDelay('ee-label'); }
 
+// ── Link ding sound ───────────────────────────────────────────────────────────
+function playLinkDing() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.38, ctx.currentTime);
+    master.connect(ctx.destination);
+
+    function tone(freq, startTime, duration, gainPeak) {
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      env.gain.setValueAtTime(0, startTime);
+      env.gain.linearRampToValueAtTime(gainPeak, startTime + 0.012);
+      env.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      osc.connect(env);
+      env.connect(master);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    }
+
+    const t = ctx.currentTime;
+    tone(523.25, t,        0.18, 1.0);  // C5  — the "ba"
+    tone(1046.5, t + 0.11, 0.32, 0.85); // C6  — the "ding"
+
+    setTimeout(() => ctx.close(), 600);
+  } catch(e) { /* audio not available, fail silently */ }
+}
+
 // ── Toast notification ────────────────────────────────────────────────────────
 let _toastTimer = null;
 function showToast(msg, type='ok') {
@@ -4799,6 +4829,7 @@ function dismissUnivPopup() {
 function umpLinkFromSnake(snakeId, lineId, rackId, itemId, portId) {
   if (_umpDoLink(snakeId, lineId, rackId, itemId, portId)) {
     repairConnections();
+    playLinkDing();
     showToast('Linked ✓', 'ok');
     dismissUnivPopup();
     render();
@@ -4811,6 +4842,7 @@ function umpLinkFromSnake(snakeId, lineId, rackId, itemId, portId) {
 function umpLinkFromPort(rackId, itemId, portId, snakeId, lineId) {
   if (_umpDoLink(snakeId, lineId, rackId, itemId, portId)) {
     repairConnections();
+    playLinkDing();
     showToast('Linked ✓', 'ok');
     dismissUnivPopup();
     render();
