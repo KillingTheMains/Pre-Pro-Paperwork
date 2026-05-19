@@ -496,8 +496,8 @@ function renderGenForm(){
   switch(S.genTab){
     case 'free': return `
       <label class="flabel">Label Text</label>
-      <textarea class="ftextarea" id="gf-text" rows="4" placeholder="TYPE YOUR TEXT&#10;NEW LINE = NEW LINE ON LABEL&#10;TEXT AUTO-SIZES TO FILL" onkeydown="if(event.ctrlKey&&event.key==='Enter'){addLabel()}">${h(S.genFreeText||'')}</textarea>
-      <p class="fhint">All caps recommended. Ctrl+Enter to add.</p>
+      <textarea class="ftextarea" id="gf-text" rows="4" placeholder="TYPE YOUR TEXT&#10;CTRL+ENTER = NEW LINE&#10;TEXT AUTO-SIZES TO FILL" onkeydown="if(event.key==='Enter'&&!event.ctrlKey){event.preventDefault();addLabel();}">${h(S.genFreeText||'')}</textarea>
+      <p class="fhint">All caps recommended. Enter to add · Ctrl+Enter for new line.</p>
       <button class="add-btn" onclick="addLabel()">+ ADD TO BATCH</button>
     `;
 
