@@ -496,7 +496,19 @@ function renderGenForm(){
   switch(S.genTab){
     case 'free': return `
       <label class="flabel">Label Text</label>
-      <textarea class="ftextarea" id="gf-text" rows="4" placeholder="TYPE YOUR TEXT&#10;CTRL+ENTER = NEW LINE&#10;TEXT AUTO-SIZES TO FILL" onkeydown="if(event.key==='Enter'&&!event.ctrlKey){event.preventDefault();addLabel();}">${h(S.genFreeText||'')}</textarea>
+      <textarea class="ftextarea" id="gf-text" rows="4" placeholder="TYPE YOUR TEXT&#10;CTRL+ENTER = NEW LINE&#10;TEXT AUTO-SIZES TO FILL" onkeydown="
+        if(event.key==='Enter'){
+          if(event.ctrlKey){
+            event.preventDefault();
+            var s=this.selectionStart, e=this.selectionEnd;
+            this.value=this.value.substring(0,s)+'\n'+this.value.substring(e);
+            this.selectionStart=this.selectionEnd=s+1;
+          } else {
+            event.preventDefault();
+            addLabel();
+          }
+        }
+      ">${h(S.genFreeText||'')}</textarea>
       <p class="fhint">All caps recommended. Enter to add · Ctrl+Enter for new line.</p>
       <button class="add-btn" onclick="addLabel()">+ ADD TO BATCH</button>
     `;
@@ -675,6 +687,9 @@ function _addFree(){
   S.batch.push({id:uid(), type:'free', text});
   S.genFreeText = '';
   save(); render();
+  // Refocus the textarea so the user can immediately type the next label
+  const ta = document.getElementById('gf-text');
+  if(ta) ta.focus();
   // Scroll batch area to bottom
   const ms = document.getElementById('main-scroll');
   if(ms) ms.scrollTop = ms.scrollHeight;
