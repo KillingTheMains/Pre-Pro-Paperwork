@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Label Builder</title>
+<style>
+/* ── Reset & base ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:'SF Mono','Fira Code','Menlo',monospace;
+  background:#05050c;color:#e8e8f0;font-size:13px}
+body{display:flex;flex-direction:column}
+
+/* ── Header ───────────────────────────────────────────── */
+#app-header{
+  display:flex;align-items:center;gap:12px;padding:0 16px;height:44px;
+  flex-shrink:0;background:#0f0f18;border-bottom:1px solid #1e1e2e;
+}
+.hdr-icon{font-size:18px;line-height:1}
+.hdr-title{font-size:13px;font-weight:700;color:#fff;letter-spacing:1.5px}
+.hdr-sep{width:1px;height:16px;background:#2a2a3e}
+.hdr-show{font-size:11px;color:#555568}
+.hdr-spacer{flex:1}
+.hbtn{
+  font-family:inherit;font-size:11px;font-weight:600;padding:5px 12px;
+  border-radius:4px;cursor:pointer;border:1px solid transparent;
+  letter-spacing:.5px;transition:background .12s,color .12s
+}
+.hbtn-primary{background:#4a9eff1a;border-color:#4a9eff44;color:#4a9eff}
+.hbtn-primary:hover{background:#4a9eff2a}
+.hbtn-danger{background:#ef44441a;border-color:#ef444440;color:#ef4444}
+.hbtn-danger:hover{background:#ef44442a}
+.hbtn-ghost{background:transparent;border-color:#2a2a3e;color:#707088}
+.hbtn-ghost:hover{background:#1a1a28;color:#e8e8f0}
+.batch-pill{
+  font-size:10px;font-weight:700;color:#3dd68c;background:#3dd68c1a;
+  border:1px solid #3dd68c40;border-radius:10px;padding:2px 8px;margin-left:4px
+}
+
+/* ── App body ─────────────────────────────────────────── */
+#app-body{display:flex;overflow:hidden}
+
+/* ── Sidebar ──────────────────────────────────────────── */
+#sidebar{
+  width:272px;flex-shrink:0;background:#0a0a14;
+  border-right:1px solid #1a1a28;display:flex;flex-direction:column;
+  overflow-y:auto
+}
+.gen-tabs{
+  display:flex;flex-wrap:wrap;gap:3px;padding:10px 10px 6px
+}
+.gen-tab{
+  font-family:inherit;font-size:10px;font-weight:700;padding:4px 9px;
+  border-radius:3px;cursor:pointer;border:1px solid #222232;
+  background:#131320;color:#555570;letter-spacing:.5px;white-space:nowrap
+}
+.gen-tab.active{background:#4a9eff1a;border-color:#4a9eff40;color:#4a9eff}
+.gen-tab:hover:not(.active){background:#1a1a28;color:#9090a8}
+.gen-divider{
+  height:1px;background:#1a1a28;margin:2px 10px
+}
+.gen-body{padding:10px 12px 14px;flex:1}
+.gen-section{margin-bottom:20px}
+
+.flabel{
+  display:block;font-size:10px;font-weight:700;color:#555570;
+  letter-spacing:.8px;margin-bottom:5px;margin-top:10px;text-transform:uppercase
+}
+.flabel:first-child{margin-top:0}
+.finput{
+  font-family:inherit;font-size:12px;font-weight:600;width:100%;
+  padding:7px 9px;background:#111120;border:1px solid #222232;
+  border-radius:4px;color:#e8e8f0;outline:none
+}
+.finput:focus{border-color:#4a9eff55}
+.finput::placeholder{color:#333348;font-weight:400}
+.ftextarea{
+  font-family:inherit;font-size:12px;font-weight:600;width:100%;
+  padding:7px 9px;background:#111120;border:1px solid #222232;
+  border-radius:4px;color:#e8e8f0;outline:none;resize:vertical;min-height:72px
+}
+.ftextarea:focus{border-color:#4a9eff55}
+.ftextarea::placeholder{color:#333348;font-weight:400}
+.fselect{
+  font-family:inherit;font-size:11px;font-weight:700;width:100%;
+  padding:7px 9px;background:#111120;border:1px solid #222232;
+  border-radius:4px;color:#e8e8f0;outline:none
+}
+.frow{display:flex;gap:8px}
+.frow .finput{flex:1}
+.fhint{font-size:10px;color:#3a3a55;margin-top:5px;font-style:italic;line-height:1.4}
+
+.add-btn{
+  font-family:inherit;font-size:11px;font-weight:700;width:100%;
+  padding:9px;margin-top:12px;background:#3dd68c1a;border:1px solid #3dd68c40;
+  border-radius:4px;color:#3dd68c;cursor:pointer;letter-spacing:.5px
+}
+.add-btn:hover{background:#3dd68c2a}
+.add-btn:disabled{opacity:.4;cursor:default}
+
+.rack-import-list{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.rack-import-item{
+  display:flex;align-items:center;gap:8px;padding:5px 7px;
+  border-radius:4px;cursor:pointer;border:1px solid transparent
+}
+.rack-import-item:hover{background:#1a1a28}
+.rack-import-item input{cursor:pointer;accent-color:#4a9eff}
+.rack-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rack-name{font-size:11px;font-weight:700;color:#c0c0d8}
+.rack-empty{font-size:11px;color:#3a3a55;padding:8px 0;font-style:italic}
+
+.sidebar-footer{
+  padding:10px 12px;border-top:1px solid #1a1a28;
+  font-size:10px;color:#3a3a55;text-align:center
+}
+
+/* ── Main area ────────────────────────────────────────── */
+#main-scroll{flex:1;overflow-y:auto;padding:16px;background:#05050c}
+
+.batch-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:260px;color:#333348;gap:10px
+}
+.batch-empty .icon{font-size:40px}
+.batch-empty p{font-size:12px;color:#3a3a55;text-align:center;line-height:1.6}
+
+.batch-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(310px,1fr));
+  gap:14px
+}
+.batch-card{
+  background:#0d0d1a;border:1px solid #1e1e2e;border-radius:6px;overflow:hidden
+}
+.batch-card-hdr{
+  display:flex;align-items:center;gap:7px;padding:5px 8px;
+  background:#0f0f1a;border-bottom:1px solid #1a1a28
+}
+.batch-num{
+  font-size:9px;font-weight:700;color:#555570;background:#1a1a28;
+  padding:2px 6px;border-radius:3px;min-width:26px;text-align:center
+}
+.batch-type{font-size:9px;font-weight:700;color:#707088;letter-spacing:.8px;text-transform:uppercase}
+.chdr-sp{flex:1}
+.bmove{
+  font-family:inherit;font-size:11px;color:#3a3a55;cursor:pointer;
+  background:none;border:none;padding:2px 3px;border-radius:3px
+}
+.bmove:hover{color:#4a9eff;background:#4a9eff11}
+.bdel{
+  font-family:inherit;font-size:12px;color:#3a3a55;cursor:pointer;
+  background:none;border:none;padding:2px 5px;border-radius:3px
+}
+.bdel:hover{color:#ef4444;background:#ef444415}
+.batch-preview{
+  padding:8px;background:#080810;display:flex;justify-content:center
+}
+/* The .lbl-wrap clips the scaled-down canvas */
+.lbl-wrap{
+  width:317px;height:212px;overflow:hidden;flex-shrink:0;
+  border:1px solid #1a1a28
+}
+.lbl-canvas{
+  width:576px;height:384px;
+  transform:scale(0.55);transform-origin:top left;
+  background:#fff;overflow:hidden;
+  font-family:'Arial Black','Arial Narrow Bold',Arial,sans-serif;
+  color:#000;line-height:1.15
+}
+
+/* ── Print styles ─────────────────────────────────────── */
+@media print{
+  @page{size:6in 4in;margin:0}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<div id="app-header">
+  <span class="hdr-icon">🏷</span>
+  <span class="hdr-title">LABEL BUILDER</span>
+  <div class="hdr-sep"></div>
+  <span class="hdr-show" id="hdr-show-name">—</span>
+  <div class="hdr-spacer"></div>
+  <span class="batch-pill" id="hdr-count">0 LABELS</span>
+  <button class="hbtn hbtn-primary" onclick="printLabels()">🖨 Print All</button>
+  <button class="hbtn hbtn-ghost" onclick="clearBatch()">✕ Clear Batch</button>
+</div>
+<div id="app-body">
+  <div id="sidebar">
+    <div class="gen-tabs" id="gen-tabs"></div>
+    <div class="gen-divider"></div>
+    <div class="gen-body" id="gen-body"></div>
+    <div class="sidebar-footer" id="sidebar-footer"></div>
+  </div>
+  <div id="main-scroll" id="main-scroll">
+    <div id="batch-area"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════════════════
+// STATE & CONSTANTS
+// ══════════════════════════════════════════════════════════════════
+const LW = 576, LH = 384;   // 6in × 4in at 96dpi CSS px
+const LP = 20;               // label padding px (≈0.21in each side)
+const LCW = LW - LP*2;      // content width  = 536px
+const LCH = LH - LP*2;      // content height = 344px
+const PREVIEW_S = 0.551;     // → 317 × 212 visible
+
+const STORE_KEY = 'lb_batch';
+
+const GEN_TABS = [
+  { id:'free',    label:'FREE TEXT' },
+  { id:'fixture', label:'FIXTURE'   },
+  { id:'case',    label:'CASE #'    },
+  { id:'device',  label:'DEVICE'    },
+  { id:'ship',    label:'SHIPPING'  },
+  { id:'rack',    label:'RACK'      },
+];
+
+const S = {
+  batch:   [],
+  genTab:  'free',
+  showName:'',
+};
+
+function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4)}
+function h(s){return String(s==null?'':''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function save(){localStorage.setItem(STORE_KEY, JSON.stringify(S.batch))}
+
+// ══════════════════════════════════════════════════════════════════
+// FONT SIZING  (canvas text measurement)
+// ══════════════════════════════════════════════════════════════════
+const _fsCanvas = document.createElement('canvas');
+const _fsCtx    = _fsCanvas.getContext('2d');
+
+function calcFsPx(lines, maxW, maxH, fontSpec){
+  const spec = fontSpec || "900 {S}px 'Arial Black', Arial, sans-serif";
+  const validLines = (lines||[]).map(l=>String(l||'').trim()).filter(Boolean);
+  if(!validLines.length) return 48;
+  let lo=6, hi=520;
+  for(let i=0;i<32;i++){
+    const mid=(lo+hi)/2;
+    _fsCtx.font = spec.replace('{S}', mid);
+    const maxTW = Math.max(...validLines.map(l=>_fsCtx.measureText(l).width));
+    const totalH = validLines.length * mid * 1.22;
+    if(maxTW<=maxW && totalH<=maxH) lo=mid; else hi=mid;
+  }
+  return lo * 0.91;
+}
+
+function calcFsMulti(segArr, maxW, totalMaxH){
+  // segArr: [{lines, frac}] — frac is the fraction of totalMaxH for this segment
+  // Returns array of font sizes
+  return segArr.map(seg=>{
+    const h = totalMaxH * seg.frac;
+    return calcFsPx(seg.lines, maxW, h);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LABEL CANVAS RENDERING
+// ══════════════════════════════════════════════════════════════════
+function renderLabelCanvas(lbl){
+  const base = `width:${LW}px;height:${LH}px;padding:${LP}px;box-sizing:border-box;background:#fff;overflow:hidden;`;
+  const center = `display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;`;
+  const fontBold = `font-family:'Arial Black',Impact,'Arial Narrow Bold',Arial,sans-serif;font-weight:900;color:#000;`;
+
+  switch(lbl.type){
+
+    case 'free': {
+      const raw = (lbl.text||'').replace(/\r/g,'');
+      const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+      if(!lines.length) return _emptyCanvas();
+      const fs = calcFsPx(lines, LCW, LCH);
+      const inner = lines.map(l=>`<div style="white-space:nowrap">${h(l)}</div>`).join('');
+      return `<div class="lbl-canvas" style="${base}${center}${fontBold}font-size:${fs}px;line-height:1.18;">${inner}</div>`;
+    }
+
+    case 'fixture': {
+      const typ = (lbl.fixtureType||'').trim();
+      const ids = (lbl.ids||'').trim();
+      const loc = (lbl.location||'').trim();
+      if(!typ) return _emptyCanvas();
+
+      const parts = [
+        typ  ? {lines:[typ], frac:0.45} : null,
+        ids  ? {lines:[ids], frac:0.30} : null,
+        loc  ? {lines:[loc], frac:0.20} : null,
+      ].filter(Boolean);
+
+      // recalc fracs to sum to 1
+      const totalFrac = parts.reduce((s,p)=>s+p.frac,0);
+      parts.forEach(p=>p.frac=p.frac/totalFrac);
+      const sizes = calcFsMulti(parts, LCW, LCH);
+
+      let inner = '';
+      parts.forEach((p,i)=>{
+        const isLoc = (i===parts.length-1 && loc);
+        const clr = isLoc ? '#444' : '#000';
+        inner += `<div style="font-size:${sizes[i]}px;color:${clr};white-space:nowrap;line-height:1.1;font-family:'Arial Black',Impact,Arial,sans-serif;font-weight:900;">${h(p.lines[0])}</div>`;
+        if(i<parts.length-1 && i===0){
+          inner += `<div style="width:${LCW}px;height:2px;background:#000;flex-shrink:0;margin:3px 0;"></div>`;
+        }
+      });
+      return `<div class="lbl-canvas" style="${base}${center}">${inner}</div>`;
+    }
+
+    case 'case': {
+      const num    = String(lbl.number||'').trim();
+      const prefix = (lbl.prefix||'').trim();
+      const suffix = (lbl.suffix||'').trim();
+      if(!num) return _emptyCanvas();
+
+      if(prefix || suffix){
+        const fsNum = calcFsPx([num], LCW, LCH*0.70);
+        const fsTag = calcFsPx([prefix||suffix], LCW, LCH*0.22);
+        const topLine = prefix || '';
+        const botLine = suffix || '';
+        return `<div class="lbl-canvas" style="${base}${center}">
+          ${topLine?`<div style="font-size:${fsTag}px;color:#666;${fontBold}white-space:nowrap;margin-bottom:2px;">${h(topLine)}</div>`:''}
+          <div style="font-size:${fsNum}px;color:#000;${fontBold}white-space:nowrap;line-height:1;">${h(num)}</div>
+          ${botLine?`<div style="font-size:${fsTag}px;color:#666;${fontBold}white-space:nowrap;margin-top:2px;">${h(botLine)}</div>`:''}
+        </div>`;
+      } else {
+        const fs = calcFsPx([num], LCW, LCH);
+        return `<div class="lbl-canvas" style="${base}${center}${fontBold}font-size:${fs}px;white-space:nowrap;line-height:1;">${h(num)}</div>`;
+      }
+    }
+
+    case 'device': {
+      const name = (lbl.name||'').trim();
+      const uid2 = (lbl.unitId||'').trim();
+      const addr = (lbl.address||'').trim();
+      const note = (lbl.notes||'').trim();
+      if(!name) return _emptyCanvas();
+
+      const parts = [
+        {text: name,            weight:1.00, color:'#000'},
+        uid2 ? {text:`(${uid2})`,  weight:0.75, color:'#000'} : null,
+        addr ? {text:`ADDR: ${addr}`, weight:0.65, color:'#333'} : null,
+        note ? {text:note,          weight:0.55, color:'#555'} : null,
+      ].filter(Boolean);
+
+      const allLines = parts.map(p=>p.text);
+      const fsBase = calcFsPx(allLines, LCW, LCH);
+
+      let inner = parts.map(p=>`
+        <div style="font-size:${fsBase*p.weight}px;color:${p.color};${fontBold}white-space:nowrap;line-height:1.18;">${h(p.text)}</div>
+      `).join('');
+      return `<div class="lbl-canvas" style="${base}${center}">${inner}</div>`;
+    }
+
+    case 'ship': {
+      const holdSend = lbl.holdSend==='send' ? 'PLEASE SEND TO:' : 'PLEASE HOLD AT:';
+      const vendor  = (lbl.vendor||'').trim();
+      const address = (lbl.address||'').trim();
+      const tour    = (lbl.tour||'').trim();
+      const contact = (lbl.contact||'').trim();
+      const phone   = (lbl.phone||'').trim();
+
+      // Build lines in order, only non-empty
+      const rows = [
+        vendor  ? {t:vendor,   sz:1.0, bold:true,  clr:'#000'} : null,
+        address ? null : null, // address rendered inline below
+        tour    ? {t:tour,     sz:0.65, bold:false, clr:'#444'} : null,
+        contact||phone ? {t:[contact,phone].filter(Boolean).join(' · '), sz:0.60, bold:false, clr:'#555'} : null,
+      ].filter(Boolean);
+
+      // Vendor is the biggest element; address can be multi-line
+      const allTextLines = [
+        holdSend,
+        vendor,
+        ...( address.split('\n').map(l=>l.trim()).filter(Boolean) ),
+        tour,
+        [contact,phone].filter(Boolean).join(' · '),
+      ].filter(Boolean);
+
+      const fsBase = calcFsPx(allTextLines, LCW, LCH) * 0.88;
+
+      const addrLines = address.split('\n').map(l=>l.trim()).filter(Boolean);
+
+      let inner = `<div style="font-size:${fsBase*0.55}px;color:#888;font-family:Arial,sans-serif;font-weight:700;letter-spacing:1px;margin-bottom:4px;white-space:nowrap;">${h(holdSend)}</div>`;
+      if(vendor)  inner += `<div style="font-size:${fsBase}px;${fontBold}color:#000;white-space:nowrap;line-height:1.1;">${h(vendor)}</div>`;
+      addrLines.forEach(l=>{
+        inner += `<div style="font-size:${fsBase*0.65}px;font-family:Arial,sans-serif;font-weight:600;color:#333;white-space:nowrap;line-height:1.25;">${h(l)}</div>`;
+      });
+      if(tour)    inner += `<div style="font-size:${fsBase*0.60}px;font-family:Arial,sans-serif;font-weight:700;color:#555;white-space:nowrap;margin-top:4px;">${h(tour)}</div>`;
+      if(contact||phone) inner += `<div style="font-size:${fsBase*0.55}px;font-family:Arial,sans-serif;font-weight:600;color:#666;white-space:nowrap;margin-top:2px;">${h([contact,phone].filter(Boolean).join(' · '))}</div>`;
+
+      return `<div class="lbl-canvas" style="${base}display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:${LP}px ${LP+6}px;">${inner}</div>`;
+    }
+
+    case 'rack': {
+      const name = (lbl.name||'').trim();
+      const sub  = (lbl.sub||'').trim();
+      if(!name) return _emptyCanvas();
+      const lines = [name, sub].filter(Boolean);
+      const fsName = calcFsPx([name], LCW, sub ? LCH*0.72 : LCH);
+      const fsSub  = sub ? calcFsPx([sub], LCW, LCH*0.22) : 0;
+      let inner = `<div style="font-size:${fsName}px;${fontBold}white-space:nowrap;line-height:1.05;">${h(name)}</div>`;
+      if(sub) inner += `<div style="font-size:${fsSub}px;${fontBold}color:#555;white-space:nowrap;margin-top:6px;">${h(sub)}</div>`;
+      return `<div class="lbl-canvas" style="${base}${center}">${inner}</div>`;
+    }
+
+    default:
+      return _emptyCanvas();
+  }
+}
+
+function _emptyCanvas(){
+  return `<div class="lbl-canvas" style="width:${LW}px;height:${LH}px;background:#fff;display:flex;align-items:center;justify-content:center;"><span style="color:#ccc;font-size:14px;font-family:Arial,sans-serif;">Empty label</span></div>`;
+}
+
+// Type display names
+const TYPE_NAMES = {free:'FREE TEXT',fixture:'FIXTURE',case:'CASE #',device:'DEVICE',ship:'SHIPPING',rack:'RACK'};
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════════════
+function render(){
+  // Update header
+  document.getElementById('hdr-show-name').textContent = S.showName || '—';
+  const pill = document.getElementById('hdr-count');
+  pill.textContent = S.batch.length === 1 ? '1 LABEL' : `${S.batch.length} LABELS`;
+
+  // Sidebar tabs
+  document.getElementById('gen-tabs').innerHTML = GEN_TABS.map(t=>
+    `<button class="gen-tab${S.genTab===t.id?' active':''}" onclick="setGenTab('${t.id}')">${t.label}</button>`
+  ).join('');
+
+  // Sidebar form
+  document.getElementById('gen-body').innerHTML = renderGenForm();
+  document.getElementById('sidebar-footer').textContent = `${S.batch.length} label${S.batch.length!==1?'s':''} in batch`;
+
+  // Batch area
+  document.getElementById('batch-area').innerHTML = renderBatch();
+
+  applyViewportHeight();
+}
+
+function applyViewportHeight(){
+  const ab = document.getElementById('app-body');
+  if(!ab) return;
+  const hdr = document.getElementById('app-header');
+  const used = hdr ? hdr.getBoundingClientRect().height : 44;
+  ab.style.height = (window.innerHeight - used) + 'px';
+}
+
+// ──────────────────────────────────────────────────────────────────
+// GENERATOR FORMS
+// ──────────────────────────────────────────────────────────────────
+function renderGenForm(){
+  switch(S.genTab){
+    case 'free': return `
+      <label class="flabel">Label Text</label>
+      <textarea class="ftextarea" id="gf-text" rows="4" placeholder="TYPE YOUR TEXT&#10;NEW LINE = NEW LINE ON LABEL&#10;TEXT AUTO-SIZES TO FILL" onkeydown="if(event.ctrlKey&&event.key==='Enter'){addLabel()}">${h(S.genFreeText||'')}</textarea>
+      <p class="fhint">All caps recommended. Ctrl+Enter to add.</p>
+      <button class="add-btn" onclick="addLabel()">+ ADD TO BATCH</button>
+    `;
+
+    case 'fixture': return `
+      <label class="flabel">Fixture Type</label>
+      <input class="finput" id="gf-fix-type" placeholder="FUZE WASH" value="${h(S.gen_fix_type||'')}">
+      <label class="flabel">Unit Numbers / Range</label>
+      <input class="finput" id="gf-fix-ids" placeholder="1401 – 1406" value="${h(S.gen_fix_ids||'')}">
+      <label class="flabel">Location / Position</label>
+      <input class="finput" id="gf-fix-loc" placeholder="TRUSS Q – DS" value="${h(S.gen_fix_loc||'')}">
+      <button class="add-btn" onclick="addLabel()">+ ADD TO BATCH</button>
+      <p class="fhint">Leave location blank if not needed.</p>
+    `;
+
+    case 'case': return `
+      <label class="flabel">Case / Box Number(s)</label>
+      <div class="frow">
+        <input class="finput" id="gf-case-start" placeholder="200" value="${h(S.gen_case_start||'')}" type="number" min="1" style="width:90px;flex:1">
+        <span style="color:#3a3a55;align-self:center;font-size:11px">to</span>
+        <input class="finput" id="gf-case-end" placeholder="220" value="${h(S.gen_case_end||'')}" type="number" min="1" style="width:90px;flex:1">
+      </div>
+      <p class="fhint">Set both fields to the same number for a single label. A batch will be generated for each number in the range.</p>
+      <label class="flabel">Prefix <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional — e.g. BMW)</span></label>
+      <input class="finput" id="gf-case-prefix" placeholder="BMW" value="${h(S.gen_case_prefix||'')}" style="width:50%">
+      <label class="flabel">Suffix <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional — e.g. LX)</span></label>
+      <input class="finput" id="gf-case-suffix" placeholder="LX" value="${h(S.gen_case_suffix||'')}" style="width:50%">
+      <button class="add-btn" id="case-add-btn" onclick="addLabel()">+ ADD TO BATCH</button>
+    `;
+
+    case 'device': return `
+      <label class="flabel">Device Name</label>
+      <input class="finput" id="gf-dev-name" placeholder="HAZER DSR" value="${h(S.gen_dev_name||'')}">
+      <label class="flabel">Unit ID</label>
+      <input class="finput" id="gf-dev-id" placeholder="9101" value="${h(S.gen_dev_id||'')}" style="width:50%">
+      <label class="flabel">DMX / Network Address</label>
+      <input class="finput" id="gf-dev-addr" placeholder="42 / 501" value="${h(S.gen_dev_addr||'')}">
+      <label class="flabel">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input class="finput" id="gf-dev-notes" placeholder="STAGE LEFT" value="${h(S.gen_dev_notes||'')}">
+      <button class="add-btn" onclick="addLabel()">+ ADD TO BATCH</button>
+    `;
+
+    case 'ship': return `
+      <label class="flabel">Label Type</label>
+      <select class="fselect" id="gf-ship-type">
+        <option value="hold" ${(S.gen_ship_type||'hold')==='hold'?'selected':''}>PLEASE HOLD AT:</option>
+        <option value="send" ${S.gen_ship_type==='send'?'selected':''}>PLEASE SEND TO:</option>
+      </select>
+      <label class="flabel">Vendor / Facility</label>
+      <input class="finput" id="gf-ship-vendor" placeholder="4WALL LAS VEGAS" value="${h(S.gen_ship_vendor||'')}">
+      <label class="flabel">Address</label>
+      <textarea class="ftextarea" id="gf-ship-addr" rows="2" placeholder="123 Main St&#10;Las Vegas, NV 89101" style="min-height:52px">${h(S.gen_ship_addr||'')}</textarea>
+      <label class="flabel">Tour / Show</label>
+      <input class="finput" id="gf-ship-tour" placeholder="BMW 2026" value="${h(S.gen_ship_tour||S.showName||'')}">
+      <label class="flabel">Contact Name</label>
+      <input class="finput" id="gf-ship-contact" placeholder="JASON BIELSKER" value="${h(S.gen_ship_contact||'')}">
+      <label class="flabel">Phone</label>
+      <input class="finput" id="gf-ship-phone" placeholder="(913) 548-5418" value="${h(S.gen_ship_phone||'')}">
+      <button class="add-btn" onclick="addLabel()">+ ADD TO BATCH</button>
+    `;
+
+    case 'rack': {
+      const rackData = _getRackBuilderRacks();
+      const rackList = rackData.length
+        ? rackData.map(r=>`
+          <label class="rack-import-item">
+            <input type="checkbox" class="rb-chk" data-id="${r.id}" data-name="${h(r.name)}" checked>
+            <span class="rack-dot" style="background:${r.color||'#888'}"></span>
+            <span class="rack-name">${h(r.name)}</span>
+          </label>`).join('')
+        : `<p class="rack-empty">No Rack Builder data found.<br>Open Rack Builder to populate racks.</p>`;
+      return `
+        <label class="flabel">Import from Rack Builder</label>
+        <div class="rack-import-list">${rackList}</div>
+        ${rackData.length ? `<button class="add-btn" onclick="addRackLabels()" style="margin-top:10px">+ ADD SELECTED TO BATCH</button>` : ''}
+        <div style="height:14px"></div>
+        <label class="flabel">— or type a custom rack label —</label>
+        <input class="finput" id="gf-rack-custom" placeholder="RACK 1" value="${h(S.gen_rack_custom||'')}">
+        <label class="flabel">Sub-text <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input class="finput" id="gf-rack-sub" placeholder="TRUSS AREA" value="${h(S.gen_rack_sub||'')}">
+        <button class="add-btn" onclick="addCustomRackLabel()" style="margin-top:10px">+ ADD CUSTOM RACK LABEL</button>
+      `;
+    }
+  }
+  return '';
+}
+
+// ──────────────────────────────────────────────────────────────────
+// BATCH DISPLAY
+// ──────────────────────────────────────────────────────────────────
+function renderBatch(){
+  if(!S.batch.length) return `
+    <div class="batch-empty">
+      <span class="icon">🏷</span>
+      <p>Your label batch is empty.<br>Use the generators on the left to add labels.</p>
+    </div>`;
+
+  return `<div class="batch-grid">${S.batch.map((lbl,i)=>`
+    <div class="batch-card">
+      <div class="batch-card-hdr">
+        <span class="batch-num">${i+1}</span>
+        <span class="batch-type">${TYPE_NAMES[lbl.type]||lbl.type}</span>
+        <span class="chdr-sp"></span>
+        <button class="bmove" onclick="moveLabel(${i},-1)" title="Move up" ${i===0?'disabled':''}>↑</button>
+        <button class="bmove" onclick="moveLabel(${i},1)" title="Move down" ${i===S.batch.length-1?'disabled':''}>↓</button>
+        <button class="bdel" onclick="delLabel(${i})" title="Remove">✕</button>
+      </div>
+      <div class="batch-preview">
+        <div class="lbl-wrap">${renderLabelCanvas(lbl)}</div>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ACTIONS — GENERATORS
+// ══════════════════════════════════════════════════════════════════
+function setGenTab(id){
+  _saveFormState();
+  S.genTab = id;
+  render();
+}
+
+function _saveFormState(){
+  // Save current form inputs into S so they persist across tab switches
+  switch(S.genTab){
+    case 'free':
+      S.genFreeText = document.getElementById('gf-text')?.value || '';
+      break;
+    case 'fixture':
+      S.gen_fix_type = document.getElementById('gf-fix-type')?.value || '';
+      S.gen_fix_ids  = document.getElementById('gf-fix-ids')?.value || '';
+      S.gen_fix_loc  = document.getElementById('gf-fix-loc')?.value || '';
+      break;
+    case 'case':
+      S.gen_case_start  = document.getElementById('gf-case-start')?.value || '';
+      S.gen_case_end    = document.getElementById('gf-case-end')?.value || '';
+      S.gen_case_prefix = document.getElementById('gf-case-prefix')?.value || '';
+      S.gen_case_suffix = document.getElementById('gf-case-suffix')?.value || '';
+      break;
+    case 'device':
+      S.gen_dev_name  = document.getElementById('gf-dev-name')?.value || '';
+      S.gen_dev_id    = document.getElementById('gf-dev-id')?.value || '';
+      S.gen_dev_addr  = document.getElementById('gf-dev-addr')?.value || '';
+      S.gen_dev_notes = document.getElementById('gf-dev-notes')?.value || '';
+      break;
+    case 'ship':
+      S.gen_ship_type    = document.getElementById('gf-ship-type')?.value || 'hold';
+      S.gen_ship_vendor  = document.getElementById('gf-ship-vendor')?.value || '';
+      S.gen_ship_addr    = document.getElementById('gf-ship-addr')?.value || '';
+      S.gen_ship_tour    = document.getElementById('gf-ship-tour')?.value || '';
+      S.gen_ship_contact = document.getElementById('gf-ship-contact')?.value || '';
+      S.gen_ship_phone   = document.getElementById('gf-ship-phone')?.value || '';
+      break;
+    case 'rack':
+      S.gen_rack_custom = document.getElementById('gf-rack-custom')?.value || '';
+      S.gen_rack_sub    = document.getElementById('gf-rack-sub')?.value || '';
+      break;
+  }
+}
+
+function addLabel(){
+  _saveFormState();
+  switch(S.genTab){
+    case 'free':    _addFree();    break;
+    case 'fixture': _addFixture(); break;
+    case 'case':    _addCases();   break;
+    case 'device':  _addDevice();  break;
+    case 'ship':    _addShip();    break;
+  }
+}
+
+function _addFree(){
+  const text = (S.genFreeText||'').trim();
+  if(!text){ alert('Enter some label text first.'); return; }
+  S.batch.push({id:uid(), type:'free', text});
+  S.genFreeText = '';
+  save(); render();
+  // Scroll batch area to bottom
+  const ms = document.getElementById('main-scroll');
+  if(ms) ms.scrollTop = ms.scrollHeight;
+}
+
+function _addFixture(){
+  const typ = (S.gen_fix_type||'').trim();
+  const ids = (S.gen_fix_ids||'').trim();
+  const loc = (S.gen_fix_loc||'').trim();
+  if(!typ){ alert('Enter a fixture type.'); return; }
+  S.batch.push({id:uid(), type:'fixture', fixtureType:typ, ids, location:loc});
+  save(); render();
+}
+
+function _addCases(){
+  const start  = parseInt(S.gen_case_start||'');
+  const end    = parseInt(S.gen_case_end||'');
+  const prefix = (S.gen_case_prefix||'').trim();
+  const suffix = (S.gen_case_suffix||'').trim();
+  if(isNaN(start)){ alert('Enter a start number.'); return; }
+  const realEnd = isNaN(end) ? start : Math.max(start, end);
+  const count = realEnd - start + 1;
+  if(count > 200){ if(!confirm(`Generate ${count} labels? That's a lot!`)) return; }
+  for(let n=start; n<=realEnd; n++){
+    S.batch.push({id:uid(), type:'case', number:String(n), prefix, suffix});
+  }
+  save(); render();
+}
+
+function _addDevice(){
+  const name = (S.gen_dev_name||'').trim();
+  if(!name){ alert('Enter a device name.'); return; }
+  S.batch.push({
+    id:uid(), type:'device',
+    name, unitId:(S.gen_dev_id||'').trim(),
+    address:(S.gen_dev_addr||'').trim(),
+    notes:(S.gen_dev_notes||'').trim()
+  });
+  save(); render();
+}
+
+function _addShip(){
+  const vendor = (S.gen_ship_vendor||'').trim();
+  if(!vendor){ alert('Enter a vendor/facility name.'); return; }
+  S.batch.push({
+    id:uid(), type:'ship',
+    holdSend: S.gen_ship_type || 'hold',
+    vendor,
+    address: (S.gen_ship_addr||'').trim(),
+    tour:    (S.gen_ship_tour||'').trim(),
+    contact: (S.gen_ship_contact||'').trim(),
+    phone:   (S.gen_ship_phone||'').trim()
+  });
+  save(); render();
+}
+
+function addRackLabels(){
+  const checks = document.querySelectorAll('.rb-chk:checked');
+  if(!checks.length){ alert('Select at least one rack.'); return; }
+  checks.forEach(cb=>{
+    S.batch.push({id:uid(), type:'rack', name:cb.dataset.name, sub:''});
+  });
+  save(); render();
+}
+
+function addCustomRackLabel(){
+  _saveFormState();
+  const name = (S.gen_rack_custom||'').trim();
+  if(!name){ alert('Enter a rack name.'); return; }
+  S.batch.push({id:uid(), type:'rack', name, sub:(S.gen_rack_sub||'').trim()});
+  S.gen_rack_custom = '';
+  S.gen_rack_sub = '';
+  save(); render();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// BATCH MANAGEMENT
+// ══════════════════════════════════════════════════════════════════
+function delLabel(i){
+  S.batch.splice(i, 1);
+  save(); render();
+}
+
+function moveLabel(i, dir){
+  const j = i + dir;
+  if(j<0 || j>=S.batch.length) return;
+  [S.batch[i], S.batch[j]] = [S.batch[j], S.batch[i]];
+  save(); render();
+}
+
+function clearBatch(){
+  if(!S.batch.length) return;
+  if(!confirm(`Clear all ${S.batch.length} label${S.batch.length!==1?'s':''}?`)) return;
+  S.batch = [];
+  save(); render();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RACK BUILDER INTEGRATION
+// ══════════════════════════════════════════════════════════════════
+function _getRackBuilderRacks(){
+  try{
+    const raw = localStorage.getItem('rb_project') || localStorage.getItem('rack_builder_project');
+    if(!raw) return [];
+    const proj = JSON.parse(raw);
+    return (proj.racks||[]).map(r=>({id:r.id, name:r.name, color:r.color}));
+  }catch(e){ return []; }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PRINT
+// ══════════════════════════════════════════════════════════════════
+function printLabels(){
+  if(!S.batch.length){ alert('No labels in batch.'); return; }
+
+  const labelPages = S.batch.map(lbl=>`
+    <div class="label-page">${renderLabelCanvas(lbl)}</div>
+  `).join('');
+
+  const win = window.open('','_blank','width=800,height=600');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>${S.showName ? S.showName+' — ' : ''}Labels</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      @page{size:6in 4in;margin:0}
+      body{background:#fff}
+      .label-page{
+        width:6in;height:4in;overflow:hidden;
+        page-break-after:always;
+      }
+      .lbl-canvas{
+        width:576px;height:384px;background:#fff;overflow:hidden;
+        font-family:'Arial Black','Arial Narrow Bold',Arial,sans-serif;
+        color:#000;line-height:1.15
+      }
+      @media screen{
+        body{background:#ccc;display:flex;flex-direction:column;align-items:center;gap:16px;padding:16px}
+        .label-page{box-shadow:0 2px 8px rgba(0,0,0,.3)}
+        .print-bar{
+          position:fixed;top:0;left:0;right:0;padding:10px 16px;
+          background:#222;color:#fff;display:flex;align-items:center;gap:12px;
+          font-family:Arial,sans-serif;font-size:13px;z-index:999
+        }
+        .print-bar button{
+          font-family:Arial,sans-serif;font-size:13px;font-weight:700;
+          padding:6px 16px;background:#4a9eff;color:#fff;
+          border:none;border-radius:4px;cursor:pointer
+        }
+        .label-page{margin-top:52px}
+        .label-page:not(:first-of-type){margin-top:0}
+      }
+    </style>
+  </head><body>
+    <div class="print-bar">
+      <button onclick="window.print()">🖨 Print (${S.batch.length} label${S.batch.length!==1?'s':''})</button>
+      <span>Select your Rollo or label printer · Label size: 6" × 4" landscape</span>
+    </div>
+    ${labelPages}
+  </body></html>`);
+  win.document.close();
+  win.focus();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SUITE INTEGRATION — show name
+// ══════════════════════════════════════════════════════════════════
+function _loadShowName(){
+  try{
+    const suite = JSON.parse(localStorage.getItem('pps_suite')||'{}');
+    S.showName = suite.showName || suite.name || '';
+  }catch(e){}
+  if(!S.showName){
+    // Try Loom Builder active show
+    try{
+      const activeId = localStorage.getItem('loom_builder_active');
+      const shows = JSON.parse(localStorage.getItem('loom_builder_shows')||'{}');
+      S.showName = shows[activeId]?.show?.name || '';
+    }catch(e){}
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
+function init(){
+  try{ S.batch = JSON.parse(localStorage.getItem(STORE_KEY)||'[]'); }catch(e){ S.batch=[]; }
+  _loadShowName();
+  window.addEventListener('resize', applyViewportHeight);
+  window.addEventListener('storage', e=>{
+    if(e.key==='pps_suite'||e.key==='loom_builder_active'||e.key==='loom_builder_shows'){
+      _loadShowName(); document.getElementById('hdr-show-name').textContent = S.showName || '—';
+    }
+  });
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
