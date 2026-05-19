@@ -251,7 +251,8 @@ function calcFsPx(lines, maxW, maxH, fontSpec){
   return lo * 0.91;
 }
 
-// Simulate word-wrap at a given font size; returns number of visual lines
+// Simulate word-wrap at a given font size; returns number of visual lines.
+// Handles words wider than maxW — CSS overflow-wrap:break-word splits them mid-character.
 function calcWrappedLineCount(text, maxW, fs, spec){
   _fsCtx.font = spec.replace('{S}', fs);
   const words = text.split(/\s+/).filter(Boolean);
@@ -260,9 +261,19 @@ function calcWrappedLineCount(text, maxW, fs, spec){
   const spW = _fsCtx.measureText(' ').width;
   for(const word of words){
     const ww = _fsCtx.measureText(word).width;
-    if(lineW === 0){ lineW = ww; }
-    else if(lineW + spW + ww > maxW){ lines++; lineW = ww; }
-    else { lineW += spW + ww; }
+    if(ww > maxW){
+      // Word is too wide to fit on one line — CSS will break it mid-character
+      if(lineW > 0){ lines++; lineW = 0; }  // flush whatever's on the current line
+      const wordLines = Math.ceil(ww / maxW);
+      lines += wordLines - 1;               // first line already counted
+      lineW = ww - (wordLines - 1) * maxW;  // approx remaining width on last partial line
+    } else if(lineW === 0){
+      lineW = ww;
+    } else if(lineW + spW + ww > maxW){
+      lines++; lineW = ww;
+    } else {
+      lineW += spW + ww;
+    }
   }
   return lines;
 }
@@ -277,10 +288,10 @@ function calcFsPxWrapped(lines, maxW, maxH, fontSpec){
     const mid=(lo+hi)/2;
     let totalWrapped = 0;
     for(const line of validLines) totalWrapped += calcWrappedLineCount(line, maxW, mid, spec);
-    const totalH = totalWrapped * mid * 1.22;
+    const totalH = totalWrapped * mid * 1.25; // 1.25 matches rendered line-height with buffer
     if(totalH <= maxH) lo=mid; else hi=mid;
   }
-  return lo * 0.91;
+  return lo * 0.88; // safety margin so nothing clips
 }
 
 function calcFsMulti(segArr, maxW, totalMaxH){
