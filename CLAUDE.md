@@ -436,6 +436,65 @@ Uses **Option A** (`body { height: 100vh; display: flex; flex-direction: column;
 
 ---
 
+## Tool 4 — Label Builder
+
+**File:** `Label Builder.html` (also `label-builder/index.html` in repo)
+**~500 lines** — vanilla JS, dark theme matching suite palette. Canvas-based font sizing.
+
+### What it does
+4×6 thermal label generator for a Rollo printer. Supports 6 label types: Free Text, Fixture, Case #, Device, Shipping, and Rack. Labels are built into a batch, previewed at scale, then printed one-per-page to a thermal printer at 6"×4" landscape.
+
+### App state model
+Persisted to `localStorage` key `'lb_batch'`.
+```js
+S = { batch: [], genTab: 'free', showName: '' }
+```
+Show name read from `pps_suite` localStorage key (also listens for `storage` events).
+
+### Label dimensions
+```js
+const LW = 576, LH = 384;   // 6in × 4in at 96dpi CSS px
+const LP = 20;               // label padding px
+const LCW = LW - LP*2;      // content width = 536px
+const LCH = LH - LP*2;      // content height = 344px
+const PREVIEW_S = 0.551;    // preview scale → 317 × 212 visible
+```
+
+### Label types
+
+| Type | Key fields | Layout |
+|---|---|---|
+| `free` | lines[] (1–4 lines of text) | Auto-sized centered text, largest font that fits |
+| `fixture` | fixtureType, idFrom, idTo, location | 3-section: type / IDs / location with divider lines |
+| `case` | prefix, caseNum, suffix | Large centered case number with optional prefix/suffix |
+| `device` | name, unitId, address | Name + unit ID + address block |
+| `ship` | attn, company, addr1, addr2, city | Left-aligned shipping address block |
+| `rack` | rackName | Auto-sized rack name, centered |
+
+### Font sizing (canvas-based binary search)
+```js
+function calcFsPx(lines, maxW, maxH, fontSpec) {
+  // Binary search lo=6 hi=520 for 32 iterations
+  // Measures text via canvas.getContext('2d').measureText()
+  // Returns lo * 0.91 (safety margin)
+}
+```
+
+### Print output
+Opens a new window with `@page{size:6in 4in;margin:0}`, one `.label-page` div per label (576×384px), with a "Print" button.
+
+### Rack Builder integration
+Reads from `localStorage.getItem('rb_project') || localStorage.getItem('rack_builder_project')` to populate rack names in the Rack label generator dropdown.
+
+### Viewport pattern
+Uses **Option A** (`body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }`)
+
+### Tabs
+- **Batch**: scrollable batch tray showing all queued labels as previews; clear-all and print-all buttons
+- **Generator**: 6 sub-tabs (Free Text, Fixture, Case #, Device, Shipping, Rack) with form fields; "Add to Batch" button
+
+---
+
 ## Reference docs (in `reference-docs/`)
 - GigaCore 10 user manual
 - ProPlex IQ 1616 user manual  
