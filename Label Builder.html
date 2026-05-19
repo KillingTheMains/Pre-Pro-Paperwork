@@ -251,12 +251,44 @@ function calcFsPx(lines, maxW, maxH, fontSpec){
   return lo * 0.91;
 }
 
+// Simulate word-wrap at a given font size; returns number of visual lines
+function calcWrappedLineCount(text, maxW, fs, spec){
+  _fsCtx.font = spec.replace('{S}', fs);
+  const words = text.split(/\s+/).filter(Boolean);
+  if(!words.length) return 1;
+  let lines = 1, lineW = 0;
+  const spW = _fsCtx.measureText(' ').width;
+  for(const word of words){
+    const ww = _fsCtx.measureText(word).width;
+    if(lineW === 0){ lineW = ww; }
+    else if(lineW + spW + ww > maxW){ lines++; lineW = ww; }
+    else { lineW += spW + ww; }
+  }
+  return lines;
+}
+
+// Like calcFsPx but allows word-wrap — finds largest font where all lines fit
+function calcFsPxWrapped(lines, maxW, maxH, fontSpec){
+  const spec = fontSpec || "900 {S}px 'Arial Black', Arial, sans-serif";
+  const validLines = (lines||[]).map(l=>String(l||'').trim()).filter(Boolean);
+  if(!validLines.length) return 48;
+  let lo=6, hi=520;
+  for(let i=0;i<32;i++){
+    const mid=(lo+hi)/2;
+    let totalWrapped = 0;
+    for(const line of validLines) totalWrapped += calcWrappedLineCount(line, maxW, mid, spec);
+    const totalH = totalWrapped * mid * 1.22;
+    if(totalH <= maxH) lo=mid; else hi=mid;
+  }
+  return lo * 0.91;
+}
+
 function calcFsMulti(segArr, maxW, totalMaxH){
   // segArr: [{lines, frac}] — frac is the fraction of totalMaxH for this segment
-  // Returns array of font sizes
+  // Returns array of font sizes, wrap-aware
   return segArr.map(seg=>{
     const h = totalMaxH * seg.frac;
-    return calcFsPx(seg.lines, maxW, h);
+    return calcFsPxWrapped(seg.lines, maxW, h);
   });
 }
 
@@ -274,8 +306,8 @@ function renderLabelCanvas(lbl){
       const raw = (lbl.text||'').replace(/\r/g,'');
       const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
       if(!lines.length) return _emptyCanvas();
-      const fs = calcFsPx(lines, LCW, LCH);
-      const inner = lines.map(l=>`<div style="white-space:nowrap">${h(l)}</div>`).join('');
+      const fs = calcFsPxWrapped(lines, LCW, LCH);
+      const inner = lines.map(l=>`<div style="overflow-wrap:break-word;max-width:${LCW}px;">${h(l)}</div>`).join('');
       return `<div class="lbl-canvas" style="${base}${center}${fontBold}font-size:${fs}px;line-height:1.18;">${inner}</div>`;
     }
 
@@ -300,7 +332,7 @@ function renderLabelCanvas(lbl){
       parts.forEach((p,i)=>{
         const isLoc = (i===parts.length-1 && loc);
         const clr = isLoc ? '#444' : '#000';
-        inner += `<div style="font-size:${sizes[i]}px;color:${clr};white-space:nowrap;line-height:1.1;font-family:'Arial Black',Impact,Arial,sans-serif;font-weight:900;">${h(p.lines[0])}</div>`;
+        inner += `<div style="font-size:${sizes[i]}px;color:${clr};overflow-wrap:break-word;max-width:${LCW}px;line-height:1.1;font-family:'Arial Black',Impact,Arial,sans-serif;font-weight:900;">${h(p.lines[0])}</div>`;
         if(i<parts.length-1 && i===0){
           inner += `<div style="width:${LCW}px;height:2px;background:#000;flex-shrink:0;margin:3px 0;"></div>`;
         }
@@ -345,10 +377,10 @@ function renderLabelCanvas(lbl){
       ].filter(Boolean);
 
       const allLines = parts.map(p=>p.text);
-      const fsBase = calcFsPx(allLines, LCW, LCH);
+      const fsBase = calcFsPxWrapped(allLines, LCW, LCH);
 
       let inner = parts.map(p=>`
-        <div style="font-size:${fsBase*p.weight}px;color:${p.color};${fontBold}white-space:nowrap;line-height:1.18;">${h(p.text)}</div>
+        <div style="font-size:${fsBase*p.weight}px;color:${p.color};${fontBold}overflow-wrap:break-word;max-width:${LCW}px;line-height:1.18;">${h(p.text)}</div>
       `).join('');
       return `<div class="lbl-canvas" style="${base}${center}">${inner}</div>`;
     }
@@ -398,10 +430,10 @@ function renderLabelCanvas(lbl){
       const sub  = (lbl.sub||'').trim();
       if(!name) return _emptyCanvas();
       const lines = [name, sub].filter(Boolean);
-      const fsName = calcFsPx([name], LCW, sub ? LCH*0.72 : LCH);
-      const fsSub  = sub ? calcFsPx([sub], LCW, LCH*0.22) : 0;
-      let inner = `<div style="font-size:${fsName}px;${fontBold}white-space:nowrap;line-height:1.05;">${h(name)}</div>`;
-      if(sub) inner += `<div style="font-size:${fsSub}px;${fontBold}color:#555;white-space:nowrap;margin-top:6px;">${h(sub)}</div>`;
+      const fsName = calcFsPxWrapped([name], LCW, sub ? LCH*0.72 : LCH);
+      const fsSub  = sub ? calcFsPxWrapped([sub], LCW, LCH*0.22) : 0;
+      let inner = `<div style="font-size:${fsName}px;${fontBold}overflow-wrap:break-word;max-width:${LCW}px;line-height:1.05;">${h(name)}</div>`;
+      if(sub) inner += `<div style="font-size:${fsSub}px;${fontBold}color:#555;overflow-wrap:break-word;max-width:${LCW}px;margin-top:6px;">${h(sub)}</div>`;
       return `<div class="lbl-canvas" style="${base}${center}">${inner}</div>`;
     }
 
@@ -791,7 +823,6 @@ function printLabels(){
   </head><body>
     <div class="print-bar">
       <button onclick="window.print()">🖨 Print (${S.batch.length} label${S.batch.length!==1?'s':''})</button>
-      <span>Select your Rollo or label printer · Label size: 6" × 4" landscape</span>
     </div>
     ${labelPages}
   </body></html>`);
