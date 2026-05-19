@@ -251,8 +251,8 @@ function calcFsPx(lines, maxW, maxH, fontSpec){
   return lo * 0.91;
 }
 
-// Simulate word-wrap at a given font size; returns number of visual lines.
-// Handles words wider than maxW — CSS overflow-wrap:break-word splits them mid-character.
+// Simulate WORD-LEVEL wrap at a given font size; returns number of visual lines.
+// Words are never broken mid-character — only at spaces.
 function calcWrappedLineCount(text, maxW, fs, spec){
   _fsCtx.font = spec.replace('{S}', fs);
   const words = text.split(/\s+/).filter(Boolean);
@@ -261,37 +261,34 @@ function calcWrappedLineCount(text, maxW, fs, spec){
   const spW = _fsCtx.measureText(' ').width;
   for(const word of words){
     const ww = _fsCtx.measureText(word).width;
-    if(ww > maxW){
-      // Word is too wide to fit on one line — CSS will break it mid-character
-      if(lineW > 0){ lines++; lineW = 0; }  // flush whatever's on the current line
-      const wordLines = Math.ceil(ww / maxW);
-      lines += wordLines - 1;               // first line already counted
-      lineW = ww - (wordLines - 1) * maxW;  // approx remaining width on last partial line
-    } else if(lineW === 0){
-      lineW = ww;
-    } else if(lineW + spW + ww > maxW){
-      lines++; lineW = ww;
-    } else {
-      lineW += spW + ww;
-    }
+    if(lineW === 0){ lineW = ww; }
+    else if(lineW + spW + ww > maxW){ lines++; lineW = ww; }
+    else { lineW += spW + ww; }
   }
   return lines;
 }
 
-// Like calcFsPx but allows word-wrap — finds largest font where all lines fit
+// Like calcFsPx but allows word-wrap — finds largest font where:
+//   1. No single word exceeds maxW (so nothing overflows even without overflow-wrap)
+//   2. Total wrapped height fits in maxH
 function calcFsPxWrapped(lines, maxW, maxH, fontSpec){
   const spec = fontSpec || "900 {S}px 'Arial Black', Arial, sans-serif";
   const validLines = (lines||[]).map(l=>String(l||'').trim()).filter(Boolean);
   if(!validLines.length) return 48;
+  const allWords = validLines.flatMap(l=>l.split(/\s+/).filter(Boolean));
   let lo=6, hi=520;
   for(let i=0;i<32;i++){
     const mid=(lo+hi)/2;
+    _fsCtx.font = spec.replace('{S}', mid);
+    // Constraint 1: widest single word must fit within maxW
+    const maxWordW = Math.max(...allWords.map(w=>_fsCtx.measureText(w).width));
+    // Constraint 2: total wrapped height must fit within maxH
     let totalWrapped = 0;
     for(const line of validLines) totalWrapped += calcWrappedLineCount(line, maxW, mid, spec);
-    const totalH = totalWrapped * mid * 1.25; // 1.25 matches rendered line-height with buffer
-    if(totalH <= maxH) lo=mid; else hi=mid;
+    const totalH = totalWrapped * mid * 1.25;
+    if(maxWordW <= maxW && totalH <= maxH) lo=mid; else hi=mid;
   }
-  return lo * 0.88; // safety margin so nothing clips
+  return lo * 0.88;
 }
 
 function calcFsMulti(segArr, maxW, totalMaxH){
@@ -318,7 +315,7 @@ function renderLabelCanvas(lbl){
       const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
       if(!lines.length) return _emptyCanvas();
       const fs = calcFsPxWrapped(lines, LCW, LCH);
-      const inner = lines.map(l=>`<div style="overflow-wrap:break-word;max-width:${LCW}px;">${h(l)}</div>`).join('');
+      const inner = lines.map(l=>`<div style="width:${LCW}px;">${h(l)}</div>`).join('');
       return `<div class="lbl-canvas" style="${base}${center}${fontBold}font-size:${fs}px;line-height:1.18;">${inner}</div>`;
     }
 
@@ -343,7 +340,7 @@ function renderLabelCanvas(lbl){
       parts.forEach((p,i)=>{
         const isLoc = (i===parts.length-1 && loc);
         const clr = isLoc ? '#444' : '#000';
-        inner += `<div style="font-size:${sizes[i]}px;color:${clr};overflow-wrap:break-word;max-width:${LCW}px;line-height:1.1;font-family:'Arial Black',Impact,Arial,sans-serif;font-weight:900;">${h(p.lines[0])}</div>`;
+        inner += `<div style="font-size:${sizes[i]}px;color:${clr};width:${LCW}px;line-height:1.1;font-family:'Arial Black',Impact,Arial,sans-serif;font-weight:900;">${h(p.lines[0])}</div>`;
         if(i<parts.length-1 && i===0){
           inner += `<div style="width:${LCW}px;height:2px;background:#000;flex-shrink:0;margin:3px 0;"></div>`;
         }
@@ -391,7 +388,7 @@ function renderLabelCanvas(lbl){
       const fsBase = calcFsPxWrapped(allLines, LCW, LCH);
 
       let inner = parts.map(p=>`
-        <div style="font-size:${fsBase*p.weight}px;color:${p.color};${fontBold}overflow-wrap:break-word;max-width:${LCW}px;line-height:1.18;">${h(p.text)}</div>
+        <div style="font-size:${fsBase*p.weight}px;color:${p.color};${fontBold}width:${LCW}px;line-height:1.18;">${h(p.text)}</div>
       `).join('');
       return `<div class="lbl-canvas" style="${base}${center}">${inner}</div>`;
     }
@@ -443,8 +440,8 @@ function renderLabelCanvas(lbl){
       const lines = [name, sub].filter(Boolean);
       const fsName = calcFsPxWrapped([name], LCW, sub ? LCH*0.72 : LCH);
       const fsSub  = sub ? calcFsPxWrapped([sub], LCW, LCH*0.22) : 0;
-      let inner = `<div style="font-size:${fsName}px;${fontBold}overflow-wrap:break-word;max-width:${LCW}px;line-height:1.05;">${h(name)}</div>`;
-      if(sub) inner += `<div style="font-size:${fsSub}px;${fontBold}color:#555;overflow-wrap:break-word;max-width:${LCW}px;margin-top:6px;">${h(sub)}</div>`;
+      let inner = `<div style="font-size:${fsName}px;${fontBold}width:${LCW}px;line-height:1.05;">${h(name)}</div>`;
+      if(sub) inner += `<div style="font-size:${fsSub}px;${fontBold}color:#555;width:${LCW}px;margin-top:6px;">${h(sub)}</div>`;
       return `<div class="lbl-canvas" style="${base}${center}">${inner}</div>`;
     }
 
@@ -805,30 +802,30 @@ function printLabels(){
       *{margin:0;padding:0;box-sizing:border-box}
       @page{size:6in 4in;margin:0}
       body{background:#fff}
-      .label-page{
-        width:6in;height:4in;overflow:hidden;
-        page-break-after:always;
-      }
+      .label-page{width:6in;height:4in;overflow:hidden;}
       .lbl-canvas{
         width:576px;height:384px;background:#fff;overflow:hidden;
         font-family:'Arial Black','Arial Narrow Bold',Arial,sans-serif;
         color:#000;line-height:1.15
       }
       @media screen{
-        body{background:#ccc;display:flex;flex-direction:column;align-items:center;gap:16px;padding:16px}
-        .label-page{box-shadow:0 2px 8px rgba(0,0,0,.3)}
+        body{background:#ccc;display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px}
         .print-bar{
-          position:fixed;top:0;left:0;right:0;padding:10px 16px;
-          background:#222;color:#fff;display:flex;align-items:center;gap:12px;
-          font-family:Arial,sans-serif;font-size:13px;z-index:999
+          padding:10px 16px;background:#222;color:#fff;
+          display:flex;align-items:center;gap:12px;
+          font-family:Arial,sans-serif;font-size:13px;
+          border-radius:6px;width:576px;flex-shrink:0;
         }
         .print-bar button{
           font-family:Arial,sans-serif;font-size:13px;font-weight:700;
           padding:6px 16px;background:#4a9eff;color:#fff;
           border:none;border-radius:4px;cursor:pointer
         }
-        .label-page{margin-top:52px}
-        .label-page:not(:first-of-type){margin-top:0}
+        .label-page{box-shadow:0 2px 10px rgba(0,0,0,.35);}
+      }
+      @media print{
+        .print-bar{display:none;}
+        .label-page{page-break-after:always;}
       }
     </style>
   </head><body>
